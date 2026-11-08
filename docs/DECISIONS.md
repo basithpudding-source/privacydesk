@@ -13,3 +13,4 @@
 - Working name "Privacy Desk": check Companies House and the UK IPO trade mark register before branding.
 - Scotland and Northern Ireland bank holidays: load from the GOV.UK feed in slice 6; until then England and Wales only.
 - Should complaint outcomes have an internal target per client (default 28 days) or a fixed one? Ask the first pilots.
+- Two copies of the deadline rules now exist: `packages/clocks/clocks.js` (JS, 14 tests) and `apps/web/src/lib/clocks.ts` (TypeScript, same tests plus typing). CLAUDE.md names the package as the single source of truth. Proposal: once slice 3 ships, make the TypeScript module the source and either retire `packages/clocks/` or turn it into a workspace package the app imports. Until then, change both and run both test suites.

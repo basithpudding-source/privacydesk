@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Privacy Desk web app
 
-## Getting Started
+The production Next.js app. Read the root `CLAUDE.md` and `docs/DESIGN-STANDARD.md` before building any screen.
 
-First, run the development server:
+## First-time setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Create the Supabase project** in the London region at supabase.com. Note the project URL and the publishable key from Project settings > API. (A legacy anon key works too.)
+2. **Run the schema.** In the Supabase SQL editor, run `supabase/migrations/0001_initial.sql`, then `supabase/schema_test.sql`. Every row of the test output must say PASS.
+3. **Set the keys.** Copy `.env.local.example` to `.env.local` and fill in both values. `.env.local` is ignored by git; never commit it, and never put the service role key anywhere the browser can reach.
+4. **Install and run.**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+       npm install
+       npm run dev
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   Open http://localhost:3000.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Checks
 
-## Learn More
+    npm test          # deadline engine against the ICO worked examples (Vitest)
+    npm run typecheck # tsc --noEmit
+    npm run lint      # eslint
+    npm run build     # production build
 
-To learn more about Next.js, take a look at the following resources:
+## Where things are
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/lib/clocks.ts` — the deadline engine, ported from `packages/clocks/clocks.js`. Keep the two in step until the open question in `docs/DECISIONS.md` is settled. Never change a date rule without a test built from an ICO worked example.
+- `src/lib/supabase/` — browser and server clients. Both use the publishable key; row-level security in Postgres is the isolation boundary.
+- `src/components/ui/` — shadcn/ui components (base-nova style, neutral palette).
+- `src/app/` — App Router pages.

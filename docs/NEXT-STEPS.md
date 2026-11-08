@@ -6,15 +6,15 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 - [ ] Declare the side business on the BBC Declaration of Personal Interests form; check the outside-work and IP clauses in your contract.
 - [ ] Show the prototype (`prototype/index.html`, or the hosted copy) to 10 DPO consultancies. Three pilots by 22 November = build. Fewer = change the customer first.
-- [ ] Create a GitHub repository from this folder: `git init && git add . && git commit -m "Privacy Desk: engine, schema, prototype, docs"`.
+- [x] Git repository initialised locally (8 November 2026). Still to do: push it to GitHub.
 
 ## 1. Project setup (1 evening)
 
 - [ ] Create a Supabase project in the London region. Note the URL and anon key.
 - [ ] Run `supabase/migrations/0001_initial.sql` in the SQL editor. Then run `supabase/schema_test.sql` and check every row says PASS.
-- [ ] In `apps/`, run `npx create-next-app@latest web --typescript --tailwind --app --src-dir --eslint`, then `npx shadcn@latest init`.
-- [ ] Add `@supabase/ssr` and `@supabase/supabase-js`; put the keys in `apps/web/.env.local` (never commit it).
-- [ ] Copy `packages/clocks/clocks.js` into the app as a TypeScript module and port the tests to Vitest. Tests green before moving on.
+- [x] In `apps/`, run `npx create-next-app@latest web --typescript --tailwind --app --src-dir --eslint`, then `npx shadcn@latest init`.
+- [x] Add `@supabase/ssr` and `@supabase/supabase-js`. Still to do: put the keys in `apps/web/.env.local` (never commit it); see `apps/web/README.md`.
+- [x] Copy `packages/clocks/clocks.js` into the app as a TypeScript module and port the tests to Vitest. Tests green before moving on.
 
 ## 2. Sign in and clients (1 to 2 evenings)
 
