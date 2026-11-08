@@ -195,6 +195,25 @@ With neither set, in development only, the emails are printed to the server log 
 
 To try it locally: open `http://localhost:3000/r/<code>`, fill in the form, open the link shown on the page, then look in the inbox.
 
+## Dashboard, report and nightly job (slice 6)
+
+- `/dashboard` answers "is any client at risk this week?": four tiles (open, due in 7 days, overdue, on time), the attention list of cases overdue or due within 7 days, cases received per month for six months by type (with the same numbers in a table), and a per-client table. Filter by client with `?client=`. `G then D`.
+- `/report` is the monthly client report: pick a client and a month, copy the text or download the PDF (`/api/report/pdf?client=&month=`). The numbers come from `pd.v_monthly_client_report`; the open and closed lists from the cases. `G then R`.
+- `/api/jobs/nightly` does three things, in order, and reports each as JSON: upserts bank holidays for all three regions from the GOV.UK feed; runs `pd.apply_retention`; sends reminder digests for cases 7 days, 2 days and 0 days from their legal deadline, one email per person, and logs each case and bucket in `pd.reminder_log` so a second run that night sends nothing. Reminders use the same sender as the public form.
+
+### Setting up the nightly job
+
+1. In the Supabase dashboard, Project Settings > API Keys > Secret keys, copy the secret key. Put it in the app's environment as `SUPABASE_SERVICE_ROLE_KEY`. This key bypasses row-level security: it belongs on the server only, in this one route, and never in the browser or in git.
+2. Set `JOBS_SECRET` to a long random string.
+3. Schedule a nightly call, for example at 06:30 UK time so the digest is in inboxes first thing:
+   - Vercel: `vercel.json` with `{"crons":[{"path":"/api/jobs/nightly","schedule":"30 6 * * *"}]}` and `JOBS_SECRET` passed as the cron secret (Vercel sends it as a bearer token);
+   - or Supabase pg_cron with pg_net calling `https://<your app>/api/jobs/nightly?secret=<JOBS_SECRET>`;
+   - or, in development, by hand:
+
+         curl "http://localhost:3000/api/jobs/nightly?secret=$JOBS_SECRET"
+
+Run it once by hand after creating the project so Scotland and Northern Ireland holidays are loaded. Without the service key the route answers 503 and does nothing; without the secret, 401.
+
 ## Checks
 
     npm test          # deadline engine against the ICO worked examples (Vitest)

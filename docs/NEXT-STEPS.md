@@ -44,9 +44,9 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 6. Dashboard, report, reminders (2 evenings)
 
-- [ ] Dashboard from `pd.v_case_deadlines`; per-client table; monthly chart.
-- [ ] Monthly report from `pd.v_monthly_client_report`, as a page and a PDF.
-- [ ] Nightly job: reminder emails at 7 days, 2 days and on the day; bank holidays refreshed from the GOV.UK feed; retention job run.
+- [x] Dashboard from `pd.v_case_deadlines`; per-client table; monthly chart. (8 November 2026: four tiles, the attention list, a six-month grouped bar chart with its table, and the per-client table; `G then D`.)
+- [x] Monthly report from `pd.v_monthly_client_report`, as a page and a PDF. (The prototype's plain-English text with a copy button; `GET /api/report/pdf` renders it with @react-pdf/renderer; `G then R`.)
+- [x] Nightly job: reminder emails at 7 days, 2 days and on the day; bank holidays refreshed from the GOV.UK feed; retention job run. (`/api/jobs/nightly` with `JOBS_SECRET`, the one place the service role is used; `pd.reminders_due` and `pd.reminder_log` in migration 0007. Database side proved live under the service role. Still to do: put `SUPABASE_SERVICE_ROLE_KEY` in the app's environment and schedule the call; see `apps/web/README.md`.)
 
 ## 7. Production security checklist (before any real data)
 

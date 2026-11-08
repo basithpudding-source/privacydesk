@@ -23,11 +23,16 @@
 | 2026-11-08 | The app sends two transactional emails for the public form (the link and the confirmation), through Resend | These are messages the requester asked for by filling in the form. "The app never sends email on its own" in CLAUDE.md means case correspondence: letters are still drafted, copied and sent by a person |
 | 2026-11-08 | The confirmation states a legal response date based on the requester's own choice of type, before a person has triaged it | A requester expects to be told when to expect an answer (design standard §6). The sentence says the time runs later if identity has to be checked, and the consultancy confirms the date in its own acknowledgement. Revisit if pilots find the date causes disputes |
 | 2026-11-08 | Web form requests get their own reference (`<code>-W0001`) that the case keeps as `source_ref` | Cases are numbered only when a person accepts the item, so the requester cannot be given the case reference on the spot. The case page and search both know the web reference |
+| 2026-11-08 | The service role is used in one place only: the nightly job route, server-side, behind `JOBS_SECRET`, with explicit grants for just what the job does | Reminders have to see every consultancy's cases and read members' email addresses, which no user session can. Nothing else in the app has that key, and the browser never does |
+| 2026-11-08 | Reminder digests are internal email to the consultancy's own staff, one per person per night | They are not case correspondence, so they sit outside the "never sends letters" rule, like the public form's emails. The digest says nothing has been sent to the requester |
+| 2026-11-08 | The monthly report PDF is rendered on the server with @react-pdf/renderer, from the same text as the page | No browser needed on the server; one page, the client's name and colour, same words as the page so the two never disagree |
+| 2026-11-08 | Bank holidays for all three regions come from the GOV.UK feed, upserted nightly | One source for the dates, and Scotland and Northern Ireland work without hand-typed lists. The engine's built-in England and Wales list is only a fallback |
 
 ## Open questions
 
 - Working name "Privacy Desk": check Companies House and the UK IPO trade mark register before branding.
-- Scotland and Northern Ireland bank holidays: load from the GOV.UK feed in slice 6; until then England and Wales only.
+- Reminder recipients: every member who can see the case gets the digest, with no per-person switch. Add one in settings once someone asks for it.
+- The case page's "no bank holidays loaded for Scotland yet" notice disappears once the nightly job has run. Until the job is scheduled, run it by hand after creating the project (see `apps/web/README.md`).
 - Should complaint outcomes have an internal target per client (default 28 days) or a fixed one? Ask the first pilots.
 - Inbound email domain: forwarding addresses need a domain whose MX records point at Postmark (or Resend inbound). Which domain, and who owns the Postmark account? Until then the client page shows the address without a domain.
 - AI provider terms: requester messages go to Anthropic for triage and drafting. The slice 7 checklist needs the data processing agreement and no-training terms confirmed before any real data; the per-client switch already exists.

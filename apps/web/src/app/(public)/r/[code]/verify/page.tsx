@@ -49,6 +49,10 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
   const v = ((data as Verified[] | null) ?? [])[0];
   if (!v) return <Problem client={client} title="This link is not recognised">Fill in the form again and we will send a new one.</Problem>;
 
+  // Bank holidays for the client's region, so the response date is worked out as the case page will.
+  const { data: holidayRows } = await supabase.from("bank_holidays").select("day").eq("region", v.region);
+  const holidays = new Set((holidayRows ?? []).map((h) => h.day as string));
+
   if (!v.already_verified) {
     // Triage now, so the item is already proposed when the consultancy opens the inbox.
     const outcome = await triage({ text: v.details, organisationName: v.organisation_name, receivedOn: v.received_on, aiEnabled: v.ai_enabled });
@@ -61,11 +65,12 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       organisationName: v.organisation_name,
       requesterName: v.requester_name,
       contactEmail: v.contact_email,
+      holidays,
     });
     await sendEmail({ to: v.requester_email, subject: message.subject, text: message.text });
   }
 
-  const { sentence } = responseDates(v.request_type, v.received_on, v.region);
+  const { sentence } = responseDates(v.request_type, v.received_on, v.region, holidays);
 
   return (
     <div className="mx-auto w-full max-w-[65ch]">

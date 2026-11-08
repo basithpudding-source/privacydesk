@@ -13,7 +13,10 @@ export function requestKindLabel(kind: RequestKind): string {
   return REQUEST_KINDS.find((k) => k.value === kind)?.label ?? "A request about my personal information";
 }
 
-/** Bank holidays the engine knows for a region (Scotland and Northern Ireland arrive in slice 6). */
+/**
+ * The holidays the engine ships with, as a fallback when the database has none for a region.
+ * The nightly job (slice 6) loads all three regions from GOV.UK into pd.bank_holidays.
+ */
 export function holidaysFor(region: Region): ReadonlySet<ISODate> {
   return new Set(region === "england-and-wales" ? BANK_HOLIDAYS_ENGLAND_WALES : []);
 }
@@ -32,8 +35,8 @@ export interface ResponseDates {
  * without undue delay. If identity has to be checked first, the organisation's clock starts
  * later; the confirmation says so separately.
  */
-export function responseDates(kind: RequestKind, receivedOn: ISODate, region: Region): ResponseDates {
-  const holidays = holidaysFor(region);
+export function responseDates(kind: RequestKind, receivedOn: ISODate, region: Region, loaded?: ReadonlySet<ISODate>): ResponseDates {
+  const holidays = loaded && loaded.size > 0 ? loaded : holidaysFor(region);
   if (kind === "complaint") {
     const due = nextWorkingDay(addDays(receivedOn, 30), holidays);
     return { due, sentence: `They will acknowledge your complaint by ${longDate(due)} and respond without undue delay.` };
@@ -50,11 +53,13 @@ export interface ConfirmationInput {
   organisationName: string;
   requesterName: string;
   contactEmail: string | null;
+  /** Bank holidays for the region from the database, when loaded. */
+  holidays?: ReadonlySet<ISODate>;
 }
 
 /** The confirmation email, as plain text. The page shows the same facts. */
 export function confirmationEmail(c: ConfirmationInput): { subject: string; text: string } {
-  const { sentence } = responseDates(c.kind, c.receivedOn, c.region);
+  const { sentence } = responseDates(c.kind, c.receivedOn, c.region, c.holidays);
   const contact = c.contactEmail
     ? `If you have a question, email ${c.contactEmail} and quote your reference.`
     : `If you have a question, contact ${c.organisationName} and quote your reference.`;
