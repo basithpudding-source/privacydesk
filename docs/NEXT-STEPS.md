@@ -24,10 +24,10 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 3. Cases (2 to 3 evenings)
 
-- [ ] Case list sorted by next deadline, with the three deadline states and filters (status, type, client, search).
-- [ ] Case page as a task list (see DESIGN-STANDARD §3) with the deadline block and audit trail.
-- [ ] Actions: acknowledge, ask for ID, ID received, ask for clarification, clarification received, extend, note, close, reopen. Each writes a `case_events` row.
-- [ ] Keyboard: `C`, `/`, `G C`, `?` and the command palette.
+- [x] Case list sorted by next deadline, with the three deadline states and filters (status, type, client, search). (8 November 2026)
+- [x] Case page as a task list (see DESIGN-STANDARD §3) with the deadline block and audit trail. The block also compares the TypeScript engine's date with the database view's and warns if they differ.
+- [x] Actions: acknowledge, ask for ID, ID received, ask for clarification, clarification received, extend, note, close, reopen. Each writes a `case_events` row. (All nine go through `pd.record_case_action`, one transaction per action; walked through live against the ICO dates.)
+- [x] Keyboard: `C`, `/`, `G C`, `?` and the command palette. (`G L` for clients too. `G I` waits for the inbox.)
 
 ## 4. Inbox and AI (2 evenings)
 

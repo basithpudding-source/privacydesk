@@ -143,6 +143,14 @@ Do this once after slice 2, and again after any change to policies in `supabase/
 
 The SQL version of the same proof is in `supabase/schema_test.sql` (the "Client separation" and "new user" sections).
 
+## Cases (slice 3)
+
+- `/cases` lists cases from `pd.v_case_deadlines`, soonest legal deadline first. Filters are in the URL (`status`, `type`, `client`, `q`).
+- `/cases/new` logs a case by hand through `pd.create_case`, which numbers the reference per client (`EHT-001`).
+- `/cases/<id>` shows the deadline block (the due date, then the working in numbered steps from `src/lib/clocks.ts`), the task list, the request text and the audit trail. Each task row opens its action in the right-hand panel; every action is one call to `pd.record_case_action`, which refuses anything the case's state does not allow and writes the audit event in the same transaction.
+- The deadline block compares the engine's date with the view's. If they ever differ, a red warning appears on the case. Treat that as a bug in one of the two copies of the rules.
+- Keyboard: `C` log a case, `/` search, `G` then `C` cases, `G` then `L` clients, `?` help, Ctrl+K palette.
+
 ## Checks
 
     npm test          # deadline engine against the ICO worked examples (Vitest)
