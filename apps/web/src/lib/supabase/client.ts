@@ -5,5 +5,6 @@ import { supabaseEnv } from "./env";
 
 export function createClient() {
   const { url, key } = supabaseEnv();
-  return createBrowserClient(url, key);
+  // The app's tables live in the pd schema, so .from("cases") means pd.cases.
+  return createBrowserClient(url, key, { db: { schema: "pd" } });
 }

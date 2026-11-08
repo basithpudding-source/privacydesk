@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col justify-center px-4 py-16 sm:px-8">
@@ -8,9 +11,12 @@ export default function Home() {
           for you.
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Sign-in arrives in the next build slice. Until then this page confirms
-          the app is running.
+          A case desk for data protection consultancies looking after many client
+          organisations.
         </p>
+        <div className="mt-8">
+          <Button render={<Link href="/sign-in" />}>Sign in</Button>
+        </div>
         <p className="mt-8 text-sm text-muted-foreground">
           Privacy Desk is software, not legal advice. Deadlines follow published
           ICO guidance; the organisation remains responsible for its responses.

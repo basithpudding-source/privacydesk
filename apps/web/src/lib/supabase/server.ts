@@ -11,6 +11,8 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(url, key, {
+    // The app's tables live in the pd schema, so .from("cases") means pd.cases.
+    db: { schema: "pd" },
     cookies: {
       getAll() {
         return cookieStore.getAll();
