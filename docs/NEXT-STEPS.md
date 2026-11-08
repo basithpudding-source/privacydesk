@@ -38,9 +38,9 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 5. Public form and verification (1 to 2 evenings)
 
-- [ ] Public form per client at `/r/<client code>` with the client's colour.
-- [ ] Email magic-link verification before the request is accepted; confirmation page and email with reference and response date.
-- [ ] Submissions land in the inbox, not directly in cases.
+- [x] Public form per client at `/r/<client code>` with the client's colour. (8 November 2026: four fields plus a honeypot; client codes made unique across consultancies so the address names one client.)
+- [x] Email magic-link verification before the request is accepted; confirmation page and email with reference and response date. (One-time token, hashed in the database, 24 hours; reference `<code>-W0001`; the clock starts on the day the link is opened. Sender is Resend; with no key, development prints the emails to the server log and shows the link on the page. Still to do: a Resend account, `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL`.)
+- [x] Submissions land in the inbox, not directly in cases. (Channel "Web form", triaged on arrival, with the reference and the requester's own choice of type shown; the accept form is prefilled from them.)
 
 ## 6. Dashboard, report, reminders (2 evenings)
 
