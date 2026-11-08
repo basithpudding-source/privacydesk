@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { REGIONS } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
-import type { ClientFormState } from "./actions";
+import type { ClientFormState } from "./form-state";
 
 type Action = (prev: ClientFormState, formData: FormData) => Promise<ClientFormState>;
 

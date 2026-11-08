@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/auth";
-import { addClient, DEFAULT_CLIENT } from "../actions";
+import { addClient } from "../actions";
 import { ClientForm } from "../client-form";
+import { DEFAULT_CLIENT } from "../form-state";
 
 export const metadata: Metadata = { title: "Add client" };
 
