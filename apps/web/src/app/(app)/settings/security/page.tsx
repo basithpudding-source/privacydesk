@@ -1,0 +1,57 @@
+import type { Metadata } from "next";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { requireUser } from "@/lib/auth";
+import { longDate } from "@/lib/clocks";
+import { createClient } from "@/lib/supabase/server";
+import { EnrolTotp } from "./enrol-totp";
+import { FactorList, type FactorSummary } from "./factor-list";
+
+export const metadata: Metadata = { title: "Security" };
+
+export default async function SecurityPage() {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.mfa.listFactors();
+  const factors: FactorSummary[] = (data?.totp ?? [])
+    .filter((f) => f.status === "verified")
+    .map((f) => ({ id: f.id, name: f.friendly_name ?? "Authenticator app", since: longDate(f.created_at.slice(0, 10)) }));
+
+  const isAdmin = user.membership?.role === "partner_admin";
+  const mustEnrol = isAdmin && factors.length === 0;
+
+  return (
+    <div className="mx-auto w-full max-w-5xl">
+      <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Signed in as {user.email}.</p>
+
+      <section className="mt-8 max-w-xl">
+        <h2 className="text-lg font-semibold">Second factor</h2>
+        {mustEnrol ? (
+          <Alert className="mt-3">
+            <AlertTitle>Partner administrators must use a second factor</AlertTitle>
+            <AlertDescription>
+              Set up an authenticator app before using the desk. It protects every client&apos;s data if your email is ever compromised.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">
+            A code from your phone, asked for each time you sign in.
+          </p>
+        )}
+
+        <div className="mt-4">
+          {factors.length > 0 ? (
+            <FactorList factors={factors} canRemove={user.assurance === "aal2"} />
+          ) : (
+            <EnrolTotp nextHref="/clients" />
+          )}
+        </div>
+        {factors.length > 0 && user.assurance !== "aal2" && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            To remove an authenticator, <a href="/mfa" className="underline underline-offset-4">enter a code first</a>.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
