@@ -232,7 +232,7 @@ What the code now does, and what you must do by hand before any real personal da
 ### By hand, in this order
 
 1. **Reset the database password** (Project Settings > Database). It was shown in a terminal on 8 November 2026.
-2. **Supabase Auth** (Authentication > Settings): set the access token lifetime to 1 hour or less; turn on refresh token rotation with a short reuse interval; on the Pro plan, set the single-session and inactivity limits as well. Confirm "Enable MFA (TOTP)" is on.
+2. **Supabase Auth** (Authentication > Sessions and Authentication > Multi-Factor): access token lifetime 1 hour or less; refresh token rotation on with a short reuse interval; TOTP enabled; "Limit duration of AAL1 sessions" on. Checked on 8 November 2026: all four already set (3600 s, rotation on, 10 s, limit on). On the Pro plan, also set "Time-box user sessions" and "Inactivity timeout".
 3. **Plan and backups**: move the project to the Pro plan before real data. The free plan keeps no backups. Confirm daily backups are listed under Database > Backups, then restore one into a scratch project once and open the app against it.
 4. **Email sender**: point Supabase Auth's SMTP settings at the Resend account used for the public form, so sign-in links are not limited to a few an hour.
 5. **Providers' terms**: accept the data processing agreements of Supabase, the hosting provider, Resend and (if inbound email is on) Postmark. Accept Anthropic's commercial terms and DPA and confirm API traffic is not used for training. Record each date on the sub-processors page.
