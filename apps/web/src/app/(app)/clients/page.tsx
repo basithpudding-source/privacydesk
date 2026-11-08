@@ -28,7 +28,11 @@ export default async function ClientsPage() {
             The organisations {user.membership.partnerName} looks after.
           </p>
         </div>
-        {isAdmin && <Button render={<Link href="/clients/new" />}>Add client</Button>}
+        {isAdmin && (
+          <Button render={<Link href="/clients/new" />} nativeButton={false}>
+            Add client
+          </Button>
+        )}
       </div>
 
       {error ? (
@@ -44,7 +48,7 @@ export default async function ClientsPage() {
               : "A partner administrator adds clients."}
           </p>
           {isAdmin && (
-            <Button className="mt-4" render={<Link href="/clients/new" />}>
+            <Button className="mt-4" render={<Link href="/clients/new" />} nativeButton={false}>
               Add client
             </Button>
           )}

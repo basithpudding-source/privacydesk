@@ -15,7 +15,9 @@ export default function Home() {
           organisations.
         </p>
         <div className="mt-8">
-          <Button render={<Link href="/sign-in" />}>Sign in</Button>
+          <Button render={<Link href="/sign-in" />} nativeButton={false}>
+            Sign in
+          </Button>
         </div>
         <p className="mt-8 text-sm text-muted-foreground">
           Privacy Desk is software, not legal advice. Deadlines follow published

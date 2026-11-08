@@ -115,6 +115,34 @@ Deleting the partners cascades to their organisations, members, cases, pauses an
 - **Queries from the app return an error about the schema or an empty list**: check step 3 (exposed schemas) and that `0002_api_access.sql` has run.
 - **Lost the database password**: Project Settings, then Database, then **Reset database password**. The API keys do not change.
 
+## Signing in (slice 2)
+
+Sign-in is by magic link. Enter an email on `/sign-in`; Supabase emails a link; the link returns to `/auth/confirm`, which turns it into a session and sends you on. A first-time user names their consultancy on `/welcome` and becomes its partner administrator. Administrators are then asked to set up an authenticator app (TOTP) on `/settings/security`, and to enter a code on `/mfa` at each later sign-in.
+
+Three dashboard settings make this work, all under **Authentication**:
+
+- **URL Configuration**: Site URL `http://localhost:3000`, and `http://localhost:3000/auth/confirm` in the redirect URL allow list. Add the production address alongside when there is one.
+- **Emails**: the built-in sender uses Supabase's default templates and allows only a few messages an hour. That is enough to test with, but set up a real sender (SMTP settings) before pilots.
+- **Multi-Factor Authentication**: TOTP enabled.
+
+Open the sign-in link in the same browser you asked for it in. The link carries a one-time code that only that browser can exchange.
+
+### Proving isolation
+
+Do this once after slice 2, and again after any change to policies in `supabase/migrations/`:
+
+1. Sign in as user A (any address you can read). Name a consultancy, enrol an authenticator, add a client.
+2. In a private window, sign in as user B (a second address, or a plus-address such as `you+b@example.com`). Name a different consultancy, add a client.
+3. As B, open `/clients`. Only B's client is listed. Paste A's client URL (`/clients/<id>`) into the address bar: the page says not found.
+4. As B, call the API directly with B's session and A's client id. In the browser console on any app page:
+
+       const { data } = await (await import('/src/lib/supabase/client.ts')).createClient().from('organisations').select('*').eq('id', '<A client id>');
+       console.log(data); // []
+
+   An empty list is the pass. Row-level security hides the row rather than refusing the query.
+
+The SQL version of the same proof is in `supabase/schema_test.sql` (the "Client separation" and "new user" sections).
+
 ## Checks
 
     npm test          # deadline engine against the ICO worked examples (Vitest)
