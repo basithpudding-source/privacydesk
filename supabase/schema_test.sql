@@ -100,6 +100,70 @@ do $$ begin
   end;
 end $$;
 
+-- Creating cases and acting on them (0004). Partner A's admin, client A1.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+create temp table t_case as
+  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'sar', '2026-11-02', 'Email',
+                        ' Sam Sample ', 'SAM@example.com', 'Wants their file', null, true) as id;
+select 'ref ' || ref || ' (expect AAA-001), requester ' || requester_name || ' <' || requester_email || '>' as created
+  from pd.cases where id = (select id from t_case);
+select 'state ' || clock_state || ' (expect waiting_id), due ' || coalesce(response_due::text, 'none') || ' (expect none)' as created
+  from pd.v_case_deadlines where case_id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'acknowledge', '2026-11-03');
+select pd.record_case_action((select id from t_case), 'id_received', '2026-11-05');
+select 'due after ID ' || response_due || ' (expect 2026-12-07, ICO: 5 Dec is a Saturday)' as actions
+  from pd.v_case_deadlines where case_id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'pause', '2026-11-10', 'Which years?');
+do $$ begin
+  begin
+    perform pd.record_case_action((select id from t_case), 'pause', '2026-11-11', 'Again');
+    raise exception 'second clarification was allowed';
+  exception when invalid_parameter_value then raise notice 'PASS a second open clarification is refused';
+  end;
+end $$;
+select 'state ' || clock_state || ' (expect paused), due ' || coalesce(response_due::text, 'none') || ' (expect none)' as actions
+  from pd.v_case_deadlines where case_id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'resume', '2026-11-12');
+select 'due after 3 paused days ' || response_due || ' (expect 2026-12-08)' as actions
+  from pd.v_case_deadlines where case_id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'extend', '2026-11-20', 'Records at two sites');
+select 'due after extension ' || response_due || ' (expect 2027-03-08: 5 Mar + 3 days = Mon 8 Mar)' as actions
+  from pd.v_case_deadlines where case_id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'note', current_date, 'Searching the archive');
+select pd.record_case_action((select id from t_case), 'close', current_date);
+select 'status ' || status || ' (expect closed), outcome ' || outcome as actions from pd.cases where id = (select id from t_case);
+select pd.record_case_action((select id from t_case), 'reopen', current_date, 'Missed a folder');
+select 'status ' || status || ' (expect open), events ' || (select count(*) from pd.case_events where case_id = c.id) || ' (expect 9)' as actions
+  from pd.cases c where id = (select id from t_case);
+
+create temp table t_complaint as
+  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'complaint', '2026-11-02') as id;
+select 'complaint ref ' || ref || ' (expect AAA-002)' as created from pd.cases where id = (select id from t_complaint);
+do $$ begin
+  begin
+    perform pd.record_case_action((select id from t_complaint), 'extend', current_date, 'no');
+    raise exception 'complaint extension was allowed';
+  exception when invalid_parameter_value then raise notice 'PASS a complaint cannot be extended';
+  end;
+  begin
+    perform pd.record_case_action((select id from t_complaint), 'close', current_date);
+    raise exception 'complaint closed without an outcome';
+  exception when check_violation then raise notice 'PASS a complaint needs an outcome to close';
+  end;
+end $$;
+select pd.record_case_action((select id from t_complaint), 'close', current_date, null, 'Not upheld');
+select 'complaint outcome ' || outcome || ' (expect Not upheld)' as actions from pd.cases where id = (select id from t_complaint);
+
+-- A read-only user can see but not act.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+do $$ begin
+  begin
+    perform pd.record_case_action('c0000000-0000-0000-0000-000000000008', 'note', current_date, 'hello');
+    raise exception 'read-only action was allowed';
+  exception when insufficient_privilege then raise notice 'PASS read-only user cannot act on a case';
+  end;
+end $$;
+
 -- Client organisations are separated the same way as cases.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 select 'partner A admin sees ' || count(*) || ' clients (expect 2)' as rls from pd.organisations;
