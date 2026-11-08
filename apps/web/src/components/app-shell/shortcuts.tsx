@@ -36,6 +36,8 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
         if (e.key.toLowerCase() === "c") router.push("/cases");
         else if (e.key.toLowerCase() === "i") router.push("/inbox");
         else if (e.key.toLowerCase() === "l") router.push("/clients");
+        else if (e.key.toLowerCase() === "d") router.push("/dashboard");
+        else if (e.key.toLowerCase() === "r") router.push("/report");
         return;
       }
       switch (e.key) {
@@ -79,6 +81,8 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
             <dt><Kbd>G</Kbd> then <Kbd>I</Kbd></dt><dd>Go to the inbox</dd>
             <dt><Kbd>G</Kbd> then <Kbd>C</Kbd></dt><dd>Go to cases</dd>
             <dt><Kbd>G</Kbd> then <Kbd>L</Kbd></dt><dd>Go to clients</dd>
+            <dt><Kbd>G</Kbd> then <Kbd>D</Kbd></dt><dd>Go to the dashboard</dd>
+            <dt><Kbd>G</Kbd> then <Kbd>R</Kbd></dt><dd>Go to the monthly report</dd>
             <dt><Kbd>Ctrl</Kbd> <Kbd>K</Kbd></dt><dd>Command palette</dd>
             <dt><Kbd>?</Kbd></dt><dd>This list</dd>
           </dl>

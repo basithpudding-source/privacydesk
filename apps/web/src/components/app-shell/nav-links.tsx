@@ -18,8 +18,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/inbox", label: "Inbox", icon: Inbox, ready: true, shortcut: "G then I" },
   { href: "/cases", label: "Cases", icon: FolderOpen, ready: true, shortcut: "G then C" },
   { href: "/clients", label: "Clients", icon: Building2, ready: true, shortcut: "G then L" },
-  { href: "/dashboard", label: "Dashboard", icon: Gauge, ready: false },
-  { href: "/report", label: "Report", icon: FileText, ready: false },
+  { href: "/dashboard", label: "Dashboard", icon: Gauge, ready: true, shortcut: "G then D" },
+  { href: "/report", label: "Report", icon: FileText, ready: true, shortcut: "G then R" },
 ];
 
 export function NavLinks({ variant }: { variant: "rail" | "bar" }) {
