@@ -1,10 +1,9 @@
 // Inbound email from Postmark. Each client has a forwarding address <code>-<token>@<domain>;
 // the token is the credential for the database functions, so no service key lives here.
 // A shared secret on the URL (or HTTP basic auth) keeps strangers from posting fake mail.
-import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { triage } from "@/lib/ai/triage";
-import { supabaseEnv } from "@/lib/supabase/env";
+import { createAnonClient } from "@/lib/supabase/anon";
 
 interface PostmarkInbound {
   FromName?: string;
@@ -64,8 +63,7 @@ export async function POST(request: NextRequest) {
   if (!token) return NextResponse.json({ ok: false, reason: "No forwarding token in the address." });
   if (!body) return NextResponse.json({ ok: false, reason: "Empty message." });
 
-  const { url, key } = supabaseEnv();
-  const supabase = createPublicClient(url, key, { db: { schema: "pd" } });
+  const supabase = createAnonClient();
 
   const { data: ctx } = await supabase.rpc("inbound_context", { p_token: token }).maybeSingle();
   if (!ctx) return NextResponse.json({ ok: false, reason: "Unknown forwarding address." });
