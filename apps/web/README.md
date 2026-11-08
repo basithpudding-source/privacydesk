@@ -214,6 +214,32 @@ To try it locally: open `http://localhost:3000/r/<code>`, fill in the form, open
 
 Run it once by hand after creating the project so Scotland and Northern Ireland holidays are loaded. Without the service key the route answers 503 and does nothing; without the secret, 401.
 
+## Production checklist (slice 7)
+
+What the code now does, and what you must do by hand before any real personal data goes in.
+
+### In the code (migration 0008 and the app)
+
+- A partner admin's session must carry `aal2` (a second factor given this session) or the database policies return nothing: `pd.current_aal()` is checked in `can_read_org`, `can_write_org` and `is_partner_admin`. The app already sends admins to enrol; this makes the rule hold for anyone calling the API directly.
+- Sessions idle for `SESSION_IDLE_HOURS` (default 8) are ended by the proxy, which signs the person out and sends them to `/sign-in?reason=idle`.
+- Security headers on every response (`next.config.ts`): a content security policy, HSTS, no framing, no sniffing, a referrer policy, a permissions policy.
+- The public form caps each email address at 5 and each sender address at 10 submissions an hour per client. Addresses are stored only as daily-salted hashes (`FORM_RATE_SALT`).
+- `AI_DISABLED=1` switches AI off for the whole deployment; each client's own switch still applies.
+- `supabase/live_checks.sql` runs in the SQL editor against the real project, seeds nothing, and prints a PASS line for each isolation rule: the anonymous role reads no table; an admin without a second factor sees nothing; another consultancy's case by id returns nothing and cannot be acted on; audit events cannot be edited or deleted; users cannot read pending submissions or run the job functions. Run it after every migration.
+- `src/lib/security/guards.test.ts` fails `npm test` if the service role key is read anywhere but `lib/supabase/service.ts`, imported anywhere but the nightly route, or if a `NEXT_PUBLIC_` variable looks like a secret.
+- Draft legal pages at `/terms`, `/privacy`, `/dpa` and `/sub-processors`, linked from the home page, sign-in and the public form.
+
+### By hand, in this order
+
+1. **Reset the database password** (Project Settings > Database). It was shown in a terminal on 8 November 2026.
+2. **Supabase Auth** (Authentication > Settings): set the access token lifetime to 1 hour or less; turn on refresh token rotation with a short reuse interval; on the Pro plan, set the single-session and inactivity limits as well. Confirm "Enable MFA (TOTP)" is on.
+3. **Plan and backups**: move the project to the Pro plan before real data. The free plan keeps no backups. Confirm daily backups are listed under Database > Backups, then restore one into a scratch project once and open the app against it.
+4. **Email sender**: point Supabase Auth's SMTP settings at the Resend account used for the public form, so sign-in links are not limited to a few an hour.
+5. **Providers' terms**: accept the data processing agreements of Supabase, the hosting provider, Resend and (if inbound email is on) Postmark. Accept Anthropic's commercial terms and DPA and confirm API traffic is not used for training. Record each date on the sub-processors page.
+6. **Legal pages**: have a solicitor review the four drafts, fill in every item in square brackets, then remove the draft banner in `src/components/legal-page.tsx`.
+7. **Environment**: in production set `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
+8. **Run the checks**: `npm test`, `npm run build`, then `supabase/live_checks.sql` in the SQL editor. Every line must say PASS.
+
 ## Checks
 
     npm test          # deadline engine against the ICO worked examples (Vitest)

@@ -19,7 +19,7 @@ function authorised(request: NextRequest): boolean {
 
 async function run(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ ok: false, error: "Not authorised." }, { status: 401 });
-  if (!serviceConfigured()) return NextResponse.json({ ok: false, error: "SUPABASE_SERVICE_ROLE_KEY is not set." }, { status: 503 });
+  if (!serviceConfigured()) return NextResponse.json({ ok: false, error: "The service role key is not set on the server; see .env.local.example." }, { status: 503 });
 
   const supabase = createServiceClient();
   const appUrl = (process.env.APP_URL ?? request.nextUrl.origin).replace(/\/$/, "");

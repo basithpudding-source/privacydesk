@@ -50,12 +50,15 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 7. Production security checklist (before any real data)
 
-- [ ] MFA on; session timeout; rate limits on the public form.
-- [ ] RLS tests pass against the live database; service key never in the browser.
-- [ ] Backups on; restore tested once.
-- [ ] Data processing agreement, terms, privacy notice and sub-processor list published.
-- [ ] AI provider under a data processing agreement, no training on data, switchable off per client.
-- [ ] Penetration-style check: try to read another partner's case by id; try to edit an audit event.
+Built on 8 November 2026 (migration 0008). Ticked items are in code and proved live; the unticked parts are settings, contracts and purchases only you can do. The step-by-step list is in `apps/web/README.md` under "Production checklist".
+
+- [x] MFA on; session timeout; rate limits on the public form. (The database refuses a partner admin without `aal2`; sessions idle for `SESSION_IDLE_HOURS` (8) are ended by the proxy; the form caps each email address at 5 and each sender address at 10 submissions an hour; security headers on every response.) Still to do by hand: Supabase Auth token lifetime and refresh rotation; the Pro-plan session limits.
+- [x] RLS tests pass against the live database; service key never in the browser. (`supabase/live_checks.sql` runs against the real project and seeds nothing; a Vitest guard fails the build if the service key is read anywhere but `lib/supabase/service.ts` or imported anywhere but the nightly route.)
+- [ ] Backups on; restore tested once. (Needs the Supabase Pro plan: the free plan keeps no backups. Then restore once into a scratch project.)
+- [ ] Data processing agreement, terms, privacy notice and sub-processor list published. (Drafts are live at `/terms`, `/privacy`, `/dpa` and `/sub-processors` with a "draft" banner and placeholders in square brackets. A solicitor reviews them, you fill in the company details, then remove the banner in `src/components/legal-page.tsx`.)
+- [ ] AI provider under a data processing agreement, no training on data, switchable off per client. (The per-client switch exists; `AI_DISABLED=1` switches it off for the whole deployment. Still to do: accept Anthropic's commercial terms and DPA, confirm the no-training default for API traffic, and record the date on the sub-processors page.)
+- [x] Penetration-style check: try to read another partner's case by id; try to edit an audit event. (Both in `supabase/live_checks.sql`, with the anonymous-role and job-function checks. Ran clean on 8 November 2026.)
+- [ ] Reset the database password: it appeared in plain text in the terminal on 8 November 2026. Project Settings > Database > Reset database password.
 
 ## How to work with Claude Code on this
 

@@ -4,9 +4,14 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export const AI_MODEL = "claude-opus-5-5";
 
-/** True when a server-side key is configured. Never exposed to the browser. */
+/** AI_DISABLED=1 turns AI off for the whole deployment, whatever each client's switch says. */
+export function aiDisabled(): boolean {
+  return process.env.AI_DISABLED === "1" || process.env.AI_DISABLED === "true";
+}
+
+/** True when a server-side key is configured and AI is not switched off. Never exposed to the browser. */
 export function aiConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return !aiDisabled() && Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 let client: Anthropic | null = null;

@@ -27,11 +27,18 @@
 | 2026-11-08 | Reminder digests are internal email to the consultancy's own staff, one per person per night | They are not case correspondence, so they sit outside the "never sends letters" rule, like the public form's emails. The digest says nothing has been sent to the requester |
 | 2026-11-08 | The monthly report PDF is rendered on the server with @react-pdf/renderer, from the same text as the page | No browser needed on the server; one page, the client's name and colour, same words as the page so the two never disagree |
 | 2026-11-08 | Bank holidays for all three regions come from the GOV.UK feed, upserted nightly | One source for the dates, and Scotland and Northern Ireland work without hand-typed lists. The engine's built-in England and Wales list is only a fallback |
+| 2026-11-08 | A partner admin's membership counts in the policies only when the token says `aal2` | The app already sent admins to enrol, but a rule only the app enforces can be skipped by calling the API directly. Now the database refuses them. Other roles see one client at most and are not yet required to enrol |
+| 2026-11-08 | Idle sessions end after 8 hours (`SESSION_IDLE_HOURS`), enforced by the proxy with an HTTP-only cookie | Supabase's own inactivity timeout is a Pro feature; this works on every plan and sends the person to sign-in with a sentence saying why |
+| 2026-11-08 | The public form caps each sender address at ten submissions an hour, storing only a daily-salted hash of the address | Enough to stop a script filling the inbox without storing network addresses, which would themselves be personal data |
+| 2026-11-08 | Legal pages are drafts written by the developer, shown with a banner until a solicitor has reviewed them | Better to have the structure and the facts (sub-processors, retention, roles) written down and visible than nothing; the banner stops anyone mistaking them for terms in force |
+| 2026-11-08 | `AI_DISABLED=1` switches AI off for the whole deployment | A provider's terms or an incident can change overnight; one environment variable is faster than editing every client |
 
 ## Open questions
 
 - Working name "Privacy Desk": check Companies House and the UK IPO trade mark register before branding.
 - Reminder recipients: every member who can see the case gets the digest, with no per-person switch. Add one in settings once someone asks for it.
+- Second factor for client users and read-only users: today only partner admins must enrol. Decide before the first client organisation gets its own sign-in.
+- Content security policy: inline scripts and styles are allowed because Next emits them. Move to a nonce-based policy once the app is deployed and the exact script set is known.
 - The case page's "no bank holidays loaded for Scotland yet" notice disappears once the nightly job has run. Until the job is scheduled, run it by hand after creating the project (see `apps/web/README.md`).
 - Should complaint outcomes have an internal target per client (default 28 days) or a fixed one? Ask the first pilots.
 - Inbound email domain: forwarding addresses need a domain whose MX records point at Postmark (or Resend inbound). Which domain, and who owns the Postmark account? Until then the client page shows the address without a domain.

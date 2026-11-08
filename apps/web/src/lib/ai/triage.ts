@@ -1,7 +1,7 @@
 // AI triage: message in, a checked proposal out. A person confirms it on the inbox screen.
 import "server-only";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { AI_MODEL, aiConfigured, anthropic, describeAiError } from "./client";
+import { AI_MODEL, aiConfigured, aiDisabled, anthropic, describeAiError } from "./client";
 import { keywordTriage } from "./keywords";
 import { cleanTriage, TriageOutput, type TriageResult } from "./triage-types";
 
@@ -34,6 +34,7 @@ const SYSTEM = [
 
 export async function triage(req: TriageRequest): Promise<TriageOutcome> {
   if (!req.aiEnabled) return { result: keywordTriage(req.text), fallbackReason: "AI is switched off for this client." };
+  if (aiDisabled()) return { result: keywordTriage(req.text), fallbackReason: "AI is switched off for this deployment." };
   if (!aiConfigured()) return { result: keywordTriage(req.text), fallbackReason: "No AI key is configured on the server." };
 
   try {
