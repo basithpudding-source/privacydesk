@@ -1,0 +1,7 @@
+# Supabase project settings that the CLI pushes with `supabase config push`.
+# Only the properties declared here are changed on the hosted project; everything else is left as is.
+project_id = "cmhjmkzvfbbmndllxlpg"
+
+[api]
+# The app's tables live in the pd schema. The Data API serves only the schemas listed here.
+schemas = ["public", "graphql_public", "pd"]

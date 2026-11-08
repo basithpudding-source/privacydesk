@@ -10,8 +10,8 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 1. Project setup (1 evening)
 
-- [ ] Create a Supabase project in the London region. Note the URL and anon key.
-- [ ] Run the files in `supabase/migrations/` in order in the SQL editor, add `pd` to the exposed schemas, then run `supabase/schema_test.sql` and check every row says PASS. Step by step in `apps/web/README.md`.
+- [x] Create a Supabase project in the London region (`privacy-desk-dev`, ref `cmhjmkzvfbbmndllxlpg`, 8 November 2026). Still to do: put the URL and publishable key in `apps/web/.env.local`.
+- [x] Run the files in `supabase/migrations/` in order in the SQL editor, add `pd` to the exposed schemas, then run `supabase/schema_test.sql` and check every row says PASS. Done 8 November 2026: both migrations applied, every check PASS, test data removed afterwards. Step by step in `apps/web/README.md`.
 - [x] In `apps/`, run `npx create-next-app@latest web --typescript --tailwind --app --src-dir --eslint`, then `npx shadcn@latest init`.
 - [x] Add `@supabase/ssr` and `@supabase/supabase-js`. Still to do: put the keys in `apps/web/.env.local` (never commit it); see `apps/web/README.md`.
 - [x] Copy `packages/clocks/clocks.js` into the app as a TypeScript module and port the tests to Vitest. Tests green before moving on.
