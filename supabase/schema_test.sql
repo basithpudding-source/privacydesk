@@ -99,6 +99,27 @@ do $$ begin
   exception when insufficient_privilege then raise notice 'PASS partner B cannot write to partner A''s client';
   end;
 end $$;
+
+-- Client organisations are separated the same way as cases.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select 'partner A admin sees ' || count(*) || ' clients (expect 2)' as rls from pd.organisations;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+select 'partner B admin sees ' || count(*) || ' clients (expect 1)' as rls from pd.organisations;
+
+-- A new user can create their consultancy once, and becomes its admin.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+select 'new user sees ' || count(*) || ' partners before creating one (expect 0)' as onboarding from pd.partners;
+select pd.create_partner('  Partner D  ') as new_partner;
+select 'new user sees ' || count(*) || ' partner after creating one (expect 1)' as onboarding from pd.partners;
+select case when exists (select 1 from pd.members where user_id = '00000000-0000-0000-0000-00000000000d' and role = 'partner_admin' and organisation_id is null)
+            then 'PASS creator is the partner admin' else 'FAIL creator is not the partner admin' end as onboarding;
+do $$ begin
+  begin
+    perform pd.create_partner('Partner D again');
+    raise exception 'second consultancy was allowed';
+  exception when unique_violation then raise notice 'PASS a user cannot create a second consultancy';
+  end;
+end $$;
 reset role;
 
 select organisation, month, received, complaints, sars, closed from pd.v_monthly_client_report order by organisation, month limit 5;
