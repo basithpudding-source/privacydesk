@@ -187,6 +187,49 @@ insert into pd.inbox_items (organisation_id, channel, body) values ('aaaaaaaa-00
 select pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'Not about personal data');
 select 'declined item status ' || status || ', reason ' || decline_reason as inbox from pd.inbox_items where body like 'Spam%';
 
+-- Public form (0006): a submission, its one-time link, and the inbox item the link creates.
+select 'form lookup ' || name || ' ' || colour || ' enabled ' || form_enabled || ' (expect Client A1 #1d5c86 enabled true)' as form from pd.form_lookup('aaa');
+select case when count(*) = 0 then 'PASS an unknown code looks up nothing' else 'FAIL unknown code returned a client' end as form from pd.form_lookup('ZZZZ');
+create temp table t_sub as
+  select pd.form_submit('AAA', repeat('a', 64), 'Sam Example', 'SAM@example.com', 'sar', 'Please send me a copy of everything you hold about me.') as ref;
+select 'submission ref ' || ref || ' (expect AAA-W0001)' as form from t_sub;
+do $$ begin
+  begin
+    perform pd.form_submit('ZZZZ', repeat('b', 64), 'Sam', 'sam@example.com', 'sar', 'A long enough request text.');
+    raise exception 'unknown code was accepted';
+  exception when no_data_found then raise notice 'PASS a submission to an unknown code is refused';
+  end;
+  begin
+    perform pd.form_submit('AAA', repeat('c', 64), 'Sam', 'sam@example.com', 'sar', 'short');
+    raise exception 'short details were accepted';
+  exception when check_violation then raise notice 'PASS details must be at least a sentence';
+  end;
+  begin
+    perform pd.form_verify('AAA', repeat('f', 64));
+    raise exception 'a wrong token was verified';
+  exception when no_data_found then raise notice 'PASS a wrong token is refused';
+  end;
+  begin
+    perform count(*) from pd.form_submissions;
+    raise exception 'pending submissions were readable';
+  exception when insufficient_privilege then raise notice 'PASS pending submissions cannot be read by users';
+  end;
+end $$;
+create temp table t_verified as select * from pd.form_verify('aaa', repeat('a', 64));
+select 'verified ' || ref || ', received ' || received_on || ', type ' || request_type || ', already ' || already_verified
+  || ' (expect AAA-W0001, today, sar, false)' as form from t_verified;
+select 'item channel ' || channel || ', from ' || from_email || ', ref ' || source_ref || ', requested ' || requested_type
+  || ' (expect form, sam@example.com, AAA-W0001, sar)' as form from pd.inbox_items where id = (select inbox_item_id from t_verified);
+select 'second click: already ' || already_verified || ', same item ' || (inbox_item_id = (select inbox_item_id from t_verified))
+  || ' (expect true, true)' as form from pd.form_verify('AAA', repeat('a', 64));
+select 'form items ' || count(*) || ' (expect 1: the second click made nothing)' as form from pd.inbox_items where channel = 'form';
+select pd.form_set_triage(repeat('a', 64), '{"by":"keywords","type":"sar","confidence":0.8,"summary":"Copy of data"}'::jsonb);
+create temp table t_form_case as
+  select pd.accept_inbox_item((select inbox_item_id from t_verified), 'sar', current_date, 'Sam Example', 'sam@example.com', 'Copy of data', false) as case_id;
+select 'form case ' || ref || ', channel ' || channel || ', source ' || source_ref || ' (expect AAA-004, Web form, AAA-W0001)' as form
+  from pd.cases where id = (select case_id from t_form_case);
+select 'audit: ' || text as form from pd.case_events where case_id = (select case_id from t_form_case) and kind = 'triage';
+
 -- A read-only user can see but not act.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 do $$ begin
