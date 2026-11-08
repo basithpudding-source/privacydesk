@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Building2, FolderOpen, Plus, ShieldCheck } from "lucide-react";
+import { Building2, FolderOpen, Inbox, Plus, ShieldCheck } from "lucide-react";
 import {
   Command,
   CommandDialog,
@@ -82,6 +82,9 @@ export function CommandPalette({
         <CommandList>
           <CommandEmpty>Nothing matches.</CommandEmpty>
           <CommandGroup heading="Go to">
+            <CommandItem onSelect={() => go("/inbox")}>
+              <Inbox aria-hidden="true" /> Inbox
+            </CommandItem>
             <CommandItem onSelect={() => go("/cases")}>
               <FolderOpen aria-hidden="true" /> Cases
             </CommandItem>

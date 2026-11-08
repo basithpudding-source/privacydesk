@@ -15,7 +15,7 @@ interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/inbox", label: "Inbox", icon: Inbox, ready: false },
+  { href: "/inbox", label: "Inbox", icon: Inbox, ready: true, shortcut: "G then I" },
   { href: "/cases", label: "Cases", icon: FolderOpen, ready: true, shortcut: "G then C" },
   { href: "/clients", label: "Clients", icon: Building2, ready: true, shortcut: "G then L" },
   { href: "/dashboard", label: "Dashboard", icon: Gauge, ready: false },

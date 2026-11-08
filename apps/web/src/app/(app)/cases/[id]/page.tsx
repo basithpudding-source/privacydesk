@@ -8,9 +8,11 @@ import { getCase } from "@/lib/cases/queries";
 import { ACTIONS, type CaseAction } from "@/lib/cases/types";
 import { REGIONS } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
+import { aiConfigured } from "@/lib/ai/client";
 import { ActionPanel } from "./action-panel";
 import { AuditTrail } from "./audit-trail";
 import { DeadlineBlock } from "./deadline-block";
+import { LetterDrafts } from "./letter-drafts";
 import { TaskList } from "./task-list";
 
 export const metadata: Metadata = { title: "Case" };
@@ -91,6 +93,15 @@ export default async function CasePage({
               <summary className="cursor-pointer px-4 py-3 text-sm font-medium">The request as received</summary>
               <p className="max-w-[65ch] whitespace-pre-wrap px-4 pb-4 text-sm">{c.message}</p>
             </details>
+          )}
+
+          {canWrite && (
+            <section aria-labelledby="letters-heading">
+              <h2 id="letters-heading" className="mb-2 text-sm font-medium text-muted-foreground">
+                Letters
+              </h2>
+              <LetterDrafts caseId={c.id} isComplaint={c.type === "complaint"} aiOn={aiConfigured() && org.ai_enabled} />
+            </section>
           )}
 
           <section aria-labelledby="audit-heading">

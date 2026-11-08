@@ -34,6 +34,7 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
         pendingG = false;
         clearTimeout(timer);
         if (e.key.toLowerCase() === "c") router.push("/cases");
+        else if (e.key.toLowerCase() === "i") router.push("/inbox");
         else if (e.key.toLowerCase() === "l") router.push("/clients");
         return;
       }
@@ -75,6 +76,7 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
           <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt><Kbd>C</Kbd></dt><dd>Log a case</dd>
             <dt><Kbd>/</Kbd></dt><dd>Search the case list</dd>
+            <dt><Kbd>G</Kbd> then <Kbd>I</Kbd></dt><dd>Go to the inbox</dd>
             <dt><Kbd>G</Kbd> then <Kbd>C</Kbd></dt><dd>Go to cases</dd>
             <dt><Kbd>G</Kbd> then <Kbd>L</Kbd></dt><dd>Go to clients</dd>
             <dt><Kbd>Ctrl</Kbd> <Kbd>K</Kbd></dt><dd>Command palette</dd>
