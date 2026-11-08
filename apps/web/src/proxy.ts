@@ -1,13 +1,14 @@
-// Runs before every request: refreshes the Supabase session cookie and keeps signed-out
-// visitors out of the app. Authorisation itself happens in the database (row-level
-// security) and in the data-access layer, not here.
+// Runs before every request: refreshes the Supabase session cookie, ends idle sessions and
+// keeps signed-out visitors out of the app. Authorisation itself happens in the database
+// (row-level security) and in the data-access layer, not here.
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { idleHours, isIdle, LAST_ACTIVE_COOKIE } from "@/lib/security/session";
 import { supabaseEnv } from "@/lib/supabase/env";
 
 // API routes check their own credentials (a session, or the inbound webhook's secret).
-// /r/<code> is the public request form: anyone may open it.
-const PUBLIC_PREFIXES = ["/sign-in", "/auth/", "/api/", "/r/"];
+// /r/<code> is the public request form; the legal pages are public too.
+const PUBLIC_PREFIXES = ["/sign-in", "/auth/", "/api/", "/r/", "/terms", "/privacy", "/dpa", "/sub-processors"];
 
 function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
@@ -34,8 +35,24 @@ export async function proxy(request: NextRequest) {
 
   // getClaims verifies the token rather than trusting the cookie's contents.
   const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims);
+  let signedIn = Boolean(data?.claims);
   const { pathname } = request.nextUrl;
+  const now = Date.now();
+
+  // Idle sessions end here, whatever Supabase's own token lifetime says.
+  if (signedIn) {
+    const last = Number(request.cookies.get(LAST_ACTIVE_COOKIE)?.value);
+    if (isIdle(last, now, idleHours())) {
+      await supabase.auth.signOut();
+      signedIn = false;
+      const target = request.nextUrl.clone();
+      target.pathname = "/sign-in";
+      target.search = "?reason=idle";
+      const response = withCookies(NextResponse.redirect(target), supabaseResponse);
+      response.cookies.delete(LAST_ACTIVE_COOKIE);
+      return response;
+    }
+  }
 
   if (!signedIn && !isPublic(pathname)) {
     const target = request.nextUrl.clone();
@@ -51,7 +68,20 @@ export async function proxy(request: NextRequest) {
     return withCookies(NextResponse.redirect(target), supabaseResponse);
   }
 
+  if (signedIn) touch(supabaseResponse, now);
+  else if (request.cookies.has(LAST_ACTIVE_COOKIE)) supabaseResponse.cookies.delete(LAST_ACTIVE_COOKIE);
   return supabaseResponse;
+}
+
+/** Record activity: an HTTP-only cookie the browser cannot read or forge usefully. */
+function touch(response: NextResponse, now: number) {
+  response.cookies.set(LAST_ACTIVE_COOKIE, String(now), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
 }
 
 // A redirect must carry any refreshed cookies, or the user is signed out on the next hop.

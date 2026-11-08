@@ -7,14 +7,14 @@ import { sendSignInLink } from "./actions";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-type Search = { sent?: string; error?: string; detail?: string };
+type Search = { sent?: string; error?: string; detail?: string; reason?: string };
 
 export default async function SignInPage({
   searchParams,
 }: {
   searchParams: Promise<Search>;
 }) {
-  const { sent, error, detail } = await searchParams;
+  const { sent, error, detail, reason } = await searchParams;
 
   return (
     <main className="flex flex-1 flex-col justify-center px-4 py-16 sm:px-8">
@@ -43,6 +43,12 @@ export default async function SignInPage({
               Enter your work email and we will send you a link that signs you in. No password needed.
             </p>
 
+            {reason === "idle" && (
+              <Alert className="mt-6">
+                <AlertTitle>You were signed out after a period of inactivity</AlertTitle>
+                <AlertDescription>Nothing was lost. Ask for a new link to carry on.</AlertDescription>
+              </Alert>
+            )}
             {error === "email" && (
               <Alert variant="destructive" className="mt-6">
                 <AlertTitle>That does not look like an email address</AlertTitle>
@@ -83,7 +89,9 @@ export default async function SignInPage({
         )}
 
         <p className="mt-10 text-xs text-muted-foreground">
-          Privacy Desk is software, not legal advice. By signing in you agree to the terms of use.
+          Privacy Desk is software, not legal advice. By signing in you agree to the{" "}
+          <a href="/terms" className="underline underline-offset-4">terms of use</a>; see also the{" "}
+          <a href="/privacy" className="underline underline-offset-4">privacy notice</a>.
         </p>
       </div>
     </main>
