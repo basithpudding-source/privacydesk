@@ -1,6 +1,8 @@
 -- Tests for privacy_desk_schema.sql: ICO worked examples, audit trail, and client separation.
 \set ON_ERROR_STOP on
 set client_min_messages = warning;
+-- Since 0008 a partner admin sees nothing without a second factor; the tests act as one who has it.
+select set_config('request.jwt.claim.aal', 'aal2', false);
 
 -- Extra holidays only for the ICO's 2024 example.
 insert into pd.bank_holidays values ('england-and-wales', '2024-12-25', 'Christmas Day'), ('england-and-wales', '2024-12-26', 'Boxing Day');
@@ -229,6 +231,23 @@ create temp table t_form_case as
 select 'form case ' || ref || ', channel ' || channel || ', source ' || source_ref || ' (expect AAA-004, Web form, AAA-W0001)' as form
   from pd.cases where id = (select case_id from t_form_case);
 select 'audit: ' || text as form from pd.case_events where case_id = (select case_id from t_form_case) and kind = 'triage';
+
+-- Production checklist (0008): an admin without a second factor sees nothing; a sender address is capped.
+select set_config('request.jwt.claim.aal', 'aal1', false);
+select 'partner A admin at aal1 sees ' || count(*) || ' cases (expect 0)' as security from pd.cases;
+select 'partner A admin at aal1 sees ' || count(*) || ' clients (expect 0)' as security from pd.organisations;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select 'partner A admin at aal2 sees ' || count(*) || ' cases again (expect more than 0)' as security from pd.cases;
+do $$ begin
+  for i in 1..10 loop
+    perform pd.form_submit('AAB', lpad(to_hex(i), 64, '0'), 'Bot', 'bot' || i || '@example.com', 'sar', 'Automated submission number ' || i, repeat('9', 64));
+  end loop;
+  begin
+    perform pd.form_submit('AAB', repeat('b', 64), 'Bot', 'bot99@example.com', 'sar', 'One too many from this address.', repeat('9', 64));
+    raise exception 'the eleventh submission from one address was accepted';
+  exception when program_limit_exceeded then raise notice 'PASS a sender address is capped at ten submissions an hour';
+  end;
+end $$;
 
 -- Nightly job (0007): users may read the reminder log and the holidays, but only the service role runs the job.
 select 'reminder log rows visible to partner A: ' || count(*) || ' (expect 0: nothing sent yet)' as nightly from pd.reminder_log;

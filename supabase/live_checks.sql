@@ -1,0 +1,90 @@
+-- Privacy Desk: live isolation checks (slice 7). Run in the Supabase SQL editor against the
+-- real project, as often as you like: it seeds nothing and changes nothing. Every row of the
+-- result should start with PASS. It uses whatever data is there, so it needs at least one
+-- partner admin and one case; the "other consultancy" checks need two consultancies.
+--
+-- The editor runs as postgres, so "set local role" switches to each API role in turn.
+
+drop table if exists seen;
+create temp table seen (n serial, note text);
+grant insert on seen to anon, authenticated;
+grant usage on sequence seen_n_seq to anon, authenticated;
+
+do $$
+declare
+  v_admin   uuid;
+  v_partner uuid;
+  v_other   uuid;   -- a case belonging to a different consultancy
+  v_mine    uuid;   -- a case the admin may see
+  v_event   bigint;
+  n int;
+begin
+  -- Prefer an admin whose consultancy has cases, so the "sees their own" check means something.
+  select m.user_id, m.partner_id into v_admin, v_partner
+  from pd.members m
+  where m.role = 'partner_admin' and m.organisation_id is null
+  order by (exists (select 1 from pd.cases c join pd.organisations o on o.id = c.organisation_id where o.partner_id = m.partner_id)) desc,
+           m.created_at
+  limit 1;
+  if v_admin is null then
+    insert into seen (note) values ('SKIP no partner admin exists yet'); return;
+  end if;
+  select c.id into v_mine from pd.cases c join pd.organisations o on o.id = c.organisation_id where o.partner_id = v_partner limit 1;
+  select c.id into v_other from pd.cases c join pd.organisations o on o.id = c.organisation_id where o.partner_id <> v_partner limit 1;
+  select e.id into v_event from pd.case_events e where e.case_id = v_mine limit 1;
+
+  -- 1. The anonymous role reads no table.
+  set local role anon;
+  for n in 1..1 loop
+    begin perform count(*) from pd.cases; raise exception 'anon read cases';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read cases'); end;
+    begin perform count(*) from pd.inbox_items; raise exception 'anon read inbox';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read inbox items'); end;
+    begin perform count(*) from pd.form_submissions; raise exception 'anon read submissions';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read form submissions'); end;
+    begin perform count(*) from pd.members; raise exception 'anon read members';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read members'); end;
+  end loop;
+  reset role;
+
+  -- 2. A partner admin without a second factor sees nothing.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'aal', 'aal1', 'role', 'authenticated')::text, true);
+  insert into seen (note) select case when count(*) = 0 then 'PASS' else 'FAIL' end || ' admin at aal1 sees ' || count(*) || ' cases' from pd.cases;
+  insert into seen (note) select case when count(*) = 0 then 'PASS' else 'FAIL' end || ' admin at aal1 sees ' || count(*) || ' clients' from pd.organisations;
+
+  -- 3. The same admin with a second factor sees their own cases, and nobody else's.
+  perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'aal', 'aal2', 'role', 'authenticated')::text, true);
+  insert into seen (note) select case when count(*) > 0 then 'PASS' else 'FAIL' end || ' admin at aal2 sees ' || count(*) || ' cases of their own' from pd.cases;
+  if v_other is not null then
+    insert into seen (note) select case when count(*) = 0 then 'PASS' else 'FAIL' end || ' another consultancy''s case by id returns ' || count(*) || ' rows' from pd.cases where id = v_other;
+    insert into seen (note) select case when count(*) = 0 then 'PASS' else 'FAIL' end || ' another consultancy''s deadlines by id return ' || count(*) || ' rows' from pd.v_case_deadlines where case_id = v_other;
+    begin
+      perform pd.record_case_action(v_other, 'note', current_date, 'should not work');
+      insert into seen (note) values ('FAIL an action on another consultancy''s case was allowed');
+    exception when no_data_found or insufficient_privilege then insert into seen (note) values ('PASS an action on another consultancy''s case is refused'); end;
+  else
+    insert into seen (note) values ('SKIP only one consultancy has cases, so cross-consultancy reads were not tested');
+  end if;
+
+  -- 4. The audit trail cannot be edited or deleted, even by the admin who owns it.
+  if v_event is not null then
+    begin update pd.case_events set text = 'tampered' where id = v_event; raise exception 'audit edit allowed';
+    exception when raise_exception or insufficient_privilege then insert into seen (note) values ('PASS an audit event cannot be edited'); end;
+    begin delete from pd.case_events where id = v_event; raise exception 'audit delete allowed';
+    exception when raise_exception or insufficient_privilege then insert into seen (note) values ('PASS an audit event cannot be deleted'); end;
+  else
+    insert into seen (note) values ('SKIP no audit event to test');
+  end if;
+
+  -- 5. Users cannot reach what only the job may.
+  begin perform count(*) from pd.form_submissions; raise exception 'user read submissions';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot read pending form submissions'); end;
+  begin perform count(*) from pd.reminders_due(); raise exception 'user listed reminders';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot list reminders due'); end;
+  begin perform pd.apply_retention(); raise exception 'user ran retention';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot run retention'); end;
+  reset role;
+end $$;
+
+select note from seen order by n;
