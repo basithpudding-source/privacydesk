@@ -3,7 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Building2, FolderOpen, Plus, ShieldCheck } from "lucide-react";
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { createClient } from "@/lib/supabase/client";
 
 interface CaseHit {
@@ -13,7 +21,15 @@ interface CaseHit {
   status: string;
 }
 
-export function CommandPalette({ open, onOpenChange, canWrite }: { open: boolean; onOpenChange: (open: boolean) => void; canWrite: boolean }) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+  canWrite,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  canWrite: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CaseHit[]>([]);
@@ -25,8 +41,15 @@ export function CommandPalette({ open, onOpenChange, canWrite }: { open: boolean
     const supabase = createClient();
     let cancelled = false;
     const run = async () => {
-      let req = supabase.from("cases").select("id, ref, summary, status").order("updated_at", { ascending: false }).limit(8);
-      if (q) req = req.or(`ref.ilike.%${q.replace(/[%,()]/g, "")}%,summary.ilike.%${q.replace(/[%,()]/g, "")}%`);
+      let req = supabase
+        .from("cases")
+        .select("id, ref, summary, status")
+        .order("updated_at", { ascending: false })
+        .limit(8);
+      if (q)
+        req = req.or(
+          `ref.ilike.%${q.replace(/[%,()]/g, "")}%,summary.ilike.%${q.replace(/[%,()]/g, "")}%`,
+        );
       const { data } = await req;
       if (!cancelled) setHits((data ?? []) as CaseHit[]);
     };
@@ -43,42 +66,60 @@ export function CommandPalette({ open, onOpenChange, canWrite }: { open: boolean
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title="Command palette" description="Jump to a page or a case">
-      <CommandInput placeholder="Type a case reference, or a page…" value={query} onValueChange={setQuery} />
-      <CommandList>
-        <CommandEmpty>Nothing matches.</CommandEmpty>
-        <CommandGroup heading="Go to">
-          <CommandItem onSelect={() => go("/cases")}>
-            <FolderOpen aria-hidden="true" /> Cases
-          </CommandItem>
-          <CommandItem onSelect={() => go("/clients")}>
-            <Building2 aria-hidden="true" /> Clients
-          </CommandItem>
-          <CommandItem onSelect={() => go("/settings/security")}>
-            <ShieldCheck aria-hidden="true" /> Security
-          </CommandItem>
-        </CommandGroup>
-        {canWrite && (
-          <CommandGroup heading="Do">
-            <CommandItem onSelect={() => go("/cases/new")}>
-              <Plus aria-hidden="true" /> Log a case
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Command palette"
+      description="Jump to a page or a case"
+    >
+      {/* Case hits are already filtered by the query, so the list is not filtered again. */}
+      <Command shouldFilter={false}>
+        <CommandInput
+          placeholder="Type a case reference, or a page…"
+          value={query}
+          onValueChange={setQuery}
+        />
+        <CommandList>
+          <CommandEmpty>Nothing matches.</CommandEmpty>
+          <CommandGroup heading="Go to">
+            <CommandItem onSelect={() => go("/cases")}>
+              <FolderOpen aria-hidden="true" /> Cases
             </CommandItem>
-            <CommandItem onSelect={() => go("/clients/new")}>
-              <Plus aria-hidden="true" /> Add client
+            <CommandItem onSelect={() => go("/clients")}>
+              <Building2 aria-hidden="true" /> Clients
+            </CommandItem>
+            <CommandItem onSelect={() => go("/settings/security")}>
+              <ShieldCheck aria-hidden="true" /> Security
             </CommandItem>
           </CommandGroup>
-        )}
-        {hits.length > 0 && (
-          <CommandGroup heading="Cases">
-            {hits.map((h) => (
-              <CommandItem key={h.id} value={`${h.ref} ${h.summary ?? ""}`} onSelect={() => go(`/cases/${h.id}`)}>
-                <span className="font-mono text-xs">{h.ref}</span>
-                <span className="truncate text-muted-foreground">{h.summary ?? (h.status === "closed" ? "Closed" : "")}</span>
+          {canWrite && (
+            <CommandGroup heading="Do">
+              <CommandItem onSelect={() => go("/cases/new")}>
+                <Plus aria-hidden="true" /> Log a case
               </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-      </CommandList>
+              <CommandItem onSelect={() => go("/clients/new")}>
+                <Plus aria-hidden="true" /> Add client
+              </CommandItem>
+            </CommandGroup>
+          )}
+          {hits.length > 0 && (
+            <CommandGroup heading="Cases">
+              {hits.map((h) => (
+                <CommandItem
+                  key={h.id}
+                  value={`${h.ref} ${h.summary ?? ""}`}
+                  onSelect={() => go(`/cases/${h.id}`)}
+                >
+                  <span className="font-mono text-xs">{h.ref}</span>
+                  <span className="truncate text-muted-foreground">
+                    {h.summary ?? (h.status === "closed" ? "Closed" : "")}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </Command>
     </CommandDialog>
   );
 }
