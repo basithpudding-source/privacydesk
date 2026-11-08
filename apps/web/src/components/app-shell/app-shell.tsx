@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/lib/auth";
 import { NavLinks } from "./nav-links";
+import { Shortcuts } from "./shortcuts";
 
 /**
  * Three-column desktop layout from the design standard: a 220 px nav rail, the content,
@@ -11,6 +12,7 @@ import { NavLinks } from "./nav-links";
 export function AppShell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
   return (
     <div className="flex min-h-full flex-1">
+      <Shortcuts canWrite={user.membership?.role !== "read_only"} />
       <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-border bg-sidebar px-3 py-4 md:flex">
         <Link href="/clients" className="px-3 text-sm font-semibold tracking-tight">
           Privacy Desk

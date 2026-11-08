@@ -87,13 +87,16 @@ declare
   v_text     text;
   v_when     text;
 begin
-  select * into c from pd.cases where id = p_case_id for update;
+  -- Read first, then check, then lock: a row lock goes through the update policy as well,
+  -- which would turn "you may not change this" into "not found" for read-only users.
+  select * into c from pd.cases where id = p_case_id;
   if not found then
     raise exception 'That case is not here' using errcode = 'no_data_found';
   end if;
   if not pd.can_write_org(c.organisation_id) then
     raise exception 'You cannot change this case' using errcode = 'insufficient_privilege';
   end if;
+  perform 1 from pd.cases where id = c.id for update;
   if v_on > current_date then
     raise exception 'The date cannot be in the future' using errcode = 'check_violation';
   end if;

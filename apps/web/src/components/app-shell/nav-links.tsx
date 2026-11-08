@@ -9,14 +9,15 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Shortcut hint shown in the tooltip once shortcuts exist (slice 3). */
   ready: boolean;
+  /** Shown in the tooltip so people learn shortcuts by using the app. */
+  shortcut?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/inbox", label: "Inbox", icon: Inbox, ready: false },
-  { href: "/cases", label: "Cases", icon: FolderOpen, ready: false },
-  { href: "/clients", label: "Clients", icon: Building2, ready: true },
+  { href: "/cases", label: "Cases", icon: FolderOpen, ready: true, shortcut: "G then C" },
+  { href: "/clients", label: "Clients", icon: Building2, ready: true, shortcut: "G then L" },
   { href: "/dashboard", label: "Dashboard", icon: Gauge, ready: false },
   { href: "/report", label: "Report", icon: FileText, ready: false },
 ];
@@ -26,7 +27,7 @@ export function NavLinks({ variant }: { variant: "rail" | "bar" }) {
 
   return (
     <ul className={cn("flex gap-1", variant === "rail" ? "flex-col" : "flex-row justify-around")}>
-      {NAV_ITEMS.map(({ href, label, icon: Icon, ready }) => {
+      {NAV_ITEMS.map(({ href, label, icon: Icon, ready, shortcut }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         const base = cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none",
@@ -51,6 +52,7 @@ export function NavLinks({ variant }: { variant: "rail" | "bar" }) {
           <li key={href}>
             <Link
               href={href}
+              title={shortcut ? `${label} (${shortcut})` : undefined}
               aria-current={active ? "page" : undefined}
               className={cn(
                 base,
