@@ -156,6 +156,37 @@ end $$;
 select pd.record_case_action((select id from t_complaint), 'close', current_date, null, 'Not upheld');
 select 'complaint outcome ' || outcome || ' (expect Not upheld)' as actions from pd.cases where id = (select id from t_complaint);
 
+-- Inbox (0005): an email arrives by token, a person accepts it into a case, another is declined.
+create temp table t_item as
+  select pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
+    'Pat Example', 'PAT@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1') as id;
+select 'duplicate delivery returns ' || coalesce(pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
+    'Pat Example', 'pat@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1')::text, 'null (expect null)') as inbox;
+select pd.set_inbox_triage((select inbound_token from pd.organisations where code = 'AAA'), (select id from t_item),
+  '{"by":"ai","type":"sar","confidence":0.93,"summary":"Wants a copy of their data"}'::jsonb);
+do $$ begin
+  begin
+    perform pd.receive_inbound_email('not-a-token', 'x', 'x@example.com', 's', 'body');
+    raise exception 'unknown token was accepted';
+  exception when no_data_found then raise notice 'PASS an unknown forwarding token is refused';
+  end;
+end $$;
+create temp table t_accepted as
+  select pd.accept_inbox_item((select id from t_item), 'sar', '2026-10-06', 'Pat Example', 'pat@example.com', 'Wants a copy of their data', false) as case_id;
+select 'accepted into ' || c.ref || ' (expect AAA-003), channel ' || c.channel || ', item status ' || i.status as inbox
+  from pd.cases c join pd.inbox_items i on i.case_id = c.id where c.id = (select case_id from t_accepted);
+select 'audit: ' || text as inbox from pd.case_events where case_id = (select case_id from t_accepted) and kind = 'triage';
+do $$ begin
+  begin
+    perform pd.accept_inbox_item((select id from t_item), 'sar', '2026-10-06');
+    raise exception 'accepted twice';
+  exception when invalid_parameter_value then raise notice 'PASS an item cannot be accepted twice';
+  end;
+end $$;
+insert into pd.inbox_items (organisation_id, channel, body) values ('aaaaaaaa-0000-0000-0000-000000000001', 'paste', 'Spam about car insurance');
+select pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'Not about personal data');
+select 'declined item status ' || status || ', reason ' || decline_reason as inbox from pd.inbox_items where body like 'Spam%';
+
 -- A read-only user can see but not act.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 do $$ begin
@@ -164,7 +195,14 @@ do $$ begin
     raise exception 'read-only action was allowed';
   exception when insufficient_privilege then raise notice 'PASS read-only user cannot act on a case';
   end;
+  begin
+    perform pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'again');
+    raise exception 'read-only decline was allowed';
+  exception when insufficient_privilege or invalid_parameter_value then raise notice 'PASS read-only user cannot decide inbox items';
+  end;
 end $$;
+select 'partner B admin sees ' || count(*) || ' inbox items (expect 0)' as rls from pd.inbox_items
+  where pd.current_user_id() = (select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false))::uuid;
 
 -- Client organisations are separated the same way as cases.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
