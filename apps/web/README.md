@@ -30,10 +30,12 @@ If a run fails halfway, the editor rolls the whole file back, so fix the cause a
 
 Supabase only serves the `public` schema through its API by default. The app uses `pd`.
 
-1. Go to **Project Settings** (the cog at the bottom of the sidebar), then **Data API**.
-2. Under **Exposed schemas**, add `pd` and save.
+1. In the sidebar choose **Integrations**, then **Data API**, then the **Settings** tab.
+2. Under **Exposed schemas**, tick `pd` and save.
 
 Skip this and every query from the app returns an error about the schema not being found, even though the tables exist.
+
+The same page shows the `pd` tables with a warning that they "have custom grants". That is correct and deliberate: migration 0002 grants the signed-in role only, while Supabase's standard grants would also open the tables to the anonymous role. Do not select the tables there, or the standard grants replace ours.
 
 ### 4. Run the schema test
 
