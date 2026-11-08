@@ -230,6 +230,22 @@ select 'form case ' || ref || ', channel ' || channel || ', source ' || source_r
   from pd.cases where id = (select case_id from t_form_case);
 select 'audit: ' || text as form from pd.case_events where case_id = (select case_id from t_form_case) and kind = 'triage';
 
+-- Nightly job (0007): users may read the reminder log and the holidays, but only the service role runs the job.
+select 'reminder log rows visible to partner A: ' || count(*) || ' (expect 0: nothing sent yet)' as nightly from pd.reminder_log;
+do $$ begin
+  begin
+    perform count(*) from pd.reminders_due();
+    raise exception 'a user ran reminders_due';
+  exception when insufficient_privilege then raise notice 'PASS only the service role may list reminders due';
+  end;
+  begin
+    perform pd.apply_retention();
+    raise exception 'a user ran retention';
+  exception when insufficient_privilege then raise notice 'PASS only the service role may run retention';
+  end;
+end $$;
+select 'holidays readable: ' || count(*) || ' (expect more than 0)' as nightly from pd.bank_holidays where region = 'england-and-wales';
+
 -- A read-only user can see but not act.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 do $$ begin
