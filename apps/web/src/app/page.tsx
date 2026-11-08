@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LegalLinks } from "@/components/legal-page";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -22,6 +23,9 @@ export default function Home() {
         <p className="mt-8 text-sm text-muted-foreground">
           Privacy Desk is software, not legal advice. Deadlines follow published
           ICO guidance; the organisation remains responsible for its responses.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          <LegalLinks />
         </p>
       </div>
     </main>

@@ -18,6 +18,16 @@ async function baseUrl(): Promise<string> {
   return `${proto}://${host}`;
 }
 
+/**
+ * A salted hash of the sender's network address for the hourly cap. The address itself is
+ * never stored; the salt changes daily, so hashes cannot be joined across days.
+ */
+async function senderHash(): Promise<string> {
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || "local";
+  return hashToken(`${new Date().toISOString().slice(0, 10)}:${process.env.FORM_RATE_SALT ?? ""}:${ip}`);
+}
+
 export async function submitRequest(code: string, _prev: RequestFormState, formData: FormData): Promise<RequestFormState> {
   const values: RequestFormValues = {
     name: String(formData.get("name") ?? "").trim(),
@@ -45,11 +55,12 @@ export async function submitRequest(code: string, _prev: RequestFormState, formD
     p_email: values.email,
     p_type: values.kind,
     p_details: values.details,
+    p_sender_hash: await senderHash(),
   });
   if (error) {
     const form =
       error.code === "54000"
-        ? "Too many requests from this email address in the last hour. Try again later."
+        ? "Too many requests from this address in the last hour. Try again later."
         : error.code === "22023"
           ? "This organisation is not taking requests through this form at the moment."
           : "We could not save your request. Try again in a minute.";
