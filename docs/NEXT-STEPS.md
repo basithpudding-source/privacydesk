@@ -20,7 +20,7 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 - [x] Email magic-link sign-in with Supabase Auth; turn on MFA for partner admins. (8 November 2026: sign-in, confirm route, session-refresh proxy, TOTP enrolment and challenge.)
 - [x] Partner and organisation pages: list clients, add a client (name, code, colour, region, retention months). (Plus a welcome step that creates the consultancy via `pd.create_partner`.)
-- [ ] Prove isolation: two test partners, each sees only its own clients. SQL proof passes in `supabase/schema_test.sql`; the browser procedure is in `apps/web/README.md` and still needs running with two real sign-ins.
+- [x] Prove isolation: two test partners, each sees only its own clients. SQL proof passes in `supabase/schema_test.sql`. Browser procedure in `apps/web/README.md` run on 8 November 2026 with two real sign-ins: partner B's list shows only its client, partner A's client URL returns 404 for B, and the Data API with B's session returns an empty list for A's client id.
 
 ## 3. Cases (2 to 3 evenings)
 
