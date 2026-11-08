@@ -14,12 +14,17 @@
 | 2026-11-08 | Every case action is one database function call (`pd.record_case_action`) that changes the case and writes its audit event in the same transaction | Two statements from the app could leave a change without its event. The function also refuses impossible actions, so the rules live in one place |
 | 2026-11-08 | Case references are `<client code>-<number>`, numbered per client and never reused | Short enough to quote on the phone; the client code makes the owner obvious in a mixed list |
 | 2026-11-08 | Action dates may not be in the future | A deadline worked out from a future date would be fiction; backdating is allowed because requests are often logged late |
+| 2026-11-08 | Inbound email is keyed by a per-client token in the forwarding address, through definer-rights functions the anonymous role may call | The app then needs no service key anywhere. The anonymous role has usage on the `pd` schema so those functions resolve, but no table grants |
+| 2026-11-08 | Triage uses Claude Opus 5.5 at low effort with a fixed JSON schema; the keyword check runs when a client has AI off, no key is set, or the call fails | The screen always says which one spoke. A person confirms every result and the audit event records both |
+| 2026-11-08 | Letter drafts are copied, never sent | The app never sends email on its own (CLAUDE.md). The person sends from their own mailbox |
 
 ## Open questions
 
 - Working name "Privacy Desk": check Companies House and the UK IPO trade mark register before branding.
 - Scotland and Northern Ireland bank holidays: load from the GOV.UK feed in slice 6; until then England and Wales only.
 - Should complaint outcomes have an internal target per client (default 28 days) or a fixed one? Ask the first pilots.
+- Inbound email domain: forwarding addresses need a domain whose MX records point at Postmark (or Resend inbound). Which domain, and who owns the Postmark account? Until then the client page shows the address without a domain.
+- AI provider terms: requester messages go to Anthropic for triage and drafting. The slice 7 checklist needs the data processing agreement and no-training terms confirmed before any real data; the per-client switch already exists.
 - Display names: the audit trail can only say "you" or a shortened user id, because nothing stores a person's name. A small profiles table (user id, name) filled at first sign-in would fix it. Which slice?
 - Inviting colleagues: the first user is the consultancy's only member. Adding a second admin or a client user needs an invitation flow (email, accept, membership row). Which slice, and should client users sign in at all in the first version?
 - Supabase's built-in email sender allows only a few messages an hour, which limits sign-in testing. Wire a real sender (Resend or Postmark, needed for slice 4 anyway) before pilots.

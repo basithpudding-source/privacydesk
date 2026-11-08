@@ -31,10 +31,10 @@ Build order for the production app, in slices you can finish in one or two eveni
 
 ## 4. Inbox and AI (2 evenings)
 
-- [ ] Inbox view for new items; accept (creates case with the right clock) or decline.
-- [ ] AI triage route handler: message in, JSON out (type, confidence, summary, quoted reasons). A person confirms. Keyword check as fallback.
-- [ ] AI letter drafts for acknowledgement, ID request, clarification, extension, outcome. Copy only; nothing sent.
-- [ ] Forwarding address per client with an inbound email service (Postmark or Resend inbound) that creates inbox items.
+- [x] Inbox view for new items; accept (creates case with the right clock) or decline. (8 November 2026: `pd.inbox_items`, `pd.accept_inbox_item`, `pd.decline_inbox_item`; the accept event records what the AI proposed and what the person confirmed.)
+- [x] AI triage route handler: message in, JSON out (type, confidence, summary, quoted reasons). A person confirms. Keyword check as fallback. (`POST /api/triage`; Claude Opus 5.5 with a fixed JSON schema; keyword fallback when the client has AI off, no key is set, or the call fails.)
+- [x] AI letter drafts for acknowledgement, ID request, clarification, extension, outcome. Copy only; nothing sent. (`POST /api/letters` streams into a box on the case page; templates with gaps when AI is off.)
+- [x] Forwarding address per client with an inbound email service (Postmark or Resend inbound) that creates inbox items. (`POST /api/inbound/postmark`, keyed by a per-client token; tested with sample payloads. Still to do: choose the domain, point its MX at Postmark, set `INBOUND_DOMAIN` and `INBOUND_WEBHOOK_SECRET`; see `apps/web/README.md`.)
 
 ## 5. Public form and verification (1 to 2 evenings)
 

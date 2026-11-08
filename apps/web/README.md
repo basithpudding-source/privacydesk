@@ -151,6 +151,28 @@ The SQL version of the same proof is in `supabase/schema_test.sql` (the "Client 
 - The deadline block compares the engine's date with the view's. If they ever differ, a red warning appears on the case. Treat that as a bug in one of the two copies of the rules.
 - Keyboard: `C` log a case, `/` search, `G` then `C` cases, `G` then `L` clients, `?` help, Ctrl+K palette.
 
+## Inbox and AI (slice 4)
+
+- `/inbox` lists new items; open one to see the message, the triage proposal and the accept form, prefilled from the proposal. Accept creates the case through `pd.accept_inbox_item`; decline needs a reason. `/inbox/paste` adds a message by hand and triages it at once.
+- Triage (`src/lib/ai/triage.ts`) calls Claude with a fixed JSON schema. It falls back to the keyword check when the client has AI switched off, when `ANTHROPIC_API_KEY` is not set, or when the call fails, and the triage card says so.
+- Letters: on a case page, "Letters" drafts an acknowledgement, ID request, clarification, extension notice or outcome into a box with a copy button. Without a key you get a template with gaps in square brackets. Nothing is sent from the app.
+
+### AI key
+
+Add `ANTHROPIC_API_KEY` to `.env.local` (server-side only; never with a `NEXT_PUBLIC_` prefix) and restart `npm run dev`. Requester messages are then sent to Anthropic for triage and drafting: sample data only until the slice 7 checklist is done.
+
+### Inbound email (Postmark)
+
+Each client has a forwarding address `<code>-<token>@<INBOUND_DOMAIN>`, shown on the client page once the domain is set. To wire it up:
+
+1. Choose a domain or subdomain for inbound mail and, in Postmark, create a server with an inbound stream. Point the domain's MX record where Postmark says.
+2. Set the inbound webhook URL to `https://<your app>/api/inbound/postmark?secret=<INBOUND_WEBHOOK_SECRET>`.
+3. Put `INBOUND_DOMAIN` and a long random `INBOUND_WEBHOOK_SECRET` in the app's environment.
+
+The route looks up the client by the token in the address, creates the inbox item through a function that only that token can call, and triages it. Duplicate deliveries (same Postmark message id) are dropped. To test locally without Postmark, post a sample payload:
+
+    curl -X POST "http://localhost:3000/api/inbound/postmark?secret=$INBOUND_WEBHOOK_SECRET" -H "Content-Type: application/json" -d '{"FromName":"Pat Example","From":"pat@example.com","Subject":"My data","TextBody":"Please send me everything you hold about me.","MessageID":"test-1","OriginalRecipient":"<code>-<token>@example.test"}'
+
 ## Checks
 
     npm test          # deadline engine against the ICO worked examples (Vitest)
