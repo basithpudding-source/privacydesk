@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { requireMember } from "@/lib/auth";
-import type { Organisation } from "@/lib/db/types";
+import { forwardingAddress, type Organisation } from "@/lib/db/types";
 import { createClient } from "@/lib/supabase/server";
 import { updateClient } from "../actions";
 import { ClientForm } from "../client-form";
@@ -44,6 +44,25 @@ export default async function ClientPage({
           <AlertTitle>{saved === "added" ? "Client added." : "Changes saved."}</AlertTitle>
         </Alert>
       )}
+
+      <section aria-labelledby="forwarding-heading" className="mt-6 max-w-xl rounded-lg border border-border p-4">
+        <h2 id="forwarding-heading" className="text-sm font-medium">
+          Forwarding address
+        </h2>
+        {forwardingAddress(client) ? (
+          <>
+            <p className="mt-1 font-mono text-sm break-all">{forwardingAddress(client)}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ask the client to forward requests and complaints here. They land in the inbox, triaged, for you to accept or decline.
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Not available yet: no inbound email domain is configured (INBOUND_DOMAIN). The address will be{" "}
+            <span className="font-mono">{client.code.toLowerCase()}-{client.inbound_token}@…</span>
+          </p>
+        )}
+      </section>
 
       <div className="mt-6">
         {isAdmin ? (

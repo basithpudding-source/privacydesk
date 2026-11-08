@@ -150,6 +150,13 @@ begin
   return v_id;  -- null when this delivery was a duplicate
 end $$;
 
+-- What the webhook needs to know to triage: the client's name and whether AI is allowed.
+create function pd.inbound_context(p_token text)
+returns table (organisation_name text, ai_enabled boolean)
+language sql security definer set search_path = pd, pg_temp as $$
+  select name, ai_enabled from pd.organisations where inbound_token = p_token
+$$;
+
 create function pd.set_inbox_triage(p_token text, p_item_id uuid, p_triage jsonb) returns void
 language plpgsql security definer set search_path = pd, pg_temp as $$
 begin
@@ -169,5 +176,7 @@ grant execute on function pd.decline_inbox_item(uuid, text) to authenticated;
 -- The webhook calls these with the publishable key, so the anonymous role may run them.
 revoke execute on function pd.receive_inbound_email(text, text, text, text, text, text) from public;
 revoke execute on function pd.set_inbox_triage(text, uuid, jsonb) from public;
+revoke execute on function pd.inbound_context(text) from public;
 grant execute on function pd.receive_inbound_email(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function pd.set_inbox_triage(text, uuid, jsonb) to anon, authenticated;
+grant execute on function pd.inbound_context(text) to anon, authenticated;

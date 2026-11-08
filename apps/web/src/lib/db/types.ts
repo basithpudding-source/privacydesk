@@ -27,7 +27,15 @@ export interface Organisation {
   internal_target_days: number;
   retention_months: number;
   ai_enabled: boolean;
+  /** Secret part of the client's forwarding address (slice 4). */
+  inbound_token: string;
   created_at: string;
+}
+
+/** The forwarding address for a client, or null until INBOUND_DOMAIN is set. */
+export function forwardingAddress(org: Pick<Organisation, "code" | "inbound_token">): string | null {
+  const domain = process.env.INBOUND_DOMAIN;
+  return domain ? `${org.code.toLowerCase()}-${org.inbound_token}@${domain}` : null;
 }
 
 export interface Member {
