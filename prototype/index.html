@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: a case register. A rail of views on the left, a client switcher on top, the register in the middle. */
+  --ink: #17212b;
+  --muted: #586572;
+  --paper: #f3f5f6;
+  --panel: #ffffff;
+  --line: #d8dfe4;
+  --accent: #1d5c86;
+  --accent-soft: #e2edf5;
+  --series-2: #7a5ea8;
+  --series-3: #8b98a3;
+  --good: #22744a;
+  --good-soft: #e1f2e8;
+  --warn: #995c08;
+  --warn-soft: #fbeed6;
+  --bad: #b3261e;
+  --bad-soft: #fae3e1;
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e4e9ed; --muted: #9ba8b3; --paper: #0e1418; --panel: #162027; --line: #2a3640;
+    --accent: #72b2de; --accent-soft: #19323f; --series-2: #b49ae0; --series-3: #6f7d88;
+    --good: #5fc48d; --good-soft: #15301f; --warn: #e3a74c; --warn-soft: #382a12; --bad: #f2897f; --bad-soft: #3b1c1a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #e4e9ed; --muted: #9ba8b3; --paper: #0e1418; --panel: #162027; --line: #2a3640;
+  --accent: #72b2de; --accent-soft: #19323f; --series-2: #b49ae0; --series-3: #6f7d88;
+  --good: #5fc48d; --good-soft: #15301f; --warn: #e3a74c; --warn-soft: #382a12; --bad: #f2897f; --bad-soft: #3b1c1a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font-body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 24px; font-weight: 700; }
+h2 { font-size: 18px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.app { display: grid; grid-template-columns: 216px 1fr; min-height: 100%; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+.brand strong { font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+.brand span { font-size: 12px; color: var(--muted); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; font-weight: 500; }
+.nav a:hover { background: var(--accent-soft); }
+.nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+.nav .count { font-size: 12px; padding: 0 7px; border-radius: 10px; background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+.rail-foot { margin-top: auto; font-size: 12px; color: var(--muted); padding: 0 8px; display: flex; flex-direction: column; gap: 6px; }
+.main { display: flex; flex-direction: column; min-width: 0; }
+.topbar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.topbar label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.devflag { font-size: 12px; color: var(--warn); background: var(--warn-soft); padding: 4px 10px; border-radius: 4px; font-weight: 500; }
+.view { padding: 24px 28px 48px; display: flex; flex-direction: column; gap: 20px; max-width: 1180px; width: 100%; }
+.head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+.head p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; }
+.panel > h2, .panel > h3 { margin-bottom: 12px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.tile b { font: 700 28px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.tile span { font-size: 13px; color: var(--muted); }
+.tile.alert { border-left: 4px solid var(--bad); }
+.tile.caution { border-left: 4px solid var(--warn); }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+input[type="text"], input[type="email"], input[type="date"], input[type="month"], input[type="number"], input[type="search"], select, textarea {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; min-height: 36px; }
+textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { font-size: 13px; font-weight: 500; }
+.field small { color: var(--muted); font-size: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.row > .field { flex: 1 1 160px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; color: var(--ink); }
+a.btn.primary { color: var(--panel); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 7px 14px; min-height: 36px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--bad); }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.btn.small { padding: 4px 10px; min-height: 30px; font-size: 13px; }
+.table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+tbody tr.link { cursor: pointer; }
+tbody tr.link:hover td { background: var(--accent-soft); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.neutral { background: var(--paper); color: var(--muted); border: 1px solid var(--line); }
+.pill.info { background: var(--accent-soft); color: var(--accent); }
+.type { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.type.complaint { color: var(--accent); }
+.type.sar { color: var(--series-2); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.clock { display: flex; flex-direction: column; gap: 10px; }
+.clock .due { font: 700 26px/1.15 var(--font-display); }
+.clock ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.timeline li { display: grid; grid-template-columns: 112px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.timeline li:last-child { border-bottom: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.notice { padding: 10px 14px; border-radius: 6px; font-size: 14px; background: var(--accent-soft); }
+.notice.warn { background: var(--warn-soft); }
+.notice.bad { background: var(--bad-soft); }
+.result { display: flex; flex-direction: column; gap: 12px; }
+.meter { height: 6px; background: var(--paper); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.meter i { display: block; height: 100%; background: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--paper); border: 1px solid var(--line); }
+.intake { max-width: 620px; border-top: 6px solid var(--brand, var(--accent)); }
+.intake fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.intake legend { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.radio { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.report { white-space: pre-wrap; font-size: 14px; line-height: 1.6; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.chart text { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.chart .grid { stroke: var(--line); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); padding: 20px; width: min(460px, calc(100% - 32px)); }
+dialog::backdrop { background: rgba(10, 16, 20, 0.45); }
+dialog form { display: flex; flex-direction: column; gap: 14px; }
+.empty { text-align: center; padding: 36px 16px; color: var(--muted); }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+@media (max-width: 900px) {
+  .grid2 { grid-template-columns: 1fr; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; gap: 10px; }
+  .nav { flex-direction: row; flex-wrap: wrap; }
+  .rail-foot { display: none; }
+  .topbar, .view { padding-left: 16px; padding-right: 16px; }
+  .kv { grid-template-columns: 1fr; }
+  .timeline li { grid-template-columns: 1fr; gap: 2px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><strong>Privacy Desk</strong><span>Complaints and data requests</span></div>
+    <nav class="nav" id="nav" aria-label="Views">
+      <a href="#cases" data-route="cases">Cases <span class="count" id="nav-overdue" hidden></span></a>
+      <a href="#triage" data-route="triage">Triage an email</a>
+      <a href="#dashboard" data-route="dashboard">Dashboard</a>
+      <a href="#report" data-route="report">Monthly report</a>
+      <a href="#intake" data-route="intake">Public form</a>
+      <a href="#settings" data-route="settings">Clients and settings</a>
+    </nav>
+    <div class="rail-foot">
+      <span id="who"></span>
+      <span>Clocks follow ICO guidance. England and Wales bank holidays 2026 to 2027.</span>
+      <span>Software, not legal advice.</span>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <label for="client-filter">Client
+        <select id="client-filter"><option value="all">All clients</option></select>
+      </label>
+      <span class="devflag">Dev version: use sample data only, never real personal data</span>
+    </div>
+    <main class="view" id="view" aria-live="polite"></main>
+  </div>
+</div>
+<dialog id="dlg"><form method="dialog" id="dlg-form"></form></dialog>
+
+<script>
+// Privacy Desk deadline engine.
+// Dates are 'YYYY-MM-DD' strings, handled in UTC so time zones never shift a day.
+// Rules follow the ICO's published guidance:
+//  - complaints: acknowledge within 30 days; day 1 is the day after receipt; a deadline on a
+//    weekend or public holiday moves to the end of the next working day.
+//  - SARs: one calendar month from the day of receipt (or of ID); same date next month, or the
+//    last day of that month if the date doesn't exist; next working day if it lands on a
+//    weekend or bank holiday; extension to three months from the start; stop-the-clock pauses
+//    on the day clarification is requested and resumes the day after it arrives.
+
+const BANK_HOLIDAYS_ENGLAND_WALES = [
+  // 2026
+  '2026-01-01', '2026-04-03', '2026-04-06', '2026-05-04', '2026-05-25', '2026-08-31',
+  '2026-12-25', '2026-12-28',
+  // 2027
+  '2027-01-01', '2027-03-26', '2027-03-29', '2027-05-03', '2027-05-31', '2027-08-30',
+  '2027-12-27', '2027-12-28',
+];
+
+const DAY = 86400000;
+
+function toDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function toStr(dt) {
+  return dt.toISOString().slice(0, 10);
+}
+
+function addDays(s, n) {
+  return toStr(new Date(toDate(s).getTime() + n * DAY));
+}
+
+function daysBetween(a, b) {
+  // whole days from a to b (b - a)
+  return Math.round((toDate(b) - toDate(a)) / DAY);
+}
+
+function addMonthsClamped(s, months) {
+  const [y, m, d] = s.split('-').map(Number);
+  const targetMonthIndex = m - 1 + months;
+  const ty = y + Math.floor(targetMonthIndex / 12);
+  const tm = ((targetMonthIndex % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(ty, tm + 1, 0)).getUTCDate();
+  return toStr(new Date(Date.UTC(ty, tm, Math.min(d, lastDay))));
+}
+
+function isWorkingDay(s, holidays) {
+  const dow = toDate(s).getUTCDay();
+  return dow !== 0 && dow !== 6 && !holidays.has(s);
+}
+
+function nextWorkingDay(s, holidays) {
+  let cur = s;
+  while (!isWorkingDay(cur, holidays)) cur = addDays(cur, 1);
+  return cur;
+}
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December'];
+
+function longDate(s) {
+  const dt = toDate(s);
+  return `${WEEKDAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()}`;
+}
+
+function shortDate(s) {
+  const dt = toDate(s);
+  return `${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()].slice(0, 3)} ${dt.getUTCFullYear()}`;
+}
+
+function whyNotWorking(s, holidays) {
+  const dow = toDate(s).getUTCDay();
+  if (dow === 0 || dow === 6) return 'a weekend';
+  if (holidays.has(s)) return 'a bank holiday';
+  return '';
+}
+
+// Complaint: acknowledgement deadline.
+function complaintClock(c, holidays) {
+  const steps = [];
+  const day30 = addDays(c.receivedOn, 30);
+  steps.push(`Received ${longDate(c.receivedOn)}. Day 1 is the next day, so day 30 is ${longDate(day30)}.`);
+  const ackDue = nextWorkingDay(day30, holidays);
+  if (ackDue !== day30) {
+    steps.push(`That is ${whyNotWorking(day30, holidays)}, so the deadline moves to the next working day: ${longDate(ackDue)}.`);
+  }
+  return {
+    kind: 'complaint',
+    state: c.acknowledgedOn ? 'acknowledged' : 'awaiting_ack',
+    ackDue,
+    due: c.acknowledgedOn ? null : ackDue,
+    steps,
+  };
+}
+
+// SAR: response deadline, with ID, stop-the-clock and extension.
+function sarClock(c, holidays) {
+  const steps = [];
+  if (c.idRequired && !c.idReceivedOn) {
+    steps.push('ID has been requested. The one-month clock starts when it arrives.');
+    return { kind: 'sar', state: 'waiting_id', start: null, due: null, steps };
+  }
+  const start = c.idRequired ? c.idReceivedOn : c.receivedOn;
+  steps.push(c.idRequired
+    ? `ID received ${longDate(start)}: the clock starts that day.`
+    : `Received ${longDate(start)}: the clock starts that day.`);
+
+  const months = c.extended ? 3 : 1;
+  const base = addMonthsClamped(start, months);
+  const [, , sd] = start.split('-').map(Number);
+  const [, , bd] = base.split('-').map(Number);
+  steps.push(`${months === 3 ? 'Extended: three' : 'One'} calendar month${months === 3 ? 's' : ''} later is ${longDate(base)}${bd !== sd ? ' (that month has no matching date, so it is the last day of the month)' : ''}.`);
+
+  let pausedDays = 0;
+  let openPause = null;
+  for (const p of c.pauses || []) {
+    if (p.to) {
+      const n = daysBetween(p.from, p.to) + 1;
+      pausedDays += n;
+      steps.push(`Clock stopped ${shortDate(p.from)} for clarification, received ${shortDate(p.to)}: ${n} day${n === 1 ? '' : 's'} added.`);
+    } else {
+      openPause = p;
+    }
+  }
+  const shifted = addDays(base, pausedDays);
+  const due = nextWorkingDay(shifted, holidays);
+  if (due !== shifted) {
+    steps.push(`${longDate(shifted)} is ${whyNotWorking(shifted, holidays)}, so the deadline moves to ${longDate(due)}.`);
+  }
+  const oneMonth = nextWorkingDay(addMonthsClamped(start, 1), holidays);
+  if (openPause) {
+    steps.push(`Clock stopped since ${longDate(openPause.from)} while waiting for clarification. The deadline moves back once it arrives.`);
+  }
+  return {
+    kind: 'sar',
+    state: openPause ? 'paused' : (c.extended ? 'extended' : 'running'),
+    start,
+    due: openPause ? null : due,
+    provisionalDue: due,
+    pausedDays,
+    extensionNoticeBy: oneMonth,
+    steps,
+  };
+}
+
+function caseClock(c, holidays) {
+  if (c.type === 'complaint') return complaintClock(c, holidays);
+  if (c.type === 'sar') return sarClock(c, holidays);
+  // Other rights requests (erasure, rectification, objection) also run on one calendar month.
+  const r = sarClock({ ...c, idRequired: c.idRequired }, holidays);
+  r.kind = c.type;
+  return r;
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    BANK_HOLIDAYS_ENGLAND_WALES, addDays, daysBetween, addMonthsClamped, isWorkingDay,
+    nextWorkingDay, complaintClock, sarClock, caseClock, longDate, shortDate,
+  };
+}
+
+</script>
+<script>
+(function () {
+  'use strict';
+
+  const HOL = new Set(BANK_HOLIDAYS_ENGLAND_WALES);
+  const TYPES = {
+    complaint: 'Complaint',
+    sar: 'Subject access request',
+    erasure: 'Erasure request',
+    rectification: 'Rectification request',
+    objection: 'Objection',
+  };
+  const TYPE_SHORT = { complaint: 'Complaint', sar: 'SAR', erasure: 'Erasure', rectification: 'Rectification', objection: 'Objection' };
+  const CHANNELS = ['Email', 'Web form', 'Phone', 'Letter', 'In person'];
+
+  const state = {
+    db: null, user: null, sample: null, myId: null, canWrite: null, isOwner: false,
+    orgs: [], cases: [], config: { internalTargetDays: 28 },
+    orgsLoaded: false, casesLoaded: false, loadNote: '', fatal: '',
+    client: 'all', route: 'cases', caseId: null,
+    filters: { type: 'all', status: 'open', q: '' },
+    drafts: {}, triage: null, triageBusy: false, aiNote: '', busy: {},
+    names: {}, namesPending: new Set(), submitted: null,
+  };
+
+  // ---------- helpers ----------
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const val = (id, fallback) => (id in state.drafts ? state.drafts[id] : (fallback == null ? '' : fallback));
+  function newId() { return (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)); }
+  function newRef() { return 'PD-' + Date.now().toString(36).slice(-5).toUpperCase(); }
+  const orgById = (id) => state.orgs.find((o) => o.id === id);
+  const orgName = (id) => (orgById(id) || {}).name || 'Unknown client';
+  function inScope(c) { return state.client === 'all' || c.orgId === state.client; }
+  function pill(text, kind) { return `<span class="pill ${kind}">${esc(text)}</span>`; }
+  function typeLabel(t) { return `<span class="type ${esc(t)}">${esc(TYPE_SHORT[t] || t)}</span>`; }
+  function use(name) {
+    try { return (window.claude && window.claude.use) ? window.claude.use(name) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); }
+  }
+
+  function clockFor(c) { return caseClock(c, HOL); }
+
+  // The next date that matters on a case.
+  function nextDeadline(c) {
+    if (c.status === 'closed') return { label: 'Closed', date: null, kind: 'closed' };
+    const k = clockFor(c);
+    if (c.type === 'complaint') {
+      if (!c.acknowledgedOn) return { label: 'Acknowledge by', date: k.ackDue, kind: 'legal' };
+      return { label: 'Respond by (your target)', date: addDays(c.receivedOn, Number(state.config.internalTargetDays) || 28), kind: 'target' };
+    }
+    if (k.state === 'waiting_id') return { label: 'Waiting for ID', date: null, kind: 'waiting' };
+    if (k.state === 'paused') return { label: 'Clock stopped', date: null, kind: 'paused' };
+    return { label: k.state === 'extended' ? 'Respond by (extended)' : 'Respond by', date: k.due, kind: 'legal' };
+  }
+
+  function dueBadge(c) {
+    const nd = nextDeadline(c);
+    if (nd.kind === 'closed') return pill('Closed', 'neutral');
+    if (nd.kind === 'waiting') return pill('Waiting for ID', 'info');
+    if (nd.kind === 'paused') return pill('Clock stopped', 'info');
+    const n = daysBetween(todayStr(), nd.date);
+    if (n < 0) return pill(`${plural(-n, 'day')} overdue`, 'bad');
+    if (n === 0) return pill('Due today', 'bad');
+    if (n <= 5) return pill(`${plural(n, 'day')} left`, 'warn');
+    return pill(`${plural(n, 'day')} left`, nd.kind === 'target' ? 'neutral' : 'good');
+  }
+  function isOverdue(c) {
+    const nd = nextDeadline(c);
+    return nd.kind === 'legal' && daysBetween(todayStr(), nd.date) < 0;
+  }
+  function dueWithin(c, days) {
+    const nd = nextDeadline(c);
+    if (nd.kind !== 'legal') return false;
+    const n = daysBetween(todayStr(), nd.date);
+    return n >= 0 && n <= days;
+  }
+  // Was the legal limit met? null = not measurable yet.
+  function metOnTime(c) {
+    const k = clockFor(c);
+    if (c.type === 'complaint') return c.acknowledgedOn ? c.acknowledgedOn <= k.ackDue : null;
+    if (c.status === 'closed' && c.closedOn && k.provisionalDue) return c.closedOn <= k.provisionalDue;
+    return null;
+  }
+
+  // ---------- data ----------
+  async function init() {
+    render();
+    const timer = setTimeout(() => {
+      if (!state.casesLoaded) { state.loadNote = 'The case register can’t be reached yet. It will appear when the connection returns.'; render(); }
+    }, 10000);
+    const [db, user, sample] = await Promise.all([use('db'), use('user'), use('sample')]);
+    state.db = db; state.user = user; state.sample = sample;
+    if (user) {
+      try { state.myId = await user.id(); } catch (e) { state.myId = null; }
+      try { state.canWrite = await Promise.resolve(user.can ? user.can('data.write') : null); } catch (e) { state.canWrite = null; }
+      try { state.isOwner = !!(await Promise.resolve(user.isOwner ? user.isOwner() : false)); } catch (e) { state.isOwner = false; }
+      if (state.myId) loadNames([state.myId]);
+    }
+    if (!db) {
+      clearTimeout(timer);
+      state.fatal = 'This dev version needs you to be signed in to Claude to load and save cases.';
+      render();
+      return;
+    }
+    db.collection('orgs').onSnapshot((snap) => {
+      state.orgs = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      state.orgsLoaded = true;
+      render();
+    }, (e) => { state.loadNote = 'Clients could not be loaded: ' + e.message; render(); });
+    db.collection('cases').onSnapshot((snap) => {
+      state.cases = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      if (!snap.metadata.fromCache) { state.casesLoaded = true; state.loadNote = ''; clearTimeout(timer); }
+      else if (!state.casesLoaded) state.casesLoaded = true;
+      render();
+    }, (e) => { clearTimeout(timer); state.loadNote = 'Cases could not be loaded: ' + e.message; render(); });
+    db.doc('config/desk').onSnapshot((snap) => {
+      if (snap.exists) state.config = Object.assign({ internalTargetDays: 28 }, snap.data());
+      render();
+    }, () => {});
+  }
+
+  async function loadNames(ids) {
+    if (!state.user || !state.user.profiles) return;
+    const want = ids.filter((id) => id && !(id in state.names) && !state.namesPending.has(id));
+    if (!want.length) return;
+    want.forEach((id) => state.namesPending.add(id));
+    try {
+      const ps = await state.user.profiles(want);
+      want.forEach((id) => { state.names[id] = (ps && ps[id] && ps[id].name) || ''; });
+    } catch (e) { want.forEach((id) => { state.names[id] = ''; }); }
+    render();
+  }
+  function personName(id) {
+    if (!id) return 'System';
+    if (id === state.myId) return 'You';
+    return state.names[id] || 'Someone';
+  }
+
+  function writeError(e) {
+    if (e && e.code === 'invalid_argument') { state.canWrite = false; return 'You can view this desk but not change it.'; }
+    if (e && e.code === 'quota_exceeded') return 'The dev database is full. Delete some sample cases in Clients and settings.';
+    return 'That change wasn’t saved: ' + ((e && e.message) || 'unknown error') + '. Try again.';
+  }
+
+  async function saveCase(c, changes, eventText, kind) {
+    const ev = { at: new Date().toISOString(), on: todayStr(), kind: kind || 'note', text: eventText, by: state.myId || null };
+    const events = (c.events || []).concat(eventText ? [ev] : []);
+    const body = Object.assign({}, changes, { events, updatedAt: ev.at });
+    await state.db.collection('cases').doc(c.id).update(body);
+  }
+
+  async function createCase(fields, eventText) {
+    const id = newId();
+    const now = new Date().toISOString();
+    const c = Object.assign({
+      ref: newRef(), status: 'open', channel: 'Email', idRequired: false, idReceivedOn: null, pauses: [],
+      extended: false, acknowledgedOn: null, closedOn: null, outcome: '', createdAt: now, updatedAt: now,
+    }, fields);
+    c.events = [{ at: now, on: todayStr(), kind: 'created', text: eventText, by: state.myId || null }];
+    await state.db.collection('cases').doc(id).set(c);
+    return Object.assign({ id }, c);
+  }
+
+  // ---------- AI ----------
+  function triagePrompt(text, org, received) {
+    return [
+      'You are the triage step of a UK data protection case desk used by small organisations.',
+      `Today is ${todayStr()}. The organisation that received this message is "${org}". It was received on ${received}.`,
+      'Decide what the message is. Categories:',
+      '- "complaint": the person is unhappy about how their personal data has been used, shared, kept or secured, or about how a previous data request was handled. They do not need to use legal words.',
+      '- "sar": the person asks for a copy of, or access to, personal data held about them, in any wording.',
+      '- "erasure", "rectification", "objection": requests to delete, correct, or stop using their data.',
+      '- "not_dp": nothing to do with personal data.',
+      'If the message contains more than one, pick the one with the earliest legal clock as "type" and list the others in "also".',
+      'Return JSON only, no prose, in exactly this shape:',
+      '{"type":"complaint|sar|erasure|rectification|objection|not_dp","also":[],"confidence":0.0,"summary":"under 30 words, plain English","requesterName":null,"requesterEmail":null,"reasons":["short quotes from the message"],"idCheckSuggested":false,"clarificationSuggested":false}',
+      'Set idCheckSuggested true only if the request comes from an address or person you could not easily match to the data. Set clarificationSuggested true only if the request is too vague to search for.',
+      'Message:',
+      '"""',
+      text,
+      '"""',
+    ].join('\n');
+  }
+
+  function parseJsonLoose(t) {
+    if (t && typeof t === 'object') return t;
+    const s = String(t || '');
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a < 0 || b < a) throw new Error('No JSON in the answer');
+    return JSON.parse(s.slice(a, b + 1));
+  }
+
+  function cleanTriage(r, by) {
+    const allowed = ['complaint', 'sar', 'erasure', 'rectification', 'objection', 'not_dp'];
+    const type = allowed.includes(r.type) ? r.type : 'not_dp';
+    return {
+      by, type,
+      also: Array.isArray(r.also) ? r.also.filter((x) => allowed.includes(x) && x !== type) : [],
+      confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0)),
+      summary: String(r.summary || '').slice(0, 300),
+      requesterName: r.requesterName ? String(r.requesterName).slice(0, 120) : '',
+      requesterEmail: r.requesterEmail ? String(r.requesterEmail).slice(0, 160) : '',
+      reasons: Array.isArray(r.reasons) ? r.reasons.slice(0, 5).map((x) => String(x).slice(0, 160)) : [],
+      idCheckSuggested: !!r.idCheckSuggested,
+      clarificationSuggested: !!r.clarificationSuggested,
+    };
+  }
+
+  // Keyword back-up, used when AI is unavailable.
+  function rulesTriage(text) {
+    const t = text.toLowerCase();
+    const hits = (list) => list.filter((w) => t.includes(w));
+    const sar = hits(['subject access', 'copy of my', 'copy of the information', 'everything you have', 'all the information', 'all information you hold', 'data you hold', 'what you hold about me', 'on file about me', 'access to my']);
+    const complaint = hits(['complain', 'without my consent', 'without asking', 'never agreed', 'shared my', 'told my', 'passed on my', 'breach', 'not happy', 'unhappy', 'embarrass', 'data protection']);
+    const erasure = hits(['delete my', 'erase', 'remove my details', 'remove my data', 'right to be forgotten']);
+    const rect = hits(['correct my', 'wrong address', 'incorrect', 'update my details']);
+    const obj = hits(['stop using my', 'stop sending', 'object to', 'unsubscribe']);
+    const scored = [['sar', sar], ['complaint', complaint], ['erasure', erasure], ['rectification', rect], ['objection', obj]].sort((a, b) => b[1].length - a[1].length);
+    const top = scored[0];
+    const email = (text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [])[0] || '';
+    if (!top[1].length) return cleanTriage({ type: 'not_dp', confidence: 0.4, summary: 'No data protection wording found.', requesterEmail: email, reasons: [] }, 'keywords');
+    return cleanTriage({
+      type: top[0], also: scored.slice(1).filter((s) => s[1].length).map((s) => s[0]),
+      confidence: Math.min(0.85, 0.45 + 0.12 * top[1].length), summary: 'Matched keywords; check the message yourself.',
+      requesterEmail: email, reasons: top[1].map((w) => `“${w}”`),
+    }, 'keywords');
+  }
+
+  async function runTriage() {
+    const text = val('tr-text').trim();
+    if (!text) { state.aiNote = 'Paste a message first.'; render(); return; }
+    const orgId = val('tr-org', state.client !== 'all' ? state.client : (state.orgs[0] || {}).id);
+    const received = val('tr-date', todayStr());
+    state.triageBusy = true; state.aiNote = ''; state.triage = null; render();
+    try {
+      if (!state.sample) throw { code: 'no_ai' };
+      const prompt = triagePrompt(text, orgName(orgId), received);
+      const res = await state.sample(prompt, { modelTier: 'default' });
+      state.triage = cleanTriage(parseJsonLoose(res.text), 'ai');
+    } catch (e) {
+      if (e && e.code === 'not_granted') state.sample = null;
+      state.aiNote = (e && e.code === 'rate_limited') ? 'The AI is busy, so the keyword check ran instead. Try AI again in a minute.'
+        : (e && e.code === 'no_ai') ? 'AI isn’t available here, so the keyword check ran instead.'
+        : 'The AI answer couldn’t be read, so the keyword check ran instead.';
+      state.triage = rulesTriage(text);
+    }
+    state.drafts['tr-type'] = state.triage.type === 'not_dp' ? 'complaint' : state.triage.type;
+    state.drafts['tr-name'] = state.triage.requesterName || '';
+    state.drafts['tr-email'] = state.triage.requesterEmail || '';
+    state.drafts['tr-summary'] = state.triage.summary || '';
+    state.triageBusy = false;
+    render();
+  }
+
+  const DRAFT_KINDS = {
+    ack: 'acknowledgement',
+    clarify: 'request for clarification',
+    extend: 'notice that the response deadline is being extended by two months',
+    outcome: 'response explaining the outcome',
+    id: 'request for proof of identity',
+  };
+
+  async function draftReply(c, kind) {
+    const box = 'dr-' + c.id;
+    if (!state.sample) { state.aiNote = 'AI isn’t available here. Write the reply yourself.'; render(); return; }
+    const k = clockFor(c);
+    const org = orgName(c.orgId);
+    const facts = [
+      `Organisation: ${org}`, `Case reference: ${c.ref}`, `Case type: ${TYPES[c.type] || c.type}`,
+      `Requester: ${c.requesterName || 'unknown'}`, `Received: ${longDate(c.receivedOn)}`,
+      `Summary: ${c.summary || ''}`,
+      c.type === 'complaint' ? `Acknowledge by: ${longDate(k.ackDue)}` : (k.provisionalDue ? `Respond by: ${longDate(k.provisionalDue)}` : ''),
+      c.outcome ? `Outcome notes: ${c.outcome}` : '',
+    ].filter(Boolean).join('\n');
+    const prompt = [
+      `Write a short ${DRAFT_KINDS[kind]} letter from ${org} for a UK data protection case. Plain English, UK spelling, warm and factual, under 170 words.`,
+      'Do not give legal conclusions or admit fault. Do not invent facts: put anything unknown in [square brackets] for staff to fill in.',
+      kind === 'clarify' ? 'Explain that the one-month time limit is paused until the clarification arrives.' : '',
+      kind === 'extend' ? 'Give the reason as [reason for extension] and state the new date.' : '',
+      'Return only the letter text, starting with the greeting.',
+      'Facts:', facts,
+    ].filter(Boolean).join('\n');
+    state.busy[box] = true; state.drafts[box] = ''; render();
+    try {
+      const res = await state.sample(prompt, {
+        modelTier: 'default', cache: false,
+        onText: ({ text }) => { state.drafts[box] = text; const el = document.getElementById(box); if (el) el.value = text; },
+      });
+      state.drafts[box] = res.text;
+    } catch (e) {
+      if (e && e.code === 'not_granted') state.sample = null;
+      state.drafts[box] = (e && e.text) || '';
+      state.aiNote = (e && e.code === 'rate_limited') ? 'The AI is busy. Try again in a minute.' : 'The draft couldn’t be written. Try again.';
+    }
+    state.busy[box] = false;
+    render();
+  }
+
+  // ---------- rendering ----------
+  function captureFocus() {
+    const a = document.activeElement;
+    if (!a || !a.id) return null;
+    const f = { id: a.id };
+    try { f.s = a.selectionStart; f.e = a.selectionEnd; } catch (e) { /* not a text field */ }
+    return f;
+  }
+  function restoreFocus(f) {
+    if (!f) return;
+    const el = document.getElementById(f.id);
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    try { if (f.s != null) el.setSelectionRange(f.s, f.e); } catch (e) { /* ignore */ }
+  }
+
+  function parseRoute() {
+    const h = (location.hash || '').replace(/^#/, '');
+    if (h.startsWith('case-')) { state.route = 'case'; state.caseId = h.slice(5); }
+    else if (['cases', 'triage', 'dashboard', 'report', 'intake', 'settings'].includes(h)) { state.route = h; state.caseId = null; }
+    else { state.route = 'cases'; state.caseId = null; }
+  }
+
+  function render() {
+    const f = captureFocus();
+    const scrollY = window.scrollY;
+    // client switcher
+    const sel = $('#client-filter');
+    const opts = ['<option value="all">All clients</option>'].concat(state.orgs.map((o) => `<option value="${esc(o.id)}">${esc(o.name)}</option>`)).join('');
+    if (sel.innerHTML !== opts) sel.innerHTML = opts;
+    if (state.client !== 'all' && !orgById(state.client) && state.orgsLoaded) state.client = 'all';
+    sel.value = state.client;
+    // nav
+    document.querySelectorAll('#nav a').forEach((a) => {
+      const r = a.getAttribute('data-route');
+      if (r === state.route || (r === 'cases' && state.route === 'case')) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    const overdue = state.cases.filter((c) => inScope(c) && isOverdue(c)).length;
+    const no = $('#nav-overdue');
+    no.hidden = !overdue; no.textContent = overdue ? String(overdue) : '';
+    $('#who').textContent = state.myId ? `Signed in as ${state.names[state.myId] || 'you'}` : '';
+
+    const v = $('#view');
+    let html = '';
+    if (state.fatal) html = `<div class="panel"><h2>Can’t open the desk</h2><p>${esc(state.fatal)}</p></div>`;
+    else {
+      const banner = [];
+      if (state.loadNote) banner.push(`<div class="notice warn">${esc(state.loadNote)}</div>`);
+      if (state.canWrite === false) banner.push('<div class="notice">You can view this desk but not change it.</div>');
+      if (state.aiNote) banner.push(`<div class="notice warn" role="status">${esc(state.aiNote)}</div>`);
+      const body = ({ cases: viewCases, case: viewCase, triage: viewTriage, dashboard: viewDashboard, report: viewReport, intake: viewIntake, settings: viewSettings }[state.route] || viewCases)();
+      html = banner.join('') + body;
+    }
+    v.innerHTML = html;
+    restoreFocus(f);
+    if (Math.abs(window.scrollY - scrollY) > 1) window.scrollTo(0, scrollY);
+  }
+
+  function loadingOr(fn) {
+    if (!state.casesLoaded) return `<div class="panel empty"><span class="spin" aria-hidden="true"></span>Loading the case register…</div>`;
+    return fn();
+  }
+
+  // Cases register
+  function viewCases() {
+    const scope = state.cases.filter(inScope);
+    const fl = state.filters;
+    const q = fl.q.trim().toLowerCase();
+    let rows = scope.filter((c) => {
+      if (fl.type !== 'all' && c.type !== fl.type) return false;
+      if (fl.status === 'open' && c.status === 'closed') return false;
+      if (fl.status === 'closed' && c.status !== 'closed') return false;
+      if (fl.status === 'overdue' && !isOverdue(c)) return false;
+      if (fl.status === 'week' && !dueWithin(c, 7)) return false;
+      if (q && ![c.ref, c.requesterName, c.requesterEmail, c.summary, orgName(c.orgId)].join(' ').toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const sortKey = (c) => {
+      const nd = nextDeadline(c);
+      if (nd.kind === 'closed') return '9' + (c.closedOn || '');
+      if (!nd.date) return '5';
+      return (nd.kind === 'target' ? '4' : '1') + nd.date;
+    };
+    rows.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    const open = scope.filter((c) => c.status !== 'closed').length;
+    const od = scope.filter(isOverdue).length;
+    const wk = scope.filter((c) => dueWithin(c, 7)).length;
+    const head = `<div class="head"><div><h1>Cases</h1><p>${plural(open, 'open case')}${od ? `, <strong>${od} overdue</strong>` : ''}${wk ? `, ${wk} due in the next 7 days` : ''}. Sorted by the next legal deadline.</p></div>
+      <div class="actions"><a class="btn primary" href="#triage">Triage an email</a><button class="btn" data-act="new-case" type="button">Log a case by hand</button><button class="btn" data-act="copy-csv" type="button">Copy as CSV</button></div></div>`;
+    const filters = `<div class="filters" role="group" aria-label="Filter cases">
+      <select id="f-status" aria-label="Status">${[['open', 'Open'], ['overdue', 'Overdue'], ['week', 'Due in 7 days'], ['closed', 'Closed'], ['all', 'All']].map(([k, l]) => `<option value="${k}" ${fl.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <select id="f-type" aria-label="Type"><option value="all">All types</option>${Object.keys(TYPES).map((k) => `<option value="${k}" ${fl.type === k ? 'selected' : ''}>${TYPES[k]}</option>`).join('')}</select>
+      <input type="search" id="f-q" placeholder="Search ref, name, summary" value="${esc(fl.q)}" aria-label="Search cases">
+    </div>`;
+    const table = loadingOr(() => {
+      if (!state.orgs.length && !state.cases.length) return `<div class="panel empty">No clients or cases yet. Add a client in <a href="#settings">Clients and settings</a>, then triage an email.</div>`;
+      if (!rows.length) return `<div class="panel empty">No cases match these filters.</div>`;
+      return `<div class="table-wrap"><table><thead><tr><th>Ref</th>${state.client === 'all' ? '<th>Client</th>' : ''}<th>Type</th><th>Requester</th><th>Received</th><th>Next deadline</th><th>Status</th></tr></thead><tbody>
+      ${rows.map((c) => { const nd = nextDeadline(c); return `<tr class="link" data-open="${esc(c.id)}" tabindex="0">
+        <td class="mono" style="white-space:nowrap">${esc(c.ref)}</td>${state.client === 'all' ? `<td>${esc(orgName(c.orgId))}</td>` : ''}
+        <td>${typeLabel(c.type)}</td><td>${esc(c.requesterName || '—')}<br><span class="muted" style="font-size:13px">${esc((c.summary || '').slice(0, 70))}${(c.summary || '').length > 70 ? '…' : ''}</span></td>
+        <td class="num">${esc(shortDate(c.receivedOn))}</td>
+        <td><span class="muted" style="font-size:12px">${esc(nd.label)}</span><br>${nd.date ? `<span class="num">${esc(shortDate(nd.date))}</span>` : ''}</td>
+        <td>${dueBadge(c)}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    });
+    return head + filters + table;
+  }
+
+  // Case detail
+  function viewCase() {
+    const c = state.cases.find((x) => x.id === state.caseId);
+    if (!c) return loadingOr(() => `<div class="panel empty">That case isn’t here. <a href="#cases">Back to cases</a></div>`);
+    loadNames((c.events || []).map((e) => e.by).filter(Boolean));
+    const k = clockFor(c);
+    const nd = nextDeadline(c);
+    const closed = c.status === 'closed';
+    const box = 'dr-' + c.id;
+    let clockHtml = '';
+    if (c.type === 'complaint') {
+      const target = addDays(c.receivedOn, Number(state.config.internalTargetDays) || 28);
+      clockHtml = `<div class="clock">
+        <span class="muted">${c.acknowledgedOn ? `Acknowledged ${esc(shortDate(c.acknowledgedOn))} ${c.acknowledgedOn <= k.ackDue ? pill('On time', 'good') : pill('Late', 'bad')}` : 'Acknowledge by (legal limit)'}</span>
+        <span class="due num">${esc(longDate(k.ackDue))}</span>
+        ${closed ? '' : dueBadge(c)}
+        <ol>${k.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+        <p class="muted" style="margin:0;font-size:14px">The response has no fixed legal limit; it must come without undue delay. Your internal target is ${esc(state.config.internalTargetDays)} days: <strong>${esc(shortDate(target))}</strong>.</p>
+      </div>`;
+    } else {
+      const dueText = k.due ? longDate(k.due) : (k.state === 'waiting_id' ? 'Not started: waiting for ID' : 'Clock stopped');
+      clockHtml = `<div class="clock">
+        <span class="muted">${closed ? `Closed ${esc(shortDate(c.closedOn))} ${metOnTime(c) === true ? pill('On time', 'good') : metOnTime(c) === false ? pill('Late', 'bad') : ''}` : esc(nd.label)}</span>
+        <span class="due num">${esc(dueText)}</span>
+        ${closed ? '' : dueBadge(c)}
+        <ol>${k.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+        ${!closed && k.start && !c.extended ? `<p class="muted" style="margin:0;font-size:14px">To extend for a complex request, tell the person by <strong>${esc(shortDate(k.extensionNoticeBy))}</strong>.</p>` : ''}
+      </div>`;
+    }
+    const openPause = (c.pauses || []).find((p) => !p.to);
+    const acts = [];
+    if (!closed) {
+      if (!c.acknowledgedOn) acts.push(`<button class="btn primary" data-act="ack" type="button">Mark acknowledged</button>`);
+      if (c.type !== 'complaint') {
+        if (!c.idRequired) acts.push(`<button class="btn" data-act="id-req" type="button">Ask for ID</button>`);
+        if (c.idRequired && !c.idReceivedOn) acts.push(`<button class="btn" data-act="id-got" type="button">ID received</button>`);
+        if (!openPause && k.start) acts.push(`<button class="btn" data-act="pause" type="button">Ask for clarification (stop clock)</button>`);
+        if (openPause) acts.push(`<button class="btn" data-act="resume" type="button">Clarification received</button>`);
+        if (!c.extended && k.start) acts.push(`<button class="btn" data-act="extend" type="button">Extend to three months</button>`);
+      }
+      acts.push(`<button class="btn" data-act="note" type="button">Add a note</button>`);
+      acts.push(`<button class="btn" data-act="close" type="button">${c.type === 'complaint' ? 'Close with outcome' : 'Close: response sent'}</button>`);
+    } else {
+      acts.push(`<button class="btn" data-act="reopen" type="button">Reopen</button>`);
+    }
+    const draftOpts = c.type === 'complaint' ? [['ack', 'Acknowledgement'], ['outcome', 'Outcome letter']] : [['ack', 'Acknowledgement'], ['id', 'ID request'], ['clarify', 'Clarification request'], ['extend', 'Extension notice'], ['outcome', 'Response cover letter']];
+    const events = (c.events || []).slice().reverse();
+    return `<div class="head"><div><a href="#cases" class="muted" style="font-size:13px">← All cases</a>
+        <h1 style="margin-top:6px"><span class="mono" style="font-size:18px">${esc(c.ref)}</span> · ${esc(TYPES[c.type] || c.type)}</h1>
+        <p>${esc(orgName(c.orgId))} · ${esc(c.channel || '')} · received ${esc(longDate(c.receivedOn))}</p></div>
+        <div>${closed ? pill('Closed', 'neutral') : pill('Open', 'info')}</div></div>
+      <div class="grid2">
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <section class="panel"><h2>Deadline</h2>${clockHtml}</section>
+          <section class="panel"><h2>Actions</h2><div class="actions">${acts.join('')}</div></section>
+          <section class="panel"><h2>Draft a reply</h2>
+            <div class="row"><label class="field"><span>Letter</span><select id="dk-${esc(c.id)}">${draftOpts.map(([kk, l]) => `<option value="${kk}" ${val('dk-' + c.id) === kk ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+            <button class="btn" data-act="draft" type="button" ${state.sample ? '' : 'disabled'}>${state.busy[box] ? '<span class="spin" aria-hidden="true"></span>Writing…' : 'Draft with AI'}</button></div>
+            <textarea id="${box}" aria-label="Draft reply" placeholder="${state.sample ? 'Choose a letter and draft it with AI, or write your own.' : 'AI isn’t available here. Write the reply yourself.'}" style="margin-top:12px">${esc(val(box))}</textarea>
+            <div class="actions" style="margin-top:10px"><button class="btn small" data-act="copy-draft" type="button">Copy</button><span class="muted" style="font-size:13px">Drafts are never sent from here. Check every line before you send it.</span></div>
+          </section>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <section class="panel"><h2>Details</h2><dl class="kv">
+            <dt>Requester</dt><dd>${esc(c.requesterName || '—')}</dd>
+            <dt>Email</dt><dd>${esc(c.requesterEmail || '—')}</dd>
+            <dt>Summary</dt><dd>${esc(c.summary || '—')}</dd>
+            ${c.type !== 'complaint' ? `<dt>ID</dt><dd>${c.idRequired ? (c.idReceivedOn ? 'Received ' + esc(shortDate(c.idReceivedOn)) : 'Requested, not yet received') : 'Not needed'}</dd>` : ''}
+            ${c.triage ? `<dt>Triage</dt><dd>${c.triage.by === 'ai' ? 'AI' : c.triage.by === 'form' ? 'Chosen on the public form' : 'Keyword check'}${c.triage.confidence ? `, ${Math.round(c.triage.confidence * 100)}% confident` : ''}</dd>` : ''}
+            ${c.outcome ? `<dt>Outcome</dt><dd>${esc(c.outcome)}</dd>` : ''}
+          </dl>
+          ${c.message ? `<details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Original message</summary><p style="white-space:pre-wrap;font-size:14px">${esc(c.message)}</p></details>` : ''}
+          </section>
+          <section class="panel"><h2>Audit trail</h2><ol class="timeline">${events.map((e) => `<li><span class="muted num">${esc(shortDate(e.on || String(e.at).slice(0, 10)))}</span><span>${esc(e.text)} <span class="muted">· ${esc(personName(e.by))}</span></span></li>`).join('')}</ol></section>
+          ${state.isOwner ? `<div><button class="btn danger small" data-act="delete" type="button">Delete this sample case</button></div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  // Triage
+  const EXAMPLES = {
+    complaint: 'Hi,\n\nI rang last week about the flat on Mill Lane. Your agent told my new landlord about my rent arrears without asking me. I never agreed to that and it has been really embarrassing. I want to know why you shared it and I want it to stop.\n\nJordan Hale\njordan.hale@example.com',
+    sar: 'To whom it may concern,\n\nPlease send me everything you have on file about me, including the notes from my interview in September and any emails your consultants sent each other about my application.\n\nThanks,\nPriya Shah (priya.shah@example.com)',
+    other: 'Hello, can you confirm whether the boiler service at 14 Elm Road is booked for Thursday? Thanks, Sam',
+  };
+  function viewTriage() {
+    const t = state.triage;
+    const orgSel = val('tr-org', state.client !== 'all' ? state.client : (state.orgs[0] || {}).id || '');
+    const left = `<section class="panel"><h2>Paste the message</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="chips"><span class="muted" style="font-size:13px">Try an example:</span>
+          <button class="btn small" data-example="complaint" type="button">Unhappy tenant</button>
+          <button class="btn small" data-example="sar" type="button">Candidate wants her file</button>
+          <button class="btn small" data-example="other" type="button">Not data protection</button></div>
+        <textarea id="tr-text" aria-label="Message text" placeholder="Paste an email, letter or a note of a phone call">${esc(val('tr-text'))}</textarea>
+        <div class="row">
+          <label class="field"><span>Client</span><select id="tr-org">${state.orgs.map((o) => `<option value="${esc(o.id)}" ${orgSel === o.id ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>
+          <label class="field"><span>Received on</span><input type="date" id="tr-date" value="${esc(val('tr-date', todayStr()))}"></label>
+          <label class="field"><span>Channel</span><select id="tr-channel">${CHANNELS.map((ch) => `<option ${val('tr-channel', 'Email') === ch ? 'selected' : ''}>${ch}</option>`).join('')}</select></label>
+        </div>
+        <div class="actions"><button class="btn primary" data-act="triage" type="button" ${state.triageBusy || !state.orgs.length ? 'disabled' : ''}>${state.triageBusy ? '<span class="spin" aria-hidden="true"></span>Reading the message…' : (state.sample ? 'Triage with AI' : 'Run the keyword check')}</button>
+        ${!state.orgs.length ? '<span class="muted" style="font-size:13px">Add a client first in Clients and settings.</span>' : ''}</div>
+      </div></section>`;
+    let right = `<section class="panel"><h2>What it is</h2><p class="muted" style="margin:0">The AI reads the message, decides whether it is a complaint or a data request, and suggests the clock to start. You confirm before anything is created.</p></section>`;
+    if (t) {
+      const typeOpts = Object.keys(TYPES).map((k) => `<option value="${k}" ${val('tr-type') === k ? 'selected' : ''}>${TYPES[k]}</option>`).join('');
+      const preview = (() => {
+        const fake = { type: val('tr-type'), receivedOn: val('tr-date', todayStr()), idRequired: false, pauses: [] };
+        const k = clockFor(fake);
+        return fake.type === 'complaint' ? `Acknowledge by <strong>${esc(longDate(k.ackDue))}</strong>` : `Respond by <strong>${esc(longDate(k.due))}</strong>`;
+      })();
+      right = `<section class="panel result"><h2>What it is</h2>
+        <div><span class="muted" style="font-size:13px">${t.by === 'ai' ? 'AI reading' : 'Keyword check'}</span><br>
+        <strong style="font-size:18px">${t.type === 'not_dp' ? 'Not a data protection matter' : esc(TYPES[t.type])}</strong>
+        ${t.also.length ? `<span class="muted"> · also mentions ${t.also.map((x) => esc((TYPES[x] || x).toLowerCase())).join(', ')}</span>` : ''}</div>
+        <div><div class="meter" role="img" aria-label="Confidence ${Math.round(t.confidence * 100)} per cent"><i style="width:${Math.round(t.confidence * 100)}%"></i></div><span class="muted" style="font-size:12px">${Math.round(t.confidence * 100)}% confident</span></div>
+        ${t.reasons.length ? `<div class="chips">${t.reasons.map((r) => `<span class="chip">${esc(r)}</span>`).join('')}</div>` : ''}
+        ${t.idCheckSuggested ? '<div class="notice warn">Consider asking for ID before you search for data.</div>' : ''}
+        ${t.clarificationSuggested ? '<div class="notice warn">The request may be too vague to search. Asking for clarification stops the clock.</div>' : ''}
+        ${t.type === 'not_dp' ? '<div class="notice">Nothing to log. If you disagree, choose a type below and create the case anyway.</div>' : ''}
+        <label class="field"><span>Log it as</span><select id="tr-type">${typeOpts}</select></label>
+        <div class="row"><label class="field"><span>Requester</span><input type="text" id="tr-name" value="${esc(val('tr-name'))}"></label>
+        <label class="field"><span>Email</span><input type="email" id="tr-email" value="${esc(val('tr-email'))}"></label></div>
+        <label class="field"><span>Summary</span><input type="text" id="tr-summary" value="${esc(val('tr-summary'))}"></label>
+        <p style="margin:0">${preview}</p>
+        <div class="actions"><button class="btn primary" data-act="tr-create" type="button">Create case and start the clock</button><button class="btn" data-act="tr-clear" type="button">Clear</button></div>
+      </section>`;
+    }
+    return `<div class="head"><div><h1>Triage an email</h1><p>Complaints don’t need legal words to count, so check anything that mentions how someone’s information was used.</p></div></div>
+      <div class="grid2">${left}${right}</div>`;
+  }
+
+  // Dashboard
+  function viewDashboard() {
+    return loadingOr(() => {
+      const scope = state.cases.filter(inScope);
+      const open = scope.filter((c) => c.status !== 'closed');
+      const od = scope.filter(isOverdue);
+      const wk = scope.filter((c) => dueWithin(c, 7));
+      const measured = scope.map(metOnTime).filter((x) => x !== null);
+      const ok = measured.filter(Boolean).length;
+      const tiles = `<div class="tiles">
+        <div class="tile"><b>${open.length}</b><span>Open cases</span></div>
+        <div class="tile ${wk.length ? 'caution' : ''}"><b>${wk.length}</b><span>Legal deadlines in the next 7 days</span></div>
+        <div class="tile ${od.length ? 'alert' : ''}"><b>${od.length}</b><span>Overdue</span></div>
+        <div class="tile"><b>${measured.length ? Math.round((ok / measured.length) * 100) + '%' : '—'}</b><span>${measured.length ? `${ok} of ${measured.length} limits met on time` : 'No limits met or missed yet'}</span></div>
+      </div>`;
+      // monthly chart, last 6 months
+      const now = todayStr();
+      const months = [];
+      for (let i = 5; i >= 0; i--) months.push(addMonthsClamped(now.slice(0, 8) + '01', -i).slice(0, 7));
+      const groups = [['complaint', 'Complaints', 'var(--accent)'], ['sar', 'SARs', 'var(--series-2)'], ['other', 'Other requests', 'var(--series-3)']];
+      const counts = months.map((m) => {
+        const inM = scope.filter((c) => (c.receivedOn || '').slice(0, 7) === m);
+        return { m, complaint: inM.filter((c) => c.type === 'complaint').length, sar: inM.filter((c) => c.type === 'sar').length, other: inM.filter((c) => c.type !== 'complaint' && c.type !== 'sar').length };
+      });
+      const maxV = Math.max(1, ...counts.map((r) => Math.max(r.complaint, r.sar, r.other)));
+      const step = maxV <= 4 ? 1 : Math.ceil(maxV / 4);
+      const top = Math.ceil(maxV / step) * step;
+      const W = 640, H = 220, L = 34, B = 28, T = 10, cw = (W - L - 8) / months.length, bw = Math.min(18, (cw - 16) / 3);
+      const y = (v) => T + (H - T - B) * (1 - v / top);
+      const MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cases received per month by type" style="width:100%;height:auto">`;
+      for (let v = 0; v <= top; v += step) svg += `<line class="grid" x1="${L}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+      counts.forEach((r, i) => {
+        const x0 = L + i * cw + (cw - bw * 3 - 4) / 2;
+        groups.forEach(([key, , col], j) => {
+          const v = r[key];
+          if (v > 0) svg += `<rect x="${x0 + j * (bw + 2)}" y="${y(v)}" width="${bw}" height="${y(0) - y(v)}" rx="2" style="fill:${col}"><title>${v}</title></rect>`;
+        });
+        svg += `<text x="${L + i * cw + cw / 2}" y="${H - 8}" text-anchor="middle">${MN[Number(r.m.slice(5)) - 1]} ${r.m.slice(2, 4)}</text>`;
+      });
+      svg += '</svg>';
+      const chart = `<section class="panel"><div class="head"><h2>Cases received per month</h2><div class="legend">${groups.map(([, l, col]) => `<span><i class="dot" style="background:${col}"></i>${l}</span>`).join('')}</div></div>${svg}</section>`;
+      const orgsInScope = state.client === 'all' ? state.orgs : state.orgs.filter((o) => o.id === state.client);
+      const perClient = `<section class="panel"><h2>By client</h2><div class="table-wrap" style="border:0"><table><thead><tr><th>Client</th><th>Open</th><th>Due in 7 days</th><th>Overdue</th><th>Received this month</th><th>On time</th></tr></thead><tbody>
+        ${orgsInScope.map((o) => {
+          const cs = state.cases.filter((c) => c.orgId === o.id);
+          const ms = cs.map(metOnTime).filter((x) => x !== null);
+          const odn = cs.filter(isOverdue).length;
+          return `<tr><td><span class="dot" style="background:${esc(o.colour || 'var(--accent)')}"></span>${esc(o.name)}</td><td>${cs.filter((c) => c.status !== 'closed').length}</td><td>${cs.filter((c) => dueWithin(c, 7)).length}</td><td>${odn ? pill(String(odn), 'bad') : '0'}</td><td>${cs.filter((c) => (c.receivedOn || '').slice(0, 7) === now.slice(0, 7)).length}</td><td>${ms.length ? `${ms.filter(Boolean).length} of ${ms.length}` : '—'}</td></tr>`;
+        }).join('') || '<tr><td colspan="6" class="muted">No clients yet.</td></tr>'}
+      </tbody></table></div></section>`;
+      const urgent = open.filter((c) => isOverdue(c) || dueWithin(c, 7)).sort((a, b) => String(nextDeadline(a).date).localeCompare(String(nextDeadline(b).date)));
+      const urgentHtml = `<section class="panel"><h2>Needs attention</h2>${urgent.length ? `<ol class="timeline">${urgent.map((c) => `<li><span class="num">${esc(shortDate(nextDeadline(c).date))}</span><span><a href="#case-${esc(c.id)}" class="mono">${esc(c.ref)}</a> ${typeLabel(c.type)} · ${esc(orgName(c.orgId))} · ${esc(nextDeadline(c).label.toLowerCase())} ${dueBadge(c)}</span></li>`).join('')}</ol>` : '<p class="muted" style="margin:0">Nothing due in the next 7 days.</p>'}</section>`;
+      return `<div class="head"><div><h1>Dashboard</h1><p>${state.client === 'all' ? 'All clients' : esc(orgName(state.client))}. “On time” counts complaint acknowledgements and closed requests against their legal limits.</p></div></div>${tiles}${urgentHtml}${chart}${perClient}`;
+    });
+  }
+
+  // Monthly report
+  function buildReport(orgId, month) {
+    const org = orgById(orgId);
+    if (!org) return '';
+    const MNL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const label = `${MNL[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`;
+    const cs = state.cases.filter((c) => c.orgId === orgId);
+    const recv = cs.filter((c) => (c.receivedOn || '').slice(0, 7) === month);
+    const closedIn = cs.filter((c) => c.status === 'closed' && (c.closedOn || '').slice(0, 7) === month);
+    const ackIn = cs.filter((c) => c.type === 'complaint' && (c.acknowledgedOn || '').slice(0, 7) === month);
+    const openEnd = cs.filter((c) => c.status !== 'closed');
+    const byType = Object.keys(TYPES).map((k) => [k, recv.filter((c) => c.type === k).length]).filter(([, n]) => n);
+    const lines = [];
+    lines.push(`Data protection cases: ${org.name}, ${label}`);
+    lines.push('');
+    const NOUN = { complaint: ['complaint', 'complaints'], sar: ['SAR', 'SARs'], erasure: ['erasure request', 'erasure requests'], rectification: ['rectification request', 'rectification requests'], objection: ['objection', 'objections'] };
+    lines.push(`Received: ${recv.length}${byType.length ? ' (' + byType.map(([k, n]) => `${n} ${(NOUN[k] || [k, k])[n === 1 ? 0 : 1]}`).join(', ') + ')' : ''}.`);
+    const ackOk = ackIn.filter((c) => metOnTime(c) === true).length;
+    if (ackIn.length) lines.push(`Complaints acknowledged: ${ackIn.length}, ${ackOk} within the 30-day limit.`);
+    const clOk = closedIn.filter((c) => metOnTime(c) !== false).length;
+    if (closedIn.length) lines.push(`Cases closed: ${closedIn.length}, ${clOk} within their time limits.`);
+    lines.push(`Open now: ${openEnd.length}.`);
+    const od = openEnd.filter(isOverdue);
+    if (od.length) lines.push(`Overdue now: ${od.length} (${od.map((c) => c.ref).join(', ')}).`);
+    if (openEnd.length) {
+      lines.push('');
+      lines.push('Open cases');
+      openEnd.forEach((c) => { const nd = nextDeadline(c); lines.push(`- ${c.ref}, ${TYPES[c.type] || c.type}, received ${shortDate(c.receivedOn)}: ${nd.label.toLowerCase()}${nd.date ? ' ' + shortDate(nd.date) : ''}.`); });
+    }
+    if (closedIn.length) {
+      lines.push('');
+      lines.push('Closed this month');
+      closedIn.forEach((c) => lines.push(`- ${c.ref}, ${TYPES[c.type] || c.type}: ${c.outcome || 'closed'} (${shortDate(c.closedOn)}).`));
+    }
+    lines.push('');
+    lines.push(`Prepared ${shortDate(todayStr())} from the Privacy Desk case register.`);
+    return lines.join('\n');
+  }
+  function viewReport() {
+    return loadingOr(() => {
+      if (!state.orgs.length) return `<div class="panel empty">Add a client first in <a href="#settings">Clients and settings</a>.</div>`;
+      const orgId = val('rp-org', state.client !== 'all' ? state.client : state.orgs[0].id);
+      const month = val('rp-month', todayStr().slice(0, 7));
+      const text = buildReport(orgId, month);
+      return `<div class="head"><div><h1>Monthly report</h1><p>A plain summary per client to paste into an email or a board pack.</p></div></div>
+        <section class="panel"><div class="row">
+          <label class="field"><span>Client</span><select id="rp-org">${state.orgs.map((o) => `<option value="${esc(o.id)}" ${o.id === orgId ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>
+          <label class="field"><span>Month</span><input type="month" id="rp-month" value="${esc(month)}"></label>
+          <button class="btn primary" data-act="copy-report" type="button">Copy report</button></div>
+          <div class="report" id="report-text" style="margin-top:14px">${esc(text)}</div></section>`;
+    });
+  }
+
+  // Public intake form preview
+  function viewIntake() {
+    if (!state.orgs.length) return loadingOr(() => `<div class="panel empty">Add a client first in <a href="#settings">Clients and settings</a>.</div>`);
+    const orgId = val('in-org', state.client !== 'all' ? state.client : state.orgs[0].id);
+    const org = orgById(orgId) || state.orgs[0];
+    if (state.submitted) {
+      const s = state.submitted;
+      return `<div class="head"><div><h1>Public form</h1><p>What the person sees after sending the form.</p></div></div>
+        <section class="panel intake" style="--brand:${esc(org.colour || 'var(--accent)')}"><h2>Thank you, we’ve received it</h2>
+        <p>Your reference is <strong class="mono">${esc(s.ref)}</strong>. We received it on ${esc(longDate(s.receivedOn))}.</p>
+        <p>${s.type === 'complaint' ? `We’ll confirm we’re looking into your complaint by ${esc(longDate(s.ackDue))} at the latest, then keep you updated.` : `We’ll respond by ${esc(longDate(s.due))}. If we need proof of identity or more detail, we’ll ask, and the time limit starts again from when we receive it.`}</p>
+        <div class="actions"><a class="btn" href="#case-${esc(s.id)}">Open the case it created</a><button class="btn" data-act="in-again" type="button">Show the form again</button></div></section>`;
+    }
+    const choice = val('in-type', 'complaint');
+    const opts = [['complaint', 'Complain about how my information was handled'], ['sar', 'Get a copy of the information you hold about me'], ['rectification', 'Correct information about me'], ['erasure', 'Delete information about me']];
+    return `<div class="head"><div><h1>Public form</h1><p>The form each client links from its privacy notice. Sending it creates a case and starts the right clock.</p></div>
+        <label class="field" style="min-width:220px"><span>Preview for</span><select id="in-org">${state.orgs.map((o) => `<option value="${esc(o.id)}" ${o.id === org.id ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label></div>
+      <section class="panel intake" style="--brand:${esc(org.colour || 'var(--accent)')}">
+        <h2>Contact ${esc(org.name)} about your personal information</h2>
+        <p class="muted">Use this form to raise a data protection complaint or make a request about your information. We’ll reply by email.</p>
+        <form id="intake-form" style="display:flex;flex-direction:column;gap:14px" novalidate>
+          <fieldset><legend>What would you like to do?</legend>
+            ${opts.map(([k, l]) => `<label class="radio"><input type="radio" name="in-type" id="in-type-${k}" value="${k}" ${choice === k ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+          </fieldset>
+          <div class="row"><label class="field"><span>Your name</span><input type="text" id="in-name" required value="${esc(val('in-name'))}" autocomplete="name"></label>
+          <label class="field"><span>Your email</span><input type="email" id="in-email" required value="${esc(val('in-email'))}" autocomplete="email"></label></div>
+          <label class="field"><span>Tell us what happened or what you need</span><textarea id="in-details" required style="min-height:110px">${esc(val('in-details'))}</textarea>
+          <small>You don’t need to use legal terms. Please don’t include bank details or health information here.</small></label>
+          <p class="muted" style="margin:0;font-size:13px">${esc(org.name)} will use these details only to handle your request. You can also complain to the Information Commissioner’s Office.</p>
+          <div class="actions"><button class="btn primary" type="submit">Send</button></div>
+        </form></section>`;
+  }
+
+  // Settings
+  function viewSettings() {
+    const isOwner = !!state.isOwner;
+    return `<div class="head"><div><h1>Clients and settings</h1><p>Each client is a separate organisation with its own cases, form and report.</p></div></div>
+      <div class="grid2">
+        <section class="panel"><h2>Clients</h2>
+          ${state.orgs.length ? `<ol class="timeline">${state.orgs.map((o) => `<li><span><span class="dot" style="background:${esc(o.colour || 'var(--accent)')}"></span><span class="mono">${esc(o.code || '')}</span></span><span>${esc(o.name)} <span class="muted">· ${state.cases.filter((c) => c.orgId === o.id).length} cases</span></span></li>`).join('')}</ol>` : '<p class="muted">No clients yet.</p>'}
+          <h3 style="margin-top:16px">Add a client</h3>
+          <div class="row" style="margin-top:8px"><label class="field"><span>Name</span><input type="text" id="og-name" value="${esc(val('og-name'))}" placeholder="Example Lettings Ltd"></label>
+          <label class="field" style="flex:0 1 110px"><span>Short code</span><input type="text" id="og-code" maxlength="6" value="${esc(val('og-code'))}" placeholder="EXL"></label>
+          <label class="field" style="flex:0 1 90px"><span>Colour</span><input type="text" id="og-colour" value="${esc(val('og-colour', '#1d5c86'))}" aria-describedby="og-colour-hint"></label>
+          <button class="btn primary" data-act="add-org" type="button">Add client</button></div>
+          <small class="muted" id="og-colour-hint">Colour as a hex code; it brands the client’s public form.</small>
+        </section>
+        <section class="panel"><h2>Desk settings</h2>
+          <div class="row"><label class="field"><span>Internal target for complaint responses (days)</span><input type="number" min="1" max="90" id="cf-days" value="${esc(val('cf-days', state.config.internalTargetDays))}">
+          <small>The law sets no fixed limit, only “without undue delay”. This is your own target.</small></label>
+          <button class="btn" data-act="save-config" type="button">Save</button></div>
+          ${isOwner ? `<h3 style="margin-top:18px">Sample data</h3><p class="muted" style="font-size:14px">Removes every case and client from this dev version.</p><button class="btn danger" data-act="wipe" type="button">Remove all sample data</button>` : ''}
+        </section>
+      </div>`;
+  }
+
+  // ---------- dialogs ----------
+  function ask(title, fields, okLabel) {
+    return new Promise((resolve) => {
+      const dlg = $('#dlg');
+      const form = $('#dlg-form');
+      form.innerHTML = `<h2>${esc(title)}</h2>${fields.map((f) => f.type === 'textarea'
+        ? `<label class="field"><span>${esc(f.label)}</span><textarea id="dlg-${f.id}" style="min-height:90px">${esc(f.value || '')}</textarea></label>`
+        : f.type === 'select'
+          ? `<label class="field"><span>${esc(f.label)}</span><select id="dlg-${f.id}">${f.options.map(([k, l]) => `<option value="${esc(k)}" ${k === f.value ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`
+          : `<label class="field"><span>${esc(f.label)}</span><input type="${f.type || 'text'}" id="dlg-${f.id}" value="${esc(f.value || '')}"></label>`).join('')}
+        <div class="actions"><button class="btn primary" value="ok" type="submit">${esc(okLabel || 'Save')}</button><button class="btn" value="cancel" type="submit" formnovalidate>Cancel</button></div>`;
+      const done = () => {
+        dlg.removeEventListener('close', done);
+        if (dlg.returnValue !== 'ok') return resolve(null);
+        const out = {};
+        fields.forEach((f) => { out[f.id] = $('#dlg-' + f.id).value; });
+        resolve(out);
+      };
+      dlg.returnValue = '';
+      dlg.addEventListener('close', done);
+      dlg.showModal();
+    });
+  }
+  async function confirmBox(title, text, okLabel) {
+    const r = await ask(title, [], okLabel);
+    return r !== null;
+  }
+
+  // ---------- events ----------
+  async function guard(fn) {
+    if (!state.db) return;
+    try { await fn(); } catch (e) { state.aiNote = writeError(e); render(); }
+  }
+
+  async function copyText(text, okMsg) {
+    try { await navigator.clipboard.writeText(text); state.aiNote = okMsg; }
+    catch (e) { state.aiNote = 'Copying was blocked. Select the text and copy it yourself.'; }
+    render();
+    setTimeout(() => { if (state.aiNote === okMsg) { state.aiNote = ''; render(); } }, 2500);
+  }
+
+  function casesCsv() {
+    const cols = ['ref', 'client', 'type', 'status', 'requester', 'email', 'received', 'next_deadline_label', 'next_deadline', 'acknowledged', 'closed', 'on_time', 'summary'];
+    const q = (s) => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+    const rows = state.cases.filter(inScope).map((c) => {
+      const nd = nextDeadline(c); const ot = metOnTime(c);
+      return [c.ref, orgName(c.orgId), TYPES[c.type] || c.type, c.status, c.requesterName, c.requesterEmail, c.receivedOn, nd.label, nd.date || '', c.acknowledgedOn || '', c.closedOn || '', ot === null ? '' : (ot ? 'yes' : 'no'), c.summary].map(q).join(',');
+    });
+    return [cols.join(',')].concat(rows).join('\n');
+  }
+
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.id) return;
+    if (el.id === 'f-q') { state.filters.q = el.value; render(); return; }
+    // Typing only records the value; selects and dates re-render on 'change'.
+    if (el.type === 'radio') { state.drafts[el.name] = el.value; return; }
+    state.drafts[el.id] = el.value;
+  });
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.id === 'client-filter') { state.client = el.value; try { localStorage.setItem('pd-client', el.value); } catch (x) { /* ignore */ } render(); return; }
+    if (el.id === 'f-status') { state.filters.status = el.value; render(); return; }
+    if (el.id === 'f-type') { state.filters.type = el.value; render(); return; }
+    if (el.name === 'in-type') { state.drafts['in-type'] = el.value; return; }
+    if (!el.id) return;
+    state.drafts[el.id] = el.value;
+    // Re-render only for controls that change what is shown. Text fields fire 'change' on blur,
+    // and re-rendering then would swallow the click that caused the blur.
+    if (el.tagName === 'SELECT' || el.type === 'date' || el.type === 'month') render();
+  });
+  document.addEventListener('keydown', (e) => {
+    const tr = e.target.closest && e.target.closest('tr[data-open]');
+    if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); location.hash = 'case-' + tr.getAttribute('data-open'); }
+  });
+  document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'intake-form') return;
+    e.preventDefault();
+    const org = orgById(val('in-org', state.client !== 'all' ? state.client : (state.orgs[0] || {}).id)) || state.orgs[0];
+    const name = val('in-name').trim(), email = val('in-email').trim(), details = val('in-details').trim();
+    const type = val('in-type', 'complaint');
+    if (!name || !email || !details) { state.aiNote = 'Fill in your name, email and what happened before sending.'; render(); return; }
+    await guard(async () => {
+      const received = todayStr();
+      const c = await createCase({ orgId: org.id, type, channel: 'Web form', requesterName: name, requesterEmail: email, receivedOn: received, summary: details.slice(0, 140), message: details, triage: { by: 'form' } }, `Received through ${org.name}’s public form`);
+      const k = clockFor(c);
+      state.submitted = { id: c.id, ref: c.ref, type, receivedOn: received, ackDue: k.ackDue, due: k.provisionalDue };
+      ['in-name', 'in-email', 'in-details'].forEach((id) => delete state.drafts[id]);
+      state.aiNote = '';
+      render();
+    });
+  });
+
+  document.addEventListener('click', async (e) => {
+    const ex = e.target.closest('[data-example]');
+    if (ex) { state.drafts['tr-text'] = EXAMPLES[ex.getAttribute('data-example')]; state.triage = null; render(); return; }
+    const row = e.target.closest('tr[data-open]');
+    if (row) { location.hash = 'case-' + row.getAttribute('data-open'); return; }
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const act = b.getAttribute('data-act');
+    const c = state.cases.find((x) => x.id === state.caseId);
+    const t = todayStr();
+    switch (act) {
+      case 'triage': runTriage(); break;
+      case 'tr-clear': state.triage = null; ['tr-text', 'tr-type', 'tr-name', 'tr-email', 'tr-summary'].forEach((k) => delete state.drafts[k]); render(); break;
+      case 'tr-create': {
+        const tr = state.triage;
+        const orgId = val('tr-org', state.client !== 'all' ? state.client : (state.orgs[0] || {}).id);
+        const type = val('tr-type', 'complaint');
+        await guard(async () => {
+          const how = tr.by === 'ai' ? `AI triage: ${(TYPE_SHORT[tr.type] || 'not data protection').toLowerCase()}, ${Math.round(tr.confidence * 100)}% confident` : 'keyword check';
+          const created = await createCase({
+            orgId, type, channel: val('tr-channel', 'Email'), requesterName: val('tr-name'), requesterEmail: val('tr-email'),
+            receivedOn: val('tr-date', t), summary: val('tr-summary'), message: val('tr-text'),
+            triage: { by: tr.by, type: tr.type, confidence: tr.confidence, reasons: tr.reasons },
+          }, `Case created from a pasted message (${how}; logged as ${(TYPE_SHORT[type] || type).toLowerCase()})`);
+          state.triage = null; ['tr-text', 'tr-type', 'tr-name', 'tr-email', 'tr-summary'].forEach((k) => delete state.drafts[k]);
+          location.hash = 'case-' + created.id;
+        });
+        break;
+      }
+      case 'new-case': {
+        if (!state.orgs.length) { state.aiNote = 'Add a client first in Clients and settings.'; render(); break; }
+        const r = await ask('Log a case by hand', [
+          { id: 'org', label: 'Client', type: 'select', options: state.orgs.map((o) => [o.id, o.name]), value: state.client !== 'all' ? state.client : state.orgs[0].id },
+          { id: 'type', label: 'Type', type: 'select', options: Object.keys(TYPES).map((k) => [k, TYPES[k]]), value: 'complaint' },
+          { id: 'name', label: 'Requester' }, { id: 'email', label: 'Email', type: 'email' },
+          { id: 'received', label: 'Received on', type: 'date', value: t },
+          { id: 'channel', label: 'Channel', type: 'select', options: CHANNELS.map((x) => [x, x]), value: 'Phone' },
+          { id: 'summary', label: 'Summary', type: 'textarea' },
+        ], 'Create case');
+        if (!r) break;
+        await guard(async () => {
+          const created = await createCase({ orgId: r.org, type: r.type, channel: r.channel, requesterName: r.name, requesterEmail: r.email, receivedOn: r.received || t, summary: r.summary, triage: { by: 'manual' } }, `Case logged by hand (${r.channel.toLowerCase()})`);
+          location.hash = 'case-' + created.id;
+        });
+        break;
+      }
+      case 'copy-csv': copyText(casesCsv(), 'Cases copied as CSV.'); break;
+      case 'copy-report': copyText($('#report-text').textContent, 'Report copied.'); break;
+      case 'copy-draft': copyText(val('dr-' + state.caseId), 'Draft copied.'); break;
+      case 'draft': if (c) draftReply(c, val('dk-' + c.id, 'ack')); break;
+      case 'ack': {
+        const r = await ask('Mark acknowledged', [{ id: 'on', label: 'Acknowledged on', type: 'date', value: t }]);
+        if (r && c) await guard(() => saveCase(c, { acknowledgedOn: r.on }, `Acknowledgement sent on ${shortDate(r.on)}`, 'ack'));
+        break;
+      }
+      case 'id-req': if (c) await guard(() => saveCase(c, { idRequired: true, idReceivedOn: null }, 'Asked for proof of identity; clock waits until it arrives', 'id')); break;
+      case 'id-got': {
+        const r = await ask('ID received', [{ id: 'on', label: 'Received on', type: 'date', value: t }]);
+        if (r && c) await guard(() => saveCase(c, { idReceivedOn: r.on }, `Proof of identity received ${shortDate(r.on)}; clock started`, 'id'));
+        break;
+      }
+      case 'pause': {
+        const r = await ask('Ask for clarification', [{ id: 'on', label: 'Clarification requested on', type: 'date', value: t }, { id: 'what', label: 'What you asked', type: 'textarea' }]);
+        if (r && c) await guard(() => saveCase(c, { pauses: (c.pauses || []).concat([{ from: r.on, to: null }]) }, `Clarification requested ${shortDate(r.on)}; clock stopped${r.what ? ': ' + r.what : ''}`, 'pause'));
+        break;
+      }
+      case 'resume': {
+        const r = await ask('Clarification received', [{ id: 'on', label: 'Received on', type: 'date', value: t }]);
+        if (r && c) {
+          const pauses = (c.pauses || []).map((p) => (p.to ? p : { from: p.from, to: r.on < p.from ? p.from : r.on }));
+          await guard(() => saveCase(c, { pauses }, `Clarification received ${shortDate(r.on)}; clock restarts the next day`, 'resume'));
+        }
+        break;
+      }
+      case 'extend': {
+        const r = await ask('Extend to three months', [{ id: 'why', label: 'Why the request is complex', type: 'textarea' }, { id: 'told', label: 'Person told on', type: 'date', value: t }], 'Extend');
+        if (r && c) await guard(() => saveCase(c, { extended: true, extendedOn: r.told }, `Extended to three months; person told ${shortDate(r.told)}${r.why ? '. Reason: ' + r.why : ''}`, 'extend'));
+        break;
+      }
+      case 'note': {
+        const r = await ask('Add a note', [{ id: 'text', label: 'Note', type: 'textarea' }], 'Add note');
+        if (r && r.text && c) await guard(() => saveCase(c, {}, r.text, 'note'));
+        break;
+      }
+      case 'close': {
+        const r = await ask(c.type === 'complaint' ? 'Close with outcome' : 'Close: response sent', [{ id: 'on', label: c.type === 'complaint' ? 'Outcome sent on' : 'Response sent on', type: 'date', value: t }, { id: 'outcome', label: 'Outcome', type: 'textarea' }], 'Close case');
+        if (r && c) await guard(() => saveCase(c, { status: 'closed', closedOn: r.on, outcome: r.outcome || '' }, `Closed ${shortDate(r.on)}${r.outcome ? ': ' + r.outcome : ''}`, 'close'));
+        break;
+      }
+      case 'reopen': if (c) await guard(() => saveCase(c, { status: 'open', closedOn: null }, 'Case reopened', 'reopen')); break;
+      case 'delete': {
+        if (c && await confirmBox(`Delete ${c.ref}?`, '', 'Delete')) await guard(async () => { await state.db.collection('cases').doc(c.id).delete(); location.hash = 'cases'; });
+        break;
+      }
+      case 'add-org': {
+        const name = val('og-name').trim();
+        if (!name) { state.aiNote = 'Give the client a name.'; render(); break; }
+        const colour = /^#[0-9a-fA-F]{6}$/.test(val('og-colour', '#1d5c86').trim()) ? val('og-colour', '#1d5c86').trim() : '#1d5c86';
+        const code = (val('og-code').trim() || name.replace(/[^A-Za-z]/g, '').slice(0, 3)).toUpperCase();
+        await guard(async () => {
+          await state.db.collection('orgs').doc(newId()).set({ name: name.slice(0, 80), code: code.slice(0, 6), colour, createdAt: new Date().toISOString() });
+          ['og-name', 'og-code', 'og-colour'].forEach((k) => delete state.drafts[k]);
+          state.aiNote = ''; render();
+        });
+        break;
+      }
+      case 'save-config': {
+        const n = Math.max(1, Math.min(90, parseInt(val('cf-days', state.config.internalTargetDays), 10) || 28));
+        await guard(async () => { await state.db.doc('config/desk').set({ internalTargetDays: n }); delete state.drafts['cf-days']; state.aiNote = 'Saved.'; render(); });
+        break;
+      }
+      case 'wipe': {
+        if (!await confirmBox('Remove all sample data?', '', 'Remove everything')) break;
+        await guard(async () => {
+          for (const x of state.cases.slice()) await state.db.collection('cases').doc(x.id).delete();
+          for (const o of state.orgs.slice()) await state.db.collection('orgs').doc(o.id).delete();
+        });
+        break;
+      }
+      case 'in-again': state.submitted = null; render(); break;
+      default: break;
+    }
+  });
+
+  window.addEventListener('hashchange', () => { parseRoute(); state.aiNote = ''; if (state.route !== 'intake') state.submitted = null; render(); window.scrollTo(0, 0); });
+  try { const saved = localStorage.getItem('pd-client'); if (saved) state.client = saved; } catch (e) { /* ignore */ }
+  parseRoute();
+  init();
+})();
+</script>
+</body>
+</html>

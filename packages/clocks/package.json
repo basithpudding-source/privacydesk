@@ -1,0 +1,1 @@
+{ "name": "@privacy-desk/clocks", "version": "0.1.0", "main": "clocks.js", "scripts": { "test": "node clocks.test.js" } }
