@@ -103,31 +103,32 @@ end $$;
 -- Creating cases and acting on them (0004). Partner A's admin, client A1.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 create temp table t_case as
-  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'sar', '2026-11-02', 'Email',
+  -- Action dates must not be in the future, so this scenario sits in October 2026.
+  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'sar', '2026-10-02', 'Email',
                         ' Sam Sample ', 'SAM@example.com', 'Wants their file', null, true) as id;
 select 'ref ' || ref || ' (expect AAA-001), requester ' || requester_name || ' <' || requester_email || '>' as created
   from pd.cases where id = (select id from t_case);
 select 'state ' || clock_state || ' (expect waiting_id), due ' || coalesce(response_due::text, 'none') || ' (expect none)' as created
   from pd.v_case_deadlines where case_id = (select id from t_case);
-select pd.record_case_action((select id from t_case), 'acknowledge', '2026-11-03');
-select pd.record_case_action((select id from t_case), 'id_received', '2026-11-05');
-select 'due after ID ' || response_due || ' (expect 2026-12-07, ICO: 5 Dec is a Saturday)' as actions
+select pd.record_case_action((select id from t_case), 'acknowledge', '2026-10-03');
+select pd.record_case_action((select id from t_case), 'id_received', '2026-10-05');
+select 'due after ID ' || response_due || ' (expect 2026-11-05: one month from 5 Oct)' as actions
   from pd.v_case_deadlines where case_id = (select id from t_case);
-select pd.record_case_action((select id from t_case), 'pause', '2026-11-10', 'Which years?');
+select pd.record_case_action((select id from t_case), 'pause', '2026-10-10', 'Which years?');
 do $$ begin
   begin
-    perform pd.record_case_action((select id from t_case), 'pause', '2026-11-11', 'Again');
+    perform pd.record_case_action((select id from t_case), 'pause', '2026-10-11', 'Again');
     raise exception 'second clarification was allowed';
   exception when invalid_parameter_value then raise notice 'PASS a second open clarification is refused';
   end;
 end $$;
 select 'state ' || clock_state || ' (expect paused), due ' || coalesce(response_due::text, 'none') || ' (expect none)' as actions
   from pd.v_case_deadlines where case_id = (select id from t_case);
-select pd.record_case_action((select id from t_case), 'resume', '2026-11-12');
-select 'due after 3 paused days ' || response_due || ' (expect 2026-12-08)' as actions
+select pd.record_case_action((select id from t_case), 'resume', '2026-10-12');
+select 'due after 3 paused days ' || response_due || ' (expect 2026-11-09: 5 Nov + 3 = Sun 8 Nov, so Mon 9 Nov)' as actions
   from pd.v_case_deadlines where case_id = (select id from t_case);
-select pd.record_case_action((select id from t_case), 'extend', '2026-11-20', 'Records at two sites');
-select 'due after extension ' || response_due || ' (expect 2027-03-08: 5 Mar + 3 days = Mon 8 Mar)' as actions
+select pd.record_case_action((select id from t_case), 'extend', '2026-10-20', 'Records at two sites');
+select 'due after extension ' || response_due || ' (expect 2027-01-08: 5 Jan + 3 days = Fri 8 Jan)' as actions
   from pd.v_case_deadlines where case_id = (select id from t_case);
 select pd.record_case_action((select id from t_case), 'note', current_date, 'Searching the archive');
 select pd.record_case_action((select id from t_case), 'close', current_date);
@@ -137,8 +138,9 @@ select 'status ' || status || ' (expect open), events ' || (select count(*) from
   from pd.cases c where id = (select id from t_case);
 
 create temp table t_complaint as
-  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'complaint', '2026-11-02') as id;
-select 'complaint ref ' || ref || ' (expect AAA-002)' as created from pd.cases where id = (select id from t_complaint);
+  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000001', 'complaint', '2026-10-02') as id;
+select 'complaint ref ' || ref || ' (expect AAA-002), ack due ' || (select ack_due from pd.v_case_deadlines where case_id = c.id)
+  || ' (expect 2026-11-02: day 30 is Sun 1 Nov)' as created from pd.cases c where id = (select id from t_complaint);
 do $$ begin
   begin
     perform pd.record_case_action((select id from t_complaint), 'extend', current_date, 'no');
