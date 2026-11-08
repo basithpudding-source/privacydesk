@@ -72,6 +72,7 @@ select case when not exists (select 1 from pd.case_events where case_id = 'c0000
 
 -- Client separation through row-level security.
 create role app_user nologin;
+grant app_user to current_user;  -- lets a non-superuser (Supabase's postgres) switch to it below
 grant usage on schema pd to app_user;
 grant select, insert, update on all tables in schema pd to app_user;
 grant execute on all functions in schema pd to app_user;
