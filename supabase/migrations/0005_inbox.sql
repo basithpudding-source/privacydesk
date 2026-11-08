@@ -174,6 +174,9 @@ revoke execute on function pd.decline_inbox_item(uuid, text) from public, anon;
 grant execute on function pd.accept_inbox_item(uuid, text, date, text, text, text, boolean) to authenticated;
 grant execute on function pd.decline_inbox_item(uuid, text) to authenticated;
 -- The webhook calls these with the publishable key, so the anonymous role may run them.
+-- Usage on the schema lets anon resolve the function names; it still has no table grants,
+-- and row-level security applies to everything else.
+grant usage on schema pd to anon;
 revoke execute on function pd.receive_inbound_email(text, text, text, text, text, text) from public;
 revoke execute on function pd.set_inbox_triage(text, uuid, jsonb) from public;
 revoke execute on function pd.inbound_context(text) from public;

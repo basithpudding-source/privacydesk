@@ -5,7 +5,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "@/lib/supabase/env";
 
-const PUBLIC_PREFIXES = ["/sign-in", "/auth/"];
+// API routes check their own credentials (a session, or the inbound webhook's secret).
+const PUBLIC_PREFIXES = ["/sign-in", "/auth/", "/api/"];
 
 function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
