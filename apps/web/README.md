@@ -50,11 +50,15 @@ Two things about the file to know first:
 2. From the `do $$ begin if exists ...` block through the line `select case when not exists ... 'PASS retention removed events' ...`. The result is one row reading **PASS retention removed events**. If the audit-trail check had failed, the run would have stopped with an error saying `UPDATE was allowed` or `DELETE was allowed`.
 3. The rest of the file, from `-- Client separation` to the end. The run must finish without an error; the last result is the first few rows of the monthly report view. To see the row counts, run the three `select 'partner A admin sees ...'` lines one at a time (each with its `set_config` line just above it): they should say 8, 1 and 1. If you get `permission denied to set role`, run `grant app_user to postgres;` and try again.
 
-**Option B: psql, one command.** Shows every result and every notice. Install the PostgreSQL command-line tools if you have not (on Windows, `winget install PostgreSQL.PostgreSQL` or the EDB installer; only the tools are needed). Then, from the repo root:
+**Option B: psql, one command.** Shows every result and every notice. `psql` is not installed on Windows by default. This installs only the command-line tools, not a database server (it asks for admin approval; open a new terminal afterwards so `psql` is on the path):
+
+    winget install --id PostgreSQL.PostgreSQL.17 --override "--mode unattended --unattendedmodeui none --enable-components commandlinetools --disable-components server,pgAdmin,stackbuilder"
+
+Then, from the repo root, with `<project ref>` and `<database password>` replaced by your own values (keep the quotes; if the password contains `@`, `:`, `/` or `#`, percent-encode those characters):
 
     psql "postgresql://postgres.<project ref>:<database password>@aws-0-eu-west-2.pooler.supabase.com:5432/postgres" -f supabase/schema_test.sql
 
-The exact connection string is under **Connect** at the top of the dashboard (choose **Session pooler**). Expected output: the nine-row table with PASS in every row, then `NOTICE: PASS audit trail cannot be edited or deleted on its own`, `retention deleted 1 case(s)`, `PASS retention removed events`, the three count lines (8, 1, 1), two more PASS notices for the write checks, and the report rows. Any FAIL or error stops the run because of `ON_ERROR_STOP`.
+The exact connection string is under **Connect** at the top of the dashboard (choose **Session pooler**); it already has the ref filled in and `[YOUR-PASSWORD]` where the password goes. Expected output: the nine-row table with PASS in every row, then `NOTICE: PASS audit trail cannot be edited or deleted on its own`, `retention deleted 1 case(s)`, `PASS retention removed events`, the three count lines (8, 1, 1), two more PASS notices for the write checks, and the report rows. Any FAIL or error stops the run because of `ON_ERROR_STOP`.
 
 **Option C: ask Claude Code.** Once the Supabase MCP server is authenticated (step 7), you can ask Claude Code to run the test and report the results.
 
