@@ -29,7 +29,16 @@ export interface Organisation {
   ai_enabled: boolean;
   /** Secret part of the client's forwarding address (slice 4). */
   inbound_token: string;
+  /** Public form (slice 5): whether /r/<code> takes requests, and who confirmations name. */
+  form_enabled: boolean;
+  contact_email: string | null;
   created_at: string;
+}
+
+/** The public form's address for a client. APP_URL is the deployed origin; in development it is localhost. */
+export function publicFormUrl(org: Pick<Organisation, "code">): string {
+  const base = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return `${base}/r/${org.code.toLowerCase()}`;
 }
 
 /** The forwarding address for a client, or null until INBOUND_DOMAIN is set. */

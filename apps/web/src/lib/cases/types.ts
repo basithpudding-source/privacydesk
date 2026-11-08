@@ -21,6 +21,8 @@ export interface CaseRow {
   acknowledged_on: string | null;
   closed_on: string | null;
   outcome: string | null;
+  /** The reference a web form gave the requester (slice 5), when the case came from one. */
+  source_ref: string | null;
   created_at: string;
   updated_at: string;
 }

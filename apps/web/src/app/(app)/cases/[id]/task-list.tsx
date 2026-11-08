@@ -26,7 +26,7 @@ export function TaskList({ c, pauses, canWrite, caseId }: { c: CaseRow; pauses: 
   const tasks: Task[] = [
     {
       title: "Received",
-      detail: `${shortDate(c.received_on)} by ${c.channel.toLowerCase()}`,
+      detail: `${shortDate(c.received_on)} by ${c.channel.toLowerCase()}${c.source_ref ? ` (reference ${c.source_ref}, email address verified)` : ""}`,
       status: "Completed",
     },
   ];

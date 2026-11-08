@@ -10,6 +10,9 @@ export interface ClientFormValues {
   internal_target_days: number;
   retention_months: number;
   ai_enabled: boolean;
+  /** Public form (slice 5). contact_email is "" for none. */
+  form_enabled: boolean;
+  contact_email: string;
 }
 
 export interface ClientFormState {
@@ -26,4 +29,6 @@ export const DEFAULT_CLIENT: ClientFormValues = {
   internal_target_days: 28,
   retention_months: 36,
   ai_enabled: true,
+  form_enabled: true,
+  contact_email: "",
 };

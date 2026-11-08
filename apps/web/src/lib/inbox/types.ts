@@ -16,6 +16,9 @@ export interface InboxItemRow {
   decided_by: string | null;
   decided_at: string | null;
   decline_reason: string | null;
+  /** Web form items (slice 5): the reference given to the requester, and what they chose. */
+  source_ref: string | null;
+  requested_type: "sar" | "complaint" | "other" | null;
 }
 
 export interface InboxListRow extends InboxItemRow {

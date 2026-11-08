@@ -50,7 +50,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             <div className="rounded-lg border border-dashed border-border p-8 text-center">
               <p className="font-medium">{view === "new" ? "Nothing waiting" : "Nothing decided yet"}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {view === "new" ? "New messages land here from each client's forwarding address, or paste one by hand." : "Accepted and declined items show here."}
+                {view === "new" ? "New messages land here from each client's forwarding address and public form, or paste one by hand." : "Accepted and declined items show here."}
               </p>
             </div>
           ) : (
@@ -102,8 +102,18 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                   {selected.subject ?? "(no subject)"}
                 </h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  From {selected.from_name ?? "unknown"}{selected.from_email ? ` <${selected.from_email}>` : ""} · to {selected.organisation_name} · {selected.channel === "paste" ? "pasted" : selected.channel} · {shortDate(selected.received_at.slice(0, 10))}
+                  From {selected.from_name ?? "unknown"}{selected.from_email ? ` <${selected.from_email}>` : ""} · to {selected.organisation_name} ·{" "}
+                  {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · {shortDate(selected.received_at.slice(0, 10))}
                 </p>
+                {selected.channel === "form" && (
+                  <p className="mt-1 text-sm">
+                    <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">Email address verified</span>{" "}
+                    <span className="text-muted-foreground">
+                      on {shortDate(selected.received_at.slice(0, 10))}; the requester was given reference <span className="font-mono">{selected.source_ref}</span>
+                      {selected.requested_type && <> and asked for {selected.requested_type === "sar" ? "a copy of their data" : selected.requested_type === "complaint" ? "a complaint to be looked at" : "something else"}</>}.
+                    </span>
+                  </p>
+                )}
               </div>
               <Link href={view === "decided" ? "/inbox?view=decided" : "/inbox"} scroll={false} className="text-sm text-muted-foreground underline-offset-4 hover:underline">
                 Close
@@ -135,7 +145,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                       itemId={selected.id}
                       today={today}
                       proposed={{
-                        type: selected.triage?.type && selected.triage.type !== "not_dp" ? selected.triage.type : "sar",
+                        // A web form requester chose a type themselves; that beats a guess from the text.
+                        type:
+                          selected.requested_type === "sar" || selected.requested_type === "complaint"
+                            ? selected.requested_type
+                            : selected.triage?.type && selected.triage.type !== "not_dp"
+                              ? selected.triage.type
+                              : "sar",
                         receivedOn: selected.received_at.slice(0, 10),
                         requesterName: selected.triage?.requesterName ?? selected.from_name ?? "",
                         requesterEmail: selected.triage?.requesterEmail ?? selected.from_email ?? "",

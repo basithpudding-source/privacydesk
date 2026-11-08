@@ -3,7 +3,7 @@
 import { cleanTriage, type TriageResult, type TriageType } from "./triage-types";
 
 const LISTS: [TriageType, string[]][] = [
-  ["sar", ["subject access", "copy of my", "copy of the information", "everything you have", "all the information", "all information you hold", "data you hold", "what you hold about me", "on file about me", "access to my"]],
+  ["sar", ["subject access", "copy of my", "copy of the information", "everything you have", "all the information", "all information you hold", "information you hold", "copy of all", "data you hold", "what you hold about me", "on file about me", "access to my"]],
   ["complaint", ["complain", "without my consent", "without asking", "never agreed", "shared my", "told my", "passed on my", "breach", "not happy", "unhappy", "embarrass", "data protection"]],
   ["erasure", ["delete my", "erase", "remove my details", "remove my data", "right to be forgotten"]],
   ["rectification", ["correct my", "wrong address", "incorrect", "update my details"]],

@@ -51,7 +51,7 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
 
   const ids = dl.map((d) => d.case_id);
   const [{ data: cases }, { data: orgs }] = await Promise.all([
-    supabase.from("cases").select("id, requester_name, requester_email, summary").in("id", ids),
+    supabase.from("cases").select("id, requester_name, requester_email, summary, source_ref").in("id", ids),
     supabase.from("organisations").select("id, name, code, colour"),
   ]);
   const caseById = new Map((cases ?? []).map((c) => [c.id as string, c]));
@@ -73,7 +73,8 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
   if (filters.q) {
     const q = filters.q.toLowerCase();
     rows = rows.filter((r) =>
-      [r.ref, r.requester_name, caseById.get(r.case_id)?.requester_email as string | null, r.summary, r.organisation_name]
+      // source_ref is the reference a web form gave the requester, so a search for it finds the case.
+      [r.ref, caseById.get(r.case_id)?.source_ref as string | null, r.requester_name, caseById.get(r.case_id)?.requester_email as string | null, r.summary, r.organisation_name]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );

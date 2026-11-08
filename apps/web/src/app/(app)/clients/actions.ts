@@ -16,8 +16,14 @@ function parse(formData: FormData): ClientFormState {
     internal_target_days: Number(formData.get("internal_target_days")),
     retention_months: Number(formData.get("retention_months")),
     ai_enabled: formData.get("ai_enabled") === "on",
+    form_enabled: formData.get("form_enabled") === "on",
+    contact_email: String(formData.get("contact_email") ?? "").trim().toLowerCase(),
   };
   const errors: ClientFormState["errors"] = {};
+
+  if (values.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.contact_email)) {
+    errors.contact_email = "Enter an email address, or leave it empty.";
+  }
 
   if (values.name.length < 2 || values.name.length > 200) {
     errors.name = "Enter the organisation's name, 2 to 200 characters.";
@@ -40,10 +46,16 @@ function parse(formData: FormData): ClientFormState {
   return { values, errors };
 }
 
+/** The row to write: an empty contact email is stored as null. */
+function toRow(values: ClientFormValues) {
+  return { ...values, contact_email: values.contact_email || null };
+}
+
 function describe(code: string | undefined, message: string): ClientFormState["errors"] {
   switch (code) {
     case "23505":
-      return { code: "Another client already uses this code. Choose a different one." };
+      // Codes are unique across every consultancy, because /r/<code> is the client's public form.
+      return { code: "This code is already in use. Choose a different one." };
     case "42501":
       return { form: "Only a partner administrator can add or change clients." };
     case "23514":
@@ -63,7 +75,7 @@ export async function addClient(_prev: ClientFormState, formData: FormData): Pro
 
   const { data, error } = await supabase
     .from("organisations")
-    .insert({ ...state.values, partner_id: member.partner_id })
+    .insert({ ...toRow(state.values), partner_id: member.partner_id })
     .select("id")
     .single();
 
@@ -79,7 +91,7 @@ export async function updateClient(id: string, _prev: ClientFormState, formData:
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organisations")
-    .update(state.values)
+    .update(toRow(state.values))
     .eq("id", id)
     .select("id");
 

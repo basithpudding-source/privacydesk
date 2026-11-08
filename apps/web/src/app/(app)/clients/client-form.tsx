@@ -118,6 +118,29 @@ export function ClientForm({
         </Field>
       </div>
 
+      <Field
+        id="contact_email"
+        label="Contact email for requesters"
+        hint="Named on the public form's confirmation page and email as who to ask. Leave empty to name the organisation only."
+        error={errors.contact_email}
+      >
+        <Input id="contact_email" name="contact_email" type="email" defaultValue={values.contact_email} maxLength={254} aria-invalid={!!errors.contact_email} />
+      </Field>
+
+      <div className="flex items-start gap-3">
+        <input
+          id="form_enabled"
+          name="form_enabled"
+          type="checkbox"
+          defaultChecked={values.form_enabled}
+          className="mt-1 size-4 rounded border-input accent-primary"
+        />
+        <Label htmlFor="form_enabled" className="flex flex-col gap-1 font-normal">
+          <span className="font-medium">Take requests through the public form</span>
+          <span className="text-sm text-muted-foreground">When off, the form&apos;s address shows a notice instead.</span>
+        </Label>
+      </div>
+
       <div className="flex items-start gap-3">
         <input
           id="ai_enabled"
