@@ -4,3 +4,7 @@ node_modules/
 .next/
 dist/
 supabase/.temp/
+
+# Symlinks the skills installer makes into .agents/skills; git on Windows would store them as copies.
+# Recreate with: npx skills add supabase/agent-skills
+.claude/skills/
