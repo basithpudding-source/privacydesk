@@ -391,3 +391,16 @@ do $$ begin
     raise exception 'Inbox retention tests failed';
   end if;
 end $$;
+
+-- Reminder stages (0012): a case is reminded at the stage it has reached, so a missed night
+-- is made up on the next run. -1 is overdue; nothing is due more than 7 days out.
+select case when (select array_agg(pd.reminder_bucket(d) order by d) from unnest(array[-5, -1, 0, 1, 2, 3, 6, 7]) d)
+                 = array[-1, -1, 0, 2, 2, 7, 7, 7]
+             and pd.reminder_bucket(8) is null and pd.reminder_bucket(null) is null
+            then 'PASS' else 'FAIL' end || ' reminder stages: overdue, today, within 2 days, within 7 days' as reminders;
+do $$ begin
+  if pd.reminder_bucket(6) is distinct from 7 or pd.reminder_bucket(1) is distinct from 2
+     or pd.reminder_bucket(-1) is distinct from -1 or pd.reminder_bucket(8) is not null then
+    raise exception 'Reminder stage tests failed';
+  end if;
+end $$;

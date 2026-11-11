@@ -1,5 +1,7 @@
-// Reminder digests: one email per person per night listing their cases due in 7 days,
-// 2 days and today. Internal mail to the consultancy's own staff, never to requesters.
+// Reminder digests: one email per person per night listing their cases that are overdue, due
+// today, due within 2 days and due within 7 days. Internal mail to the consultancy's own
+// staff, never to requesters. A stage is logged only once its email has gone, so a failed
+// send or a missed night is made up on the next run (see migration 0012).
 import { longDate, type ISODate } from "@/lib/clocks";
 
 /** One row of pd.reminders_due(). */
@@ -9,7 +11,8 @@ export interface ReminderRow {
   type: string;
   clock_state: string;
   due_on: ISODate;
-  bucket: 7 | 2 | 0;
+  /** The stage the case has reached: within 7 days, within 2, due today (0) or overdue (-1). */
+  bucket: Bucket;
   organisation_id: string;
   organisation_name: string;
   partner_id: string;
@@ -18,11 +21,41 @@ export interface ReminderRow {
   email: string;
 }
 
+export type Bucket = 7 | 2 | 0 | -1;
+
 export interface Digest {
   email: string;
   subject: string;
   text: string;
   caseIds: string[];
+  /** The rows this digest covers, so each can be logged once the email has gone. */
+  rows: ReminderRow[];
+}
+
+/** What pd.reminder_log records: one row per case, stage, due date and person. */
+export interface ReminderLogRow {
+  case_id: string;
+  bucket: Bucket;
+  due_on: ISODate;
+  user_id: string;
+  recipients: 1;
+}
+
+/**
+ * Whether a digest counts as delivered. Only a real send does. The one exception is
+ * development with no sender configured, where the email is printed to the server log
+ * instead: in production an unconfigured sender is a failure, never a quiet success.
+ */
+export function delivered(result: { sent: boolean; reason?: "not-configured" | "failed" }, production: boolean): boolean {
+  if (result.sent) return true;
+  return result.reason === "not-configured" && !production;
+}
+
+/** Log rows for the digests that were delivered, and only those. */
+export function logRowsFor(deliveredDigests: Digest[]): ReminderLogRow[] {
+  return deliveredDigests.flatMap((d) =>
+    d.rows.map((r) => ({ case_id: r.case_id, bucket: r.bucket, due_on: r.due_on, user_id: r.user_id, recipients: 1 as const })),
+  );
 }
 
 const TYPE: Record<string, string> = {
@@ -33,8 +66,12 @@ const TYPE: Record<string, string> = {
   objection: "objection",
 };
 
-function bucketHeading(b: 7 | 2 | 0): string {
-  return b === 0 ? "Due today" : b === 2 ? "Due in 2 days" : "Due in 7 days";
+function bucketHeading(b: Bucket): string {
+  return b === -1 ? "Overdue" : b === 0 ? "Due today" : b === 2 ? "Due within 2 days" : "Due within 7 days";
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
 /** Group rows by recipient and write each person's digest, most urgent first. */
@@ -47,8 +84,9 @@ export function buildDigests(rows: ReminderRow[], appUrl: string): Digest[] {
     const partner = list[0].partner_name;
     const lines: string[] = [];
     const today = list.filter((r) => r.bucket === 0).length;
-    lines.push(`Legal deadlines for ${partner}'s clients: ${list.length} case${list.length === 1 ? "" : "s"}${today ? `, ${today} due today` : ""}.`);
-    for (const b of [0, 2, 7] as const) {
+    const overdue = list.filter((r) => r.bucket === -1).length;
+    lines.push(`Legal deadlines for ${partner}'s clients: ${plural(list.length, "case")}${overdue ? `, ${overdue} overdue` : ""}${today ? `, ${today} due today` : ""}.`);
+    for (const b of [-1, 0, 2, 7] as const) {
       const group = list.filter((r) => r.bucket === b);
       if (!group.length) continue;
       lines.push("");
@@ -61,9 +99,14 @@ export function buildDigests(rows: ReminderRow[], appUrl: string): Digest[] {
     lines.push("Dates follow ICO guidance. This is an automatic reminder from Privacy Desk; nothing has been sent to the requester.");
     digests.push({
       email,
-      subject: today ? `Privacy Desk: ${today} legal deadline${today === 1 ? "" : "s"} due today` : `Privacy Desk: ${list.length} legal deadline${list.length === 1 ? "" : "s"} coming up`,
+      subject: overdue
+        ? `Privacy Desk: ${plural(overdue, "legal deadline")} overdue${today ? `, ${today} due today` : ""}`
+        : today
+          ? `Privacy Desk: ${plural(today, "legal deadline")} due today`
+          : `Privacy Desk: ${plural(list.length, "legal deadline")} coming up`,
       text: lines.join("\n"),
       caseIds: [...new Set(list.map((r) => r.case_id))],
+      rows: list,
     });
   }
   return digests;
