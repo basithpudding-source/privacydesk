@@ -40,6 +40,7 @@
 | 2026-11-11 | Case and web form references are numbered from a per-client counter that only goes up (`pd.ref_counters`, migration 0014) | Numbering from the highest surviving row let retention bring an old reference back: a client with no form requests for 90 days restarted at W0001 |
 | 2026-11-11 | An extension can only be recorded with a date inside the first month, as the clock stands (migration 0015) | The person must be told within one month (ICO guidance; UK GDPR Article 12(3)). Accepting any date let a case that was already late be extended afterwards and shown as on time. A late case now stays visibly late |
 | 2026-11-11 | A client organisation cannot be deleted through the API; admins can only add and edit (migration 0016) | One call deleted a client with every case and audit event, leaving no record. Until there is an audited way to offboard a client, removal is done by the database owner by hand |
+| 2026-11-11 | The emailed link opens a page with one button; the request is verified, and the clock starts, when the button is pressed, not when the link is opened | Mail scanners and link previews open links. With the old page that verified the address and started the legal clock without the person doing anything. This refines the 8 November decision: "the day the link is opened" is now the day the button is pressed |
 
 ## Open questions
 

@@ -176,7 +176,7 @@ The route looks up the client by the token in the address, creates the inbox ite
 ## Public form (slice 5)
 
 - Every client has a form at `/r/<code>` (the link is on the client page). It asks for a name, an email address, what the person wants (a copy of their data, a complaint, or something else) and the details, in plain words, with a note not to include bank or health details and a privacy line naming the client and the ICO.
-- Sending the form stores a pending submission and emails a one-time link, valid for 24 hours. Nothing reaches the inbox until the link is opened: the link proves the address, and the clock starts that day.
+- Sending the form stores a pending submission and emails a one-time link, valid for 24 hours. Nothing reaches the inbox until the link is opened and the button on that page is pressed (opening alone does nothing, so a mail scanner cannot send a request): the link proves the address, and the clock starts that day.
 - Opening the link creates the inbox item (channel "Web form", triaged at once), emails a confirmation, and shows the same confirmation: a reference like `EHT-W0001`, the date received, the legal response date in words, and who to contact. Opening it again shows the confirmation again and creates nothing.
 - In the inbox the item says the address was verified, which reference the person was given and what they asked for; the accept form is prefilled from that. The case keeps the reference (searchable in `/cases`), and the audit trail records that the address was verified.
 - The client page has two new settings: a contact email named on the confirmation, and a switch to turn the form off (visitors then see a notice).
@@ -193,7 +193,7 @@ The form needs to send two emails (the link and the confirmation). These are tra
 
 With neither set, in development only, the emails are printed to the server log and the verification link is also shown on the "check your email" page under a "Development only" label. In production the link is never shown.
 
-To try it locally: open `http://localhost:3000/r/<code>`, fill in the form, open the link shown on the page, then look in the inbox.
+To try it locally: open `http://localhost:3000/r/<code>`, fill in the form, open the link shown on the page, press the button, then look in the inbox.
 
 ## Dashboard, report and nightly job (slice 6)
 

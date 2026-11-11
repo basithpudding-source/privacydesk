@@ -91,11 +91,11 @@ export function verificationEmail(organisationName: string, requesterName: strin
     text: [
       `Dear ${requesterName},`,
       ``,
-      `You filled in ${organisationName}'s request form. To send the request, confirm this is your email address by opening the link below. It works for 24 hours.`,
+      `You filled in ${organisationName}'s request form. To send the request, open the link below and press the button on the page. This confirms the email address is yours. The link works for 24 hours.`,
       ``,
       link,
       ``,
-      `If you did not fill in the form, ignore this email and nothing will be sent.`,
+      `If you did not fill in the form, ignore this email. Nothing is sent unless the button is pressed.`,
       ``,
       `This message was sent by Privacy Desk, the software ${organisationName} uses to manage requests.`,
     ].join("\n"),

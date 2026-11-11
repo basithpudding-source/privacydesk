@@ -20,7 +20,7 @@ export function RequestForm({ action, organisationName, colour }: { action: Acti
       <div aria-live="polite">
         <h2 className="text-xl font-semibold tracking-tight">Check your email</h2>
         <p className="mt-3">
-          We have sent a link to <span className="font-medium">{values.email}</span>. Open it within 24 hours to send your request to {organisationName}.
+          We have sent a link to <span className="font-medium">{values.email}</span>. Open it within 24 hours and press the button on the page to send your request to {organisationName}.
           Nothing is sent until you do.
         </p>
         <p className="mt-3 text-sm text-muted-foreground">Not arrived after a few minutes? Check your spam folder. The link comes from Privacy Desk, the software {organisationName} uses.</p>
