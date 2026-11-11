@@ -7,13 +7,14 @@ import { shortDate } from "@/lib/clocks";
 import { getDashboard } from "@/lib/dashboard/queries";
 import { cn } from "@/lib/utils";
 import { MonthlyChart } from "./monthly-chart";
+import { todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
   await requireMember();
   const { client = "" } = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
   const { summary: s, clients, error } = await getDashboard(client, today);
   const scopeName = clients.find((c) => c.id === client)?.name ?? "All clients";
   const onTime = s.measured ? `${Math.round((s.met / s.measured) * 100)}%` : "—";

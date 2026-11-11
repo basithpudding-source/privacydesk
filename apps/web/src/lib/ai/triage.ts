@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { AI_MODEL, aiConfigured, aiDisabled, anthropic, describeAiError } from "./client";
 import { keywordTriage } from "./keywords";
 import { cleanTriage, TriageOutput, type TriageResult } from "./triage-types";
+import { todayInLondon } from "@/lib/today";
 
 export interface TriageRequest {
   text: string;
@@ -46,7 +47,7 @@ export async function triage(req: TriageRequest): Promise<TriageOutcome> {
       messages: [
         {
           role: "user",
-          content: `Today is ${new Date().toISOString().slice(0, 10)}. The organisation that received this message is "${req.organisationName}". It was received on ${req.receivedOn}.\n\nMessage:\n"""\n${req.text.slice(0, 20000)}\n"""`,
+          content: `Today is ${todayInLondon()}. The organisation that received this message is "${req.organisationName}". It was received on ${req.receivedOn}.\n\nMessage:\n"""\n${req.text.slice(0, 20000)}\n"""`,
         },
       ],
     });

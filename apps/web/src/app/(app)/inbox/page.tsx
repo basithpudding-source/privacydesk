@@ -8,6 +8,7 @@ import { getInboxItem, listInbox } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
 import { AcceptForm, DeclineForm, RetriageButton } from "./decide-forms";
 import { TriageCard } from "./triage-card";
+import { londonDate, todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Inbox" };
 
@@ -17,7 +18,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const view = viewParam === "decided" ? "decided" : "new";
   const [{ rows, error }, selected] = await Promise.all([listInbox(view), itemId ? getInboxItem(itemId) : Promise.resolve(null)]);
   const canWrite = user.membership.role !== "read_only";
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -71,7 +72,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                           <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: r.organisation_colour }} aria-hidden="true" />
                           {r.organisation_name}
                         </span>
-                        <span className="shrink-0 tabular-nums">{shortDate(r.received_at.slice(0, 10))}</span>
+                        <span className="shrink-0 tabular-nums">{shortDate(londonDate(r.received_at))}</span>
                       </div>
                       <p className="mt-0.5 truncate text-sm font-medium">{r.from_name ?? r.from_email ?? "Unknown sender"}</p>
                       <p className="truncate text-sm text-muted-foreground">{r.subject ?? t?.summary ?? r.body.slice(0, 80)}</p>
@@ -103,13 +104,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                 </h2>
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   From {selected.from_name ?? "unknown"}{selected.from_email ? ` <${selected.from_email}>` : ""} · to {selected.organisation_name} ·{" "}
-                  {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · {shortDate(selected.received_at.slice(0, 10))}
+                  {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · {shortDate(londonDate(selected.received_at))}
                 </p>
                 {selected.channel === "form" && (
                   <p className="mt-1 text-sm">
                     <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">Email address verified</span>{" "}
                     <span className="text-muted-foreground">
-                      on {shortDate(selected.received_at.slice(0, 10))}; the requester was given reference <span className="font-mono">{selected.source_ref}</span>
+                      on {shortDate(londonDate(selected.received_at))}; the requester was given reference <span className="font-mono">{selected.source_ref}</span>
                       {selected.requested_type && <> and asked for {selected.requested_type === "sar" ? "a copy of their data" : selected.requested_type === "complaint" ? "a complaint to be looked at" : "something else"}</>}.
                     </span>
                   </p>
@@ -152,7 +153,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                             : selected.triage?.type && selected.triage.type !== "not_dp"
                               ? selected.triage.type
                               : "sar",
-                        receivedOn: selected.received_at.slice(0, 10),
+                        receivedOn: londonDate(selected.received_at),
                         requesterName: selected.triage?.requesterName ?? selected.from_name ?? "",
                         requesterEmail: selected.triage?.requesterEmail ?? selected.from_email ?? "",
                         summary: selected.triage?.summary && selected.triage.by === "ai" ? selected.triage.summary : "",
@@ -176,10 +177,10 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     <Link href={`/cases/${selected.case_id}`} className="font-mono underline underline-offset-4">
                       {selected.case_ref ?? "a case"}
                     </Link>
-                    {selected.decided_at && <> on {shortDate(selected.decided_at.slice(0, 10))}</>}.
+                    {selected.decided_at && <> on {shortDate(londonDate(selected.decided_at))}</>}.
                   </>
                 ) : (
-                  <>Declined{selected.decided_at && <> on {shortDate(selected.decided_at.slice(0, 10))}</>}: {selected.decline_reason}</>
+                  <>Declined{selected.decided_at && <> on {shortDate(londonDate(selected.decided_at))}</>}: {selected.decline_reason}</>
                 )}
               </p>
             )}

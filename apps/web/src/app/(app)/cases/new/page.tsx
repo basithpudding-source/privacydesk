@@ -5,6 +5,7 @@ import { requireMember } from "@/lib/auth";
 import { listClientsForForms } from "@/lib/cases/queries";
 import { defaultNewCase } from "./form-state";
 import { NewCaseForm } from "./new-case-form";
+import { todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Log a case" };
 
@@ -13,7 +14,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: Prom
   if (user.membership.role === "read_only") redirect("/cases");
   const { client } = await searchParams;
   const clients = await listClientsForForms();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
 
   return (
     <div className="mx-auto w-full max-w-5xl">

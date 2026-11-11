@@ -6,6 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { monthLabel } from "@/lib/report/build";
 import { getReport, parseMonth } from "@/lib/report/queries";
+import { todayInLondon } from "@/lib/today";
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: "Helvetica", fontSize: 11, lineHeight: 1.5, color: "#1a1a1a" },
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user?.membership) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
   const clientId = request.nextUrl.searchParams.get("client") ?? "";
   const month = parseMonth(request.nextUrl.searchParams.get("month") ?? undefined, today);
   if (!/^[0-9a-f-]{36}$/.test(clientId)) return NextResponse.json({ error: "Choose a client." }, { status: 400 });

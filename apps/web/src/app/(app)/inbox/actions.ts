@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { triage } from "@/lib/ai/triage";
 import { CASE_TYPES } from "@/lib/cases/labels";
 import { createClient } from "@/lib/supabase/server";
+import { londonDate, todayInLondon } from "@/lib/today";
 
 export interface InboxActionState {
   error: string | null;
@@ -26,7 +27,7 @@ export async function acceptItem(itemId: string, _prev: InboxActionState, formDa
   const requesterEmail = String(formData.get("requester_email") ?? "").trim();
   const summary = String(formData.get("summary") ?? "").trim();
   const idRequired = formData.get("id_required") === "on";
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
 
   if (!CASE_TYPES.some((t) => t.value === type)) return { error: "Choose the type of request. If it is not about personal data, decline it instead." };
   if (!ISO_DATE.test(receivedOn) || receivedOn > today) return { error: "Enter the date received; it cannot be in the future." };
@@ -68,7 +69,7 @@ export async function retriageItem(itemId: string): Promise<InboxActionState> {
   const outcome = await triage({
     text: item.body as string,
     organisationName: (org?.name as string) ?? "",
-    receivedOn: String(item.received_at).slice(0, 10),
+    receivedOn: londonDate(String(item.received_at)),
     aiEnabled: Boolean(org?.ai_enabled),
   });
   const { error } = await supabase.rpc("retriage_inbox_item", { p_item_id: itemId, p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } });
@@ -93,7 +94,7 @@ export async function pasteItem(_prev: InboxActionState, formData: FormData): Pr
   const { data: org } = await supabase.from("organisations").select("name, ai_enabled").eq("id", organisationId).maybeSingle();
   if (!org) return { error: "Choose one of your clients." };
 
-  const outcome = await triage({ text: body, organisationName: org.name as string, receivedOn: new Date().toISOString().slice(0, 10), aiEnabled: Boolean(org.ai_enabled) });
+  const outcome = await triage({ text: body, organisationName: org.name as string, receivedOn: todayInLondon(), aiEnabled: Boolean(org.ai_enabled) });
   // The database function checks the membership and writes the row; there is no direct insert.
   const { data, error } = await supabase.rpc("add_inbox_item", {
     p_organisation_id: organisationId,

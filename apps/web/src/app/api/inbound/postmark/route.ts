@@ -4,6 +4,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { triage } from "@/lib/ai/triage";
 import { createAnonClient } from "@/lib/supabase/anon";
+import { todayInLondon } from "@/lib/today";
 
 interface PostmarkInbound {
   FromName?: string;
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
   const outcome = await triage({
     text: body,
     organisationName: (ctx as { organisation_name: string }).organisation_name,
-    receivedOn: new Date().toISOString().slice(0, 10),
+    receivedOn: todayInLondon(),
     aiEnabled: Boolean((ctx as { ai_enabled: boolean }).ai_enabled),
   });
   await supabase.rpc("set_inbox_triage", { p_token: token, p_item_id: itemId, p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } });

@@ -6,13 +6,14 @@ import { listClientsForForms } from "@/lib/cases/queries";
 import { monthLabel } from "@/lib/report/build";
 import { getReport, parseMonth } from "@/lib/report/queries";
 import { CopyButton } from "./copy-button";
+import { todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Monthly report" };
 
 export default async function ReportPage({ searchParams }: { searchParams: Promise<{ client?: string; month?: string }> }) {
   await requireMember();
   const params = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
   const month = parseMonth(params.month, today);
   const clients = await listClientsForForms();
   const clientId = clients.some((c) => c.id === params.client) ? (params.client as string) : (clients[0]?.id ?? "");

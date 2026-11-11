@@ -5,6 +5,7 @@ import { longDate } from "@/lib/clocks";
 import { createClient } from "@/lib/supabase/server";
 import { EnrolTotp } from "./enrol-totp";
 import { FactorList, type FactorSummary } from "./factor-list";
+import { londonDate } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Security" };
 
@@ -14,7 +15,7 @@ export default async function SecurityPage() {
   const { data } = await supabase.auth.mfa.listFactors();
   const factors: FactorSummary[] = (data?.totp ?? [])
     .filter((f) => f.status === "verified")
-    .map((f) => ({ id: f.id, name: f.friendly_name ?? "Authenticator app", since: longDate(f.created_at.slice(0, 10)) }));
+    .map((f) => ({ id: f.id, name: f.friendly_name ?? "Authenticator app", since: longDate(londonDate(f.created_at)) }));
 
   const isAdmin = user.membership?.role === "partner_admin";
   const mustEnrol = isAdmin && factors.length === 0;

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { CASE_TYPES } from "@/lib/cases/labels";
 import { createClient } from "@/lib/supabase/server";
 import type { NewCaseState } from "./form-state";
+import { todayInLondon } from "@/lib/today";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -22,7 +23,7 @@ export async function logCase(_prev: NewCaseState, formData: FormData): Promise<
     id_required: formData.get("id_required") === "on",
   };
   const errors: NewCaseState["errors"] = {};
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
 
   if (!values.organisation_id) errors.organisation_id = "Choose the client the request is about.";
   if (!CASE_TYPES.some((t) => t.value === values.type)) errors.type = "Choose the type of request.";

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ACTIONS, type CaseAction } from "@/lib/cases/types";
 import { createClient } from "@/lib/supabase/server";
+import { todayInLondon } from "@/lib/today";
 
 export interface ActionState {
   error: string | null;
@@ -25,7 +26,7 @@ export async function applyCaseAction(caseId: string, action: CaseAction, _prev:
   const { error } = await supabase.rpc("record_case_action", {
     p_case_id: caseId,
     p_action: action,
-    p_on: action === "note" ? new Date().toISOString().slice(0, 10) : values.on,
+    p_on: action === "note" ? todayInLondon() : values.on,
     p_note: values.note || null,
     p_outcome: values.outcome || null,
   });

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { triage } from "@/lib/ai/triage";
 import { createClient } from "@/lib/supabase/server";
+import { todayInLondon } from "@/lib/today";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const organisationId = typeof body.organisationId === "string" ? body.organisationId : "";
-  const receivedOn = typeof body.receivedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.receivedOn) ? body.receivedOn : new Date().toISOString().slice(0, 10);
+  const receivedOn = typeof body.receivedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.receivedOn) ? body.receivedOn : todayInLondon();
   if (text.length < 10) return NextResponse.json({ error: "Paste the message first; it needs at least a sentence." }, { status: 400 });
   if (text.length > 20000) return NextResponse.json({ error: "That message is too long. Paste the relevant part." }, { status: 400 });
 

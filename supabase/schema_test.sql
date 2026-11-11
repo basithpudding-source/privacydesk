@@ -297,6 +297,42 @@ select 'form case ' || ref || ', channel ' || channel || ', source ' || source_r
   from pd.cases where id = (select case_id from t_form_case);
 select 'audit: ' || text as form from pd.case_events where case_id = (select case_id from t_form_case) and kind = 'triage';
 
+-- London dates (0013). The session is put in a time zone whose date differs from London's
+-- right now (twelve hours behind before noon, fourteen ahead after), and the rules must still
+-- follow London: pd.today(), the "not in the future" check, and days left.
+do $$
+declare
+  v_tz     text := current_setting('timezone');
+  v_london date := (now() at time zone 'Europe/London')::date;
+  v_ahead  boolean := extract(hour from now() at time zone 'Europe/London') >= 12;
+begin
+  perform set_config('timezone', case when v_ahead then 'Pacific/Kiritimati' else 'Etc/GMT+12' end, true);
+  if current_date = v_london then
+    raise exception 'test set-up: the session date should differ from London''s';
+  end if;
+  if pd.today() <> v_london then
+    raise exception 'pd.today() followed the session time zone';
+  end if;
+  if v_ahead then
+    -- The session thinks it is already tomorrow. A case received "tomorrow" must be refused.
+    begin
+      perform pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', current_date);
+      raise exception 'a case received tomorrow, London time, was accepted';
+    exception when check_violation then null;
+    end;
+  else
+    -- The session thinks it is still yesterday. A case received today in London must be accepted.
+    perform pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', v_london);
+  end if;
+  if exists (select 1 from pd.v_case_deadlines
+             where status = 'open' and response_due is not null and days_left <> response_due - v_london) then
+    raise exception 'days left were not counted from London''s date';
+  end if;
+  perform set_config('timezone', v_tz, true);
+  raise notice 'PASS today is the date in London, whatever the session time zone';
+end $$;
+select 'PASS today is the date in London, whatever the session time zone' as dates;
+
 -- Production checklist (0008): an admin without a second factor sees nothing; a sender address is capped.
 select set_config('request.jwt.claim.aal', 'aal1', false);
 select 'partner A admin at aal1 sees ' || count(*) || ' cases (expect 0)' as security from pd.cases;

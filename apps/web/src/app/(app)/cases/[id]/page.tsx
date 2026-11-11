@@ -14,6 +14,7 @@ import { AuditTrail } from "./audit-trail";
 import { DeadlineBlock } from "./deadline-block";
 import { LetterDrafts } from "./letter-drafts";
 import { TaskList } from "./task-list";
+import { todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Case" };
 
@@ -34,7 +35,7 @@ export default async function CasePage({
   const clock = clockFor(c, pauses, holidays);
   const canWrite = user.membership.role !== "read_only";
   const action = canWrite && ACTIONS.includes(doParam as CaseAction) ? (doParam as CaseAction) : null;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInLondon();
   const closed = c.status === "closed";
 
   return (

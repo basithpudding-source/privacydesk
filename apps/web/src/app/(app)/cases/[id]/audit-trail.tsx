@@ -1,5 +1,6 @@
 import type { CaseEventRow } from "@/lib/cases/types";
 import { shortDate } from "@/lib/clocks";
+import { londonDate } from "@/lib/today";
 
 /** Newest first. Events are never edited or deleted, so this is the record. */
 export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; currentUserId: string }) {
@@ -9,7 +10,7 @@ export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; 
       {events.map((e) => (
         <li key={e.id} className="grid grid-cols-[6.5rem_1fr] gap-3 text-sm">
           <time dateTime={e.at} className="tabular-nums text-muted-foreground" title={new Date(e.at).toLocaleString("en-GB")}>
-            {shortDate(e.at.slice(0, 10))}
+            {shortDate(londonDate(e.at))}
           </time>
           <p>
             {e.text}
