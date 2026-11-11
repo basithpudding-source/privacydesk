@@ -77,6 +77,13 @@ begin
     insert into seen (note) values ('SKIP no audit event to test');
   end if;
 
+  -- 4b. A case cannot be changed except through the audited functions (0009). Updating a
+  -- column to itself changes nothing even if it were allowed.
+  begin update pd.cases set summary = summary where id = v_mine; raise exception 'direct case update allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a case cannot be updated directly'); end;
+  begin update pd.inbox_items set triage = triage where false; raise exception 'direct inbox update allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS an inbox item cannot be changed directly'); end;
+
   -- 5. Users cannot reach what only the job may.
   begin perform count(*) from pd.form_submissions; raise exception 'user read submissions';
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot read pending form submissions'); end;

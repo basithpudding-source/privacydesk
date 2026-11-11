@@ -75,9 +75,8 @@ select case when not exists (select 1 from pd.case_events where case_id = 'c0000
 -- Client separation through row-level security.
 create role app_user nologin;
 grant app_user to current_user;  -- lets a non-superuser (Supabase's postgres) switch to it below
-grant usage on schema pd to app_user;
-grant select, insert, update on all tables in schema pd to app_user;
-grant execute on all functions in schema pd to app_user;
+-- It holds exactly what a signed-in user holds, so the grants are tested as well as the policies.
+grant authenticated to app_user;
 set role app_user;
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
@@ -158,6 +157,38 @@ end $$;
 select pd.record_case_action((select id from t_complaint), 'close', current_date, null, 'Not upheld');
 select 'complaint outcome ' || outcome || ' (expect Not upheld)' as actions from pd.cases where id = (select id from t_complaint);
 
+-- Audited writes (0009): the functions above are the only way in. Direct changes are refused
+-- even for the admin who owns the case, so nothing can change without its audit event.
+do $$
+declare v_case uuid := (select id from t_case);
+begin
+  begin
+    update pd.cases set received_on = '2026-09-01' where id = v_case;
+    raise exception 'a direct case update was allowed';
+  exception when insufficient_privilege then raise notice 'PASS a case cannot be updated directly';
+  end;
+  begin
+    insert into pd.cases (organisation_id, ref, type, received_on) values ('aaaaaaaa-0000-0000-0000-000000000001', 'X-3', 'sar', current_date);
+    raise exception 'a direct case insert was allowed';
+  exception when insufficient_privilege then raise notice 'PASS a case cannot be inserted directly';
+  end;
+  begin
+    insert into pd.case_events (case_id, kind, text, actor) values (v_case, 'note', 'Forged', pd.current_user_id());
+    raise exception 'a direct audit event was allowed';
+  exception when insufficient_privilege then raise notice 'PASS an audit event cannot be written directly';
+  end;
+  begin
+    insert into pd.clock_pauses (case_id, paused_on) values (v_case, '2026-10-21');
+    raise exception 'a direct clock pause was allowed';
+  exception when insufficient_privilege then raise notice 'PASS the clock cannot be stopped directly';
+  end;
+  begin
+    update pd.inbox_items set status = 'declined', decline_reason = 'quietly' where true;
+    raise exception 'a direct inbox update was allowed';
+  exception when insufficient_privilege then raise notice 'PASS an inbox item cannot be changed directly';
+  end;
+end $$;
+
 -- Inbox (0005): an email arrives by token, a person accepts it into a case, another is declined.
 create temp table t_item as
   select pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
@@ -185,7 +216,9 @@ do $$ begin
   exception when invalid_parameter_value then raise notice 'PASS an item cannot be accepted twice';
   end;
 end $$;
-insert into pd.inbox_items (organisation_id, channel, body) values ('aaaaaaaa-0000-0000-0000-000000000001', 'paste', 'Spam about car insurance');
+select pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000001', 'Spam about car insurance') is not null as pasted;
+select pd.retriage_inbox_item((select id from pd.inbox_items where body like 'Spam%'), '{"by":"keywords","type":"not_dp","confidence":0.4}'::jsonb);
+select pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'A message for the second client') is not null as pasted;
 select pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'Not about personal data');
 select 'declined item status ' || status || ', reason ' || decline_reason as inbox from pd.inbox_items where body like 'Spam%';
 
@@ -274,9 +307,14 @@ do $$ begin
   exception when insufficient_privilege then raise notice 'PASS read-only user cannot act on a case';
   end;
   begin
-    perform pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'again');
+    perform pd.decline_inbox_item((select id from pd.inbox_items where body like 'A message for%'), 'no');
     raise exception 'read-only decline was allowed';
-  exception when insufficient_privilege or invalid_parameter_value then raise notice 'PASS read-only user cannot decide inbox items';
+  exception when insufficient_privilege then raise notice 'PASS read-only user cannot decide inbox items';
+  end;
+  begin
+    perform pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'A read-only user pastes a message');
+    raise exception 'read-only paste was allowed';
+  exception when insufficient_privilege then raise notice 'PASS read-only user cannot add inbox items';
   end;
 end $$;
 select 'partner B admin sees ' || count(*) || ' inbox items (expect 0)' as rls from pd.inbox_items

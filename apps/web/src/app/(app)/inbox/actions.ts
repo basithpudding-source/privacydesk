@@ -71,7 +71,7 @@ export async function retriageItem(itemId: string): Promise<InboxActionState> {
     receivedOn: String(item.received_at).slice(0, 10),
     aiEnabled: Boolean(org?.ai_enabled),
   });
-  const { error } = await supabase.from("inbox_items").update({ triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } }).eq("id", itemId);
+  const { error } = await supabase.rpc("retriage_inbox_item", { p_item_id: itemId, p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } });
   if (error) return { error: describe(error.code, error.message) };
   revalidatePath("/inbox");
   return { error: null };
@@ -94,20 +94,16 @@ export async function pasteItem(_prev: InboxActionState, formData: FormData): Pr
   if (!org) return { error: "Choose one of your clients." };
 
   const outcome = await triage({ text: body, organisationName: org.name as string, receivedOn: new Date().toISOString().slice(0, 10), aiEnabled: Boolean(org.ai_enabled) });
-  const { data, error } = await supabase
-    .from("inbox_items")
-    .insert({
-      organisation_id: organisationId,
-      channel: "paste",
-      from_name: fromName || null,
-      from_email: fromEmail ? fromEmail.toLowerCase() : null,
-      subject: subject || null,
-      body,
-      triage: { ...outcome.result, fallbackReason: outcome.fallbackReason },
-    })
-    .select("id")
-    .single();
+  // The database function checks the membership and writes the row; there is no direct insert.
+  const { data, error } = await supabase.rpc("add_inbox_item", {
+    p_organisation_id: organisationId,
+    p_body: body,
+    p_from_name: fromName || null,
+    p_from_email: fromEmail || null,
+    p_subject: subject || null,
+    p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason },
+  });
   if (error) return { error: describe(error.code, error.message) };
   revalidatePath("/inbox");
-  redirect(`/inbox?item=${data.id as string}`);
+  redirect(`/inbox?item=${data as string}`);
 }
