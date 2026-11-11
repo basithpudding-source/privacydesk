@@ -60,6 +60,20 @@ Built on 8 November 2026 (migration 0008). Ticked items are in code and proved l
 - [x] Penetration-style check: try to read another partner's case by id; try to edit an audit event. (Both in `supabase/live_checks.sql`, with the anonymous-role and job-function checks. Ran clean on 8 November 2026.)
 - [x] Reset the database password: it appeared in plain text in the terminal on 8 November 2026. Reset the same day; the app uses the API keys, so nothing else changed.
 
+## 8. Review fixes (11 November 2026)
+
+A code review found five gaps against the rules in `CLAUDE.md`. The fixes are in migrations 0009 to 0012 and the app, tested against a local in-memory Postgres (every migration, `schema_test.sql` and `live_checks.sql`). They are **not yet applied to the Supabase project**: the app on this branch needs them, so do these together.
+
+- [x] The audited functions are the only way to change a case (0009).
+- [x] The public form's database functions need the server's key (0010).
+- [x] Letter drafts respect each client's AI switch.
+- [x] Retention reaches the inbox and no longer fails on cases that came from it (0011).
+- [x] Reminders survive a failed send or a missed night, and cover overdue cases (0012).
+- [ ] Run `0009` to `0012` in order in the SQL editor on `privacy-desk-dev`.
+- [ ] Generate a key (`openssl rand -hex 32`), put it in `apps/web/.env.local` as `FORM_SERVER_KEY`, and run `select pd.set_server_key('public_form', '<the same value>');` in the SQL editor. Until then the public form refuses submissions.
+- [ ] Run `supabase/live_checks.sql` and check every row says PASS.
+- [ ] Click through once: log a case and act on it, paste a message into the inbox and accept it, submit the public form and open the link, draft a letter for a client with AI off.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
