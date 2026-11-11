@@ -238,7 +238,7 @@ What the code now does, and what you must do by hand before any real personal da
 4. **Email sender**: point Supabase Auth's SMTP settings at the Resend account used for the public form, so sign-in links are not limited to a few an hour.
 5. **Providers' terms**: accept the data processing agreements of Supabase, the hosting provider, Resend and (if inbound email is on) Postmark. Accept Anthropic's commercial terms and DPA and confirm API traffic is not used for training. Record each date on the sub-processors page.
 6. **Legal pages**: have a solicitor review the four drafts, fill in every item in square brackets, then remove the draft banner in `src/components/legal-page.tsx`.
-7. **Environment**: in production set `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_SERVER_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
+7. **Environment**: in production set `APP_URL` (required: the public form refuses submissions without it), `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_SERVER_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
 8. **Run the checks**: `npm test`, `npm run build`, then `supabase/live_checks.sql` in the SQL editor. Every line must say PASS.
 
 ## Checks

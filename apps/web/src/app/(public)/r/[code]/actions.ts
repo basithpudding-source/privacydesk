@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { sendEmail, showLinksOnPage } from "@/lib/email/send";
+import { linkBase } from "@/lib/public-form/base-url";
 import { REQUEST_KINDS, verificationEmail, type RequestKind } from "@/lib/public-form/copy";
 import { formServerKey, hashToken, makeToken } from "@/lib/public-form/tokens";
 import { createAnonClient } from "@/lib/supabase/anon";
@@ -9,13 +10,14 @@ import type { RequestFormState, RequestFormValues } from "./form-state";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** The site's own origin for links in emails: APP_URL when set, else the request's host. */
-async function baseUrl(): Promise<string> {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+/** The site's own origin for links in emails: APP_URL, or in development the request's host. Null if neither can be trusted. */
+async function baseUrl(): Promise<string | null> {
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  return linkBase(process.env.APP_URL, process.env.NODE_ENV === "production", {
+    host: h.get("host"),
+    forwardedHost: h.get("x-forwarded-host"),
+    forwardedProto: h.get("x-forwarded-proto"),
+  });
 }
 
 /**
@@ -52,6 +54,13 @@ export async function submitRequest(code: string, _prev: RequestFormState, formD
     return { status: "editing", values, errors: { form: "This form is not available at the moment. Contact the organisation directly." } };
   }
 
+  // Checked before anything is stored: a submission whose link cannot be built is no use to anyone.
+  const base = await baseUrl();
+  if (!base) {
+    console.error("[public form] APP_URL is not set (or is not an http/https address); it is required in production. See apps/web/README.md.");
+    return { status: "editing", values, errors: { form: "This form is not available at the moment. Contact the organisation directly." } };
+  }
+
   const token = makeToken();
   const supabase = createAnonClient();
   const { data: ref, error } = await supabase.rpc("form_submit", {
@@ -78,7 +87,7 @@ export async function submitRequest(code: string, _prev: RequestFormState, formD
     return { status: "editing", values, errors: { form } };
   }
 
-  const link = `${await baseUrl()}/r/${code.toLowerCase()}/verify?t=${token}`;
+  const link = `${base}/r/${code.toLowerCase()}/verify?t=${token}`;
   const { data: orgRows } = await supabase.rpc("form_lookup", { p_code: code });
   const orgName = (orgRows as { name: string }[] | null)?.[0]?.name ?? "the organisation";
   const message = verificationEmail(orgName, values.name, link);

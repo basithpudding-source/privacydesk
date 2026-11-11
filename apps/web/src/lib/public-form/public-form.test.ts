@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { confirmationEmail, readableOn, responseDates } from "./copy";
+import { linkBase } from "./base-url";
 import { hashToken, looksLikeToken, makeToken } from "./tokens";
 
 describe("one-time link tokens", () => {
@@ -63,5 +64,25 @@ describe("text on the client's colour", () => {
   it("puts white on a dark blue and black on a yellow", () => {
     expect(readableOn("#1d5c86")).toBe("#ffffff");
     expect(readableOn("#ffd500")).toBe("#000000");
+  });
+});
+
+describe("the address emailed links point to", () => {
+  const spoofed = { host: "evil.example", forwardedHost: "evil.example", forwardedProto: "https" };
+
+  it("uses APP_URL and ignores the request's host", () => {
+    expect(linkBase("https://desk.example.co.uk/", true, spoofed)).toBe("https://desk.example.co.uk");
+    expect(linkBase("https://desk.example.co.uk", false, spoofed)).toBe("https://desk.example.co.uk");
+  });
+
+  it("refuses to build a link in production without APP_URL, whatever the request says", () => {
+    expect(linkBase(undefined, true, spoofed)).toBeNull();
+    expect(linkBase("", true, spoofed)).toBeNull();
+    expect(linkBase("desk.example.co.uk", true, spoofed)).toBeNull();
+  });
+
+  it("falls back to the request's host in development only", () => {
+    expect(linkBase(undefined, false, { host: "localhost:3000", forwardedHost: null, forwardedProto: null })).toBe("http://localhost:3000");
+    expect(linkBase(undefined, false, { host: null, forwardedHost: null, forwardedProto: null })).toBe("http://localhost:3000");
   });
 });
