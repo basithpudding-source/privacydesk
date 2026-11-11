@@ -62,17 +62,31 @@ Built on 8 November 2026 (migration 0008). Ticked items are in code and proved l
 
 ## 8. Review fixes (11 November 2026)
 
-A code review found five gaps against the rules in `CLAUDE.md`. The fixes are in migrations 0009 to 0012 and the app, tested against a local in-memory Postgres (every migration, `schema_test.sql` and `live_checks.sql`). They are **not yet applied to the Supabase project**: the app on this branch needs them, so do these together.
+A code review found five gaps against the rules in `CLAUDE.md` and six smaller faults. The fixes are in migrations 0009 to 0016 and the app, tested against a local in-memory Postgres (every migration, `schema_test.sql` and `live_checks.sql`). They are **not yet applied to the Supabase project**: the app on this branch needs them, so do these together.
+
+Rule gaps:
 
 - [x] The audited functions are the only way to change a case (0009).
 - [x] The public form's database functions need the server's key (0010).
 - [x] Letter drafts respect each client's AI switch.
 - [x] Retention reaches the inbox and no longer fails on cases that came from it (0011).
 - [x] Reminders survive a failed send or a missed night, and cover overdue cases (0012).
-- [ ] Run `0009` to `0012` in order in the SQL editor on `privacy-desk-dev`.
+
+Smaller faults:
+
+- [x] "Today" is the date in London, in the app and the database (0013).
+- [x] References are numbered from a counter, so retention cannot bring one back (0014).
+- [x] An extension cannot be recorded after the first month (0015).
+- [x] A client cannot be deleted through the API (0016).
+- [x] The emailed link opens a page with a button; pressing it sends the request. Opening the link alone does nothing.
+- [x] `APP_URL` is required in production; without it the public form refuses submissions.
+
+Still to do by hand:
+
+- [ ] Run `0009` to `0016` in order in the SQL editor on `privacy-desk-dev`.
 - [ ] Generate a key (`openssl rand -hex 32`), put it in `apps/web/.env.local` as `FORM_SERVER_KEY`, and run `select pd.set_server_key('public_form', '<the same value>');` in the SQL editor. Until then the public form refuses submissions.
 - [ ] Run `supabase/live_checks.sql` and check every row says PASS.
-- [ ] Click through once: log a case and act on it, paste a message into the inbox and accept it, submit the public form and open the link, draft a letter for a client with AI off.
+- [ ] Click through once: log a case and act on it, try to extend an old case late, paste a message into the inbox and accept it, submit the public form, open the link and press the button, draft a letter for a client with AI off. The confirmation page with the button has not been seen in a browser yet.
 
 ## How to work with Claude Code on this
 
