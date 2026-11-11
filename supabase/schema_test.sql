@@ -3,6 +3,8 @@
 set client_min_messages = warning;
 -- Since 0008 a partner admin sees nothing without a second factor; the tests act as one who has it.
 select set_config('request.jwt.claim.aal', 'aal2', false);
+-- The public form's server key (0010): the app's server sends it with every form call.
+select pd.set_server_key('public_form', 'schema-test-server-key-0123456789abcdef');
 
 -- Extra holidays only for the ICO's 2024 example.
 insert into pd.bank_holidays values ('england-and-wales', '2024-12-25', 'Christmas Day'), ('england-and-wales', '2024-12-26', 'Boxing Day');
@@ -226,21 +228,21 @@ select 'declined item status ' || status || ', reason ' || decline_reason as inb
 select 'form lookup ' || name || ' ' || colour || ' enabled ' || form_enabled || ' (expect Client A1 #1d5c86 enabled true)' as form from pd.form_lookup('aaa');
 select case when count(*) = 0 then 'PASS an unknown code looks up nothing' else 'FAIL unknown code returned a client' end as form from pd.form_lookup('ZZZZ');
 create temp table t_sub as
-  select pd.form_submit('AAA', repeat('a', 64), 'Sam Example', 'SAM@example.com', 'sar', 'Please send me a copy of everything you hold about me.') as ref;
+  select pd.form_submit('AAA', repeat('a', 64), 'Sam Example', 'SAM@example.com', 'sar', 'Please send me a copy of everything you hold about me.', null, 'schema-test-server-key-0123456789abcdef') as ref;
 select 'submission ref ' || ref || ' (expect AAA-W0001)' as form from t_sub;
 do $$ begin
   begin
-    perform pd.form_submit('ZZZZ', repeat('b', 64), 'Sam', 'sam@example.com', 'sar', 'A long enough request text.');
+    perform pd.form_submit('ZZZZ', repeat('b', 64), 'Sam', 'sam@example.com', 'sar', 'A long enough request text.', null, 'schema-test-server-key-0123456789abcdef');
     raise exception 'unknown code was accepted';
   exception when no_data_found then raise notice 'PASS a submission to an unknown code is refused';
   end;
   begin
-    perform pd.form_submit('AAA', repeat('c', 64), 'Sam', 'sam@example.com', 'sar', 'short');
+    perform pd.form_submit('AAA', repeat('c', 64), 'Sam', 'sam@example.com', 'sar', 'short', null, 'schema-test-server-key-0123456789abcdef');
     raise exception 'short details were accepted';
   exception when check_violation then raise notice 'PASS details must be at least a sentence';
   end;
   begin
-    perform pd.form_verify('AAA', repeat('f', 64));
+    perform pd.form_verify('AAA', repeat('f', 64), 'schema-test-server-key-0123456789abcdef');
     raise exception 'a wrong token was verified';
   exception when no_data_found then raise notice 'PASS a wrong token is refused';
   end;
@@ -250,15 +252,45 @@ do $$ begin
   exception when insufficient_privilege then raise notice 'PASS pending submissions cannot be read by users';
   end;
 end $$;
-create temp table t_verified as select * from pd.form_verify('aaa', repeat('a', 64));
+-- Server key (0010): without it nobody can submit or verify, whatever token hash they pick.
+do $$ begin
+  begin
+    perform pd.form_submit('AAA', repeat('d', 64), 'Mallory', 'victim@example.com', 'sar', 'Submitted straight to the database.', null, 'not-the-key');
+    raise exception 'a submission without the server key was accepted';
+  exception when insufficient_privilege then raise notice 'PASS a submission needs the server key';
+  end;
+  begin
+    perform pd.form_verify('AAA', repeat('a', 64), 'not-the-key');
+    raise exception 'a request was verified without the server key';
+  exception when insufficient_privilege then raise notice 'PASS a request cannot be verified without the server key';
+  end;
+  begin
+    perform pd.form_set_triage(repeat('a', 64), '{"by":"ai"}'::jsonb, null);
+    raise exception 'triage was set without the server key';
+  exception when insufficient_privilege then raise notice 'PASS triage cannot be set without the server key';
+  end;
+  begin
+    perform pd.set_server_key('public_form', repeat('x', 40));
+    raise exception 'a user replaced the server key';
+  exception when insufficient_privilege then raise notice 'PASS a user cannot set the server key';
+  end;
+  begin
+    perform count(*) from pd.server_keys;
+    raise exception 'the server key table was readable';
+  exception when insufficient_privilege then raise notice 'PASS a user cannot read the server key table';
+  end;
+end $$;
+select 'still unverified after the refused attempts: ' || (count(*) = 0) || ' (expect true)' as form from pd.inbox_items where channel = 'form';
+
+create temp table t_verified as select * from pd.form_verify('aaa', repeat('a', 64), 'schema-test-server-key-0123456789abcdef');
 select 'verified ' || ref || ', received ' || received_on || ', type ' || request_type || ', already ' || already_verified
   || ' (expect AAA-W0001, today, sar, false)' as form from t_verified;
 select 'item channel ' || channel || ', from ' || from_email || ', ref ' || source_ref || ', requested ' || requested_type
   || ' (expect form, sam@example.com, AAA-W0001, sar)' as form from pd.inbox_items where id = (select inbox_item_id from t_verified);
 select 'second click: already ' || already_verified || ', same item ' || (inbox_item_id = (select inbox_item_id from t_verified))
-  || ' (expect true, true)' as form from pd.form_verify('AAA', repeat('a', 64));
+  || ' (expect true, true)' as form from pd.form_verify('AAA', repeat('a', 64), 'schema-test-server-key-0123456789abcdef');
 select 'form items ' || count(*) || ' (expect 1: the second click made nothing)' as form from pd.inbox_items where channel = 'form';
-select pd.form_set_triage(repeat('a', 64), '{"by":"keywords","type":"sar","confidence":0.8,"summary":"Copy of data"}'::jsonb);
+select pd.form_set_triage(repeat('a', 64), '{"by":"keywords","type":"sar","confidence":0.8,"summary":"Copy of data"}'::jsonb, 'schema-test-server-key-0123456789abcdef');
 create temp table t_form_case as
   select pd.accept_inbox_item((select inbox_item_id from t_verified), 'sar', current_date, 'Sam Example', 'sam@example.com', 'Copy of data', false) as case_id;
 select 'form case ' || ref || ', channel ' || channel || ', source ' || source_ref || ' (expect AAA-004, Web form, AAA-W0001)' as form
@@ -273,10 +305,10 @@ select set_config('request.jwt.claim.aal', 'aal2', false);
 select 'partner A admin at aal2 sees ' || count(*) || ' cases again (expect more than 0)' as security from pd.cases;
 do $$ begin
   for i in 1..10 loop
-    perform pd.form_submit('AAB', lpad(to_hex(i), 64, '0'), 'Bot', 'bot' || i || '@example.com', 'sar', 'Automated submission number ' || i, repeat('9', 64));
+    perform pd.form_submit('AAB', lpad(to_hex(i), 64, '0'), 'Bot', 'bot' || i || '@example.com', 'sar', 'Automated submission number ' || i, repeat('9', 64), 'schema-test-server-key-0123456789abcdef');
   end loop;
   begin
-    perform pd.form_submit('AAB', repeat('b', 64), 'Bot', 'bot99@example.com', 'sar', 'One too many from this address.', repeat('9', 64));
+    perform pd.form_submit('AAB', repeat('b', 64), 'Bot', 'bot99@example.com', 'sar', 'One too many from this address.', repeat('9', 64), 'schema-test-server-key-0123456789abcdef');
     raise exception 'the eleventh submission from one address was accepted';
   exception when program_limit_exceeded then raise notice 'PASS a sender address is capped at ten submissions an hour';
   end;

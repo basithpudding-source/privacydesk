@@ -44,6 +44,11 @@ begin
     exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read form submissions'); end;
     begin perform count(*) from pd.members; raise exception 'anon read members';
     exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot read members'); end;
+    -- The public form's functions refuse without the server's key (0010). Nothing is written.
+    begin perform pd.form_submit('ZZZZZZ', repeat('0', 64), 'Check', 'check@example.com', 'sar', 'A live check, never stored.', null, 'not-the-key'); raise exception 'anon submitted a form';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot submit a form without the server key'); end;
+    begin perform pd.form_verify('ZZZZZZ', repeat('0', 64), 'not-the-key'); raise exception 'anon verified a form';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot verify a request without the server key'); end;
   end loop;
   reset role;
 

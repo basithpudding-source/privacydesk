@@ -33,6 +33,7 @@
 | 2026-11-08 | Legal pages are drafts written by the developer, shown with a banner until a solicitor has reviewed them | Better to have the structure and the facts (sub-processors, retention, roles) written down and visible than nothing; the banner stops anyone mistaking them for terms in force |
 | 2026-11-08 | `AI_DISABLED=1` switches AI off for the whole deployment | A provider's terms or an incident can change overnight; one environment variable is faster than editing every client |
 | 2026-11-11 | The audited functions are the only way to change a case, a clock pause, an audit event or an inbox item: they run with definer rights and check membership themselves, and the signed-in role has only select on those tables (migration 0009) | A review found that anyone with write access could update a case through the Data API with no audit event. A rule the database enforces cannot be skipped by calling the API directly |
+| 2026-11-11 | The public form's database functions need a server key (`FORM_SERVER_KEY`); the database holds only its hash (migration 0010) | The anonymous role could call them with the publishable key and choose its own token, so a request could be marked "email address verified" without an email being opened. A key only the server holds closes that without giving the form the service role, which stays with the nightly job |
 
 ## Open questions
 

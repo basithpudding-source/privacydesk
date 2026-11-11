@@ -6,7 +6,7 @@ import type { Region } from "@/lib/clocks";
 import { longDate } from "@/lib/clocks";
 import { sendEmail } from "@/lib/email/send";
 import { confirmationEmail, requestKindLabel, responseDates, type RequestKind } from "@/lib/public-form/copy";
-import { hashToken, looksLikeToken } from "@/lib/public-form/tokens";
+import { formServerKey, hashToken, looksLikeToken } from "@/lib/public-form/tokens";
 import { lookupClient } from "@/lib/public-form/queries";
 import { createAnonClient } from "@/lib/supabase/anon";
 
@@ -39,8 +39,9 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
 
   if (!looksLikeToken(t)) return <Problem client={client} title="This link is not complete">Open the link from the email again, or copy it whole into the address bar.</Problem>;
 
+  const serverKey = formServerKey();
   const supabase = createAnonClient();
-  const { data, error } = await supabase.rpc("form_verify", { p_code: code, p_token_hash: hashToken(t) });
+  const { data, error } = await supabase.rpc("form_verify", { p_code: code, p_token_hash: hashToken(t), p_server_key: serverKey ?? "" });
   if (error) {
     if (error.code === "22023") return <Problem client={client} title="This link has expired">Links work for 24 hours. Fill in the form again and we will send a new one.</Problem>;
     if (error.code === "P0002") return <Problem client={client} title="This link is not recognised">Check that you opened the most recent email, or fill in the form again.</Problem>;
@@ -56,7 +57,7 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
   if (!v.already_verified) {
     // Triage now, so the item is already proposed when the consultancy opens the inbox.
     const outcome = await triage({ text: v.details, organisationName: v.organisation_name, receivedOn: v.received_on, aiEnabled: v.ai_enabled });
-    await supabase.rpc("form_set_triage", { p_token_hash: hashToken(t), p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } });
+    await supabase.rpc("form_set_triage", { p_token_hash: hashToken(t), p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason }, p_server_key: serverKey ?? "" });
     const message = confirmationEmail({
       ref: v.ref,
       kind: v.request_type,

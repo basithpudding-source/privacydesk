@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { sendEmail, showLinksOnPage } from "@/lib/email/send";
 import { REQUEST_KINDS, verificationEmail, type RequestKind } from "@/lib/public-form/copy";
-import { hashToken, makeToken } from "@/lib/public-form/tokens";
+import { formServerKey, hashToken, makeToken } from "@/lib/public-form/tokens";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { RequestFormState, RequestFormValues } from "./form-state";
 
@@ -46,6 +46,12 @@ export async function submitRequest(code: string, _prev: RequestFormState, formD
   if (values.details.length > 10000) errors.details = "That is too long. Keep it under 10,000 characters.";
   if (Object.keys(errors).length) return { status: "editing", values, errors };
 
+  const serverKey = formServerKey();
+  if (!serverKey) {
+    console.error("[public form] FORM_SERVER_KEY is not set (32 characters or more); see apps/web/README.md.");
+    return { status: "editing", values, errors: { form: "This form is not available at the moment. Contact the organisation directly." } };
+  }
+
   const token = makeToken();
   const supabase = createAnonClient();
   const { data: ref, error } = await supabase.rpc("form_submit", {
@@ -56,14 +62,19 @@ export async function submitRequest(code: string, _prev: RequestFormState, formD
     p_type: values.kind,
     p_details: values.details,
     p_sender_hash: await senderHash(),
+    p_server_key: serverKey,
   });
   if (error) {
+    // 42501: the database does not know this server's key (pd.set_server_key was not run, or the values differ).
+    if (error.code === "42501") console.error("[public form] The database refused FORM_SERVER_KEY; see apps/web/README.md.");
     const form =
       error.code === "54000"
         ? "Too many requests from this address in the last hour. Try again later."
         : error.code === "22023"
           ? "This organisation is not taking requests through this form at the moment."
-          : "We could not save your request. Try again in a minute.";
+          : error.code === "42501"
+            ? "This form is not available at the moment. Contact the organisation directly."
+            : "We could not save your request. Try again in a minute.";
     return { status: "editing", values, errors: { form } };
   }
 

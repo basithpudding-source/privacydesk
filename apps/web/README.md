@@ -223,6 +223,7 @@ What the code now does, and what you must do by hand before any real personal da
 - A partner admin's session must carry `aal2` (a second factor given this session) or the database policies return nothing: `pd.current_aal()` is checked in `can_read_org`, `can_write_org` and `is_partner_admin`. The app already sends admins to enrol; this makes the rule hold for anyone calling the API directly.
 - Sessions idle for `SESSION_IDLE_HOURS` (default 8) are ended by the proxy, which signs the person out and sends them to `/sign-in?reason=idle`.
 - Security headers on every response (`next.config.ts`): a content security policy, HSTS, no framing, no sniffing, a referrer policy, a permissions policy.
+- The public form's database functions need the server's key (`FORM_SERVER_KEY`), so a request cannot be submitted or marked verified with the publishable key alone. Generate a value of 32 characters or more (`openssl rand -hex 32`), put it in the app's environment, and run `select pd.set_server_key('public_form', '<the same value>');` once in the SQL editor. Until both are done the form refuses every submission. To change the key, set the new value in both places.
 - The public form caps each email address at 5 and each sender address at 10 submissions an hour per client. Addresses are stored only as daily-salted hashes (`FORM_RATE_SALT`).
 - `AI_DISABLED=1` switches AI off for the whole deployment; each client's own switch still applies.
 - `supabase/live_checks.sql` runs in the SQL editor against the real project, seeds nothing, and prints a PASS line for each isolation rule: the anonymous role reads no table; an admin without a second factor sees nothing; another consultancy's case by id returns nothing and cannot be acted on; audit events cannot be edited or deleted; users cannot read pending submissions or run the job functions. Run it after every migration.
@@ -237,7 +238,7 @@ What the code now does, and what you must do by hand before any real personal da
 4. **Email sender**: point Supabase Auth's SMTP settings at the Resend account used for the public form, so sign-in links are not limited to a few an hour.
 5. **Providers' terms**: accept the data processing agreements of Supabase, the hosting provider, Resend and (if inbound email is on) Postmark. Accept Anthropic's commercial terms and DPA and confirm API traffic is not used for training. Record each date on the sub-processors page.
 6. **Legal pages**: have a solicitor review the four drafts, fill in every item in square brackets, then remove the draft banner in `src/components/legal-page.tsx`.
-7. **Environment**: in production set `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
+7. **Environment**: in production set `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_SERVER_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
 8. **Run the checks**: `npm test`, `npm run build`, then `supabase/live_checks.sql` in the SQL editor. Every line must say PASS.
 
 ## Checks
