@@ -73,10 +73,14 @@ export function letterTemplate(kind: LetterKind, f: LetterFacts): string {
   }
 }
 
-/** Streams a draft as plain text chunks. The caller decides what to do when AI is off. */
-export function streamLetter(kind: LetterKind, f: LetterFacts): ReadableStream<Uint8Array> {
+/**
+ * Streams a draft as plain text chunks. `aiEnabled` is the client's own AI switch
+ * (pd.organisations.ai_enabled): when it is off, or AI is off or unconfigured for the whole
+ * deployment, nothing about the case leaves the server and the template is returned instead.
+ */
+export function streamLetter(kind: LetterKind, f: LetterFacts, aiEnabled: boolean): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-  if (!aiConfigured()) {
+  if (!aiEnabled || !aiConfigured()) {
     return new ReadableStream({
       start(controller) {
         controller.enqueue(encoder.encode(letterTemplate(kind, f)));

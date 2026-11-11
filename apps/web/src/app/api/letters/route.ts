@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
   if (!detail) return NextResponse.json({ error: "That case is not here." }, { status: 404 });
 
   const { c, org, deadline } = detail;
+  // The client's AI switch decides, as it does for triage: off means the template, and
+  // nothing about the case is sent to the AI provider.
   const stream = streamLetter(kind, {
     organisation: org.name,
     ref: c.ref,
@@ -31,6 +33,6 @@ export async function POST(request: NextRequest) {
     dueOn: c.type === "complaint" ? deadline.ack_due : deadline.response_due,
     outcome: c.outcome,
     isComplaint: c.type === "complaint",
-  });
+  }, Boolean(org.ai_enabled));
   return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 }
