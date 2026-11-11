@@ -455,6 +455,30 @@ do $$ begin
   end if;
 end $$;
 
+-- Extension window (0015), on the ICO's extension example: a request received on 7 August
+-- 2025. The first month ends on Sunday 7 September, so Monday 8 September is the last day
+-- the person can be told. A day later is refused; on the day is accepted, and the response
+-- is then due on 7 November as in the ICO's example.
+create temp table t_ext as select pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', '2025-08-07') as id;
+select 'first month ends ' || response_due || ' (expect 2025-09-08: Sun 7 Sep moves to Mon 8 Sep)' as extension
+  from pd.v_case_deadlines where case_id = (select id from t_ext);
+do $$ begin
+  begin
+    perform pd.record_case_action((select id from t_ext), 'extend', '2025-09-09', 'Records at two sites');
+    raise exception 'an extension after the first month was allowed';
+  exception when check_violation then raise notice 'PASS an extension cannot be recorded after the first month';
+  end;
+end $$;
+select pd.record_case_action((select id from t_ext), 'extend', '2025-09-08', 'Records at two sites');
+select case when response_due = '2025-11-07' and clock_state = 'extended' then 'PASS' else 'FAIL' end
+  || ' extended on the last day of the first month, now due ' || response_due || ' (expect 2025-11-07, ICO example)' as extension
+  from pd.v_case_deadlines where case_id = (select id from t_ext);
+do $$ begin
+  if (select response_due from pd.v_case_deadlines where case_id = (select id from t_ext)) is distinct from '2025-11-07' then
+    raise exception 'Extension window tests failed';
+  end if;
+end $$;
+
 -- Reminder stages (0012): a case is reminded at the stage it has reached, so a missed night
 -- is made up on the next run. -1 is overdue; nothing is due more than 7 days out.
 select case when (select array_agg(pd.reminder_bucket(d) order by d) from unnest(array[-5, -1, 0, 1, 2, 3, 6, 7]) d)

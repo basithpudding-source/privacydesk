@@ -38,6 +38,7 @@
 | 2026-11-11 | A reminder is a stage a case has reached (within 7 days, within 2, due today, overdue), owed to each person until the log says they were sent it for that due date; the log is written only after the email went, and the job answers 500 if anything failed (migration 0012) | Reminders used to fire only on the exact day and were logged even when the send failed, so one bad night lost a reminder for good. Nothing was sent once a deadline had passed |
 | 2026-11-11 | "Today" is the date in London, in the database (`pd.today()`, migration 0013) and in the app (`src/lib/today.ts`) | Servers run on UTC. Between midnight and 1am in British Summer Time a UTC date is still yesterday, which put received dates and days left a day out |
 | 2026-11-11 | Case and web form references are numbered from a per-client counter that only goes up (`pd.ref_counters`, migration 0014) | Numbering from the highest surviving row let retention bring an old reference back: a client with no form requests for 90 days restarted at W0001 |
+| 2026-11-11 | An extension can only be recorded with a date inside the first month, as the clock stands (migration 0015) | The person must be told within one month (ICO guidance; UK GDPR Article 12(3)). Accepting any date let a case that was already late be extended afterwards and shown as on time. A late case now stays visibly late |
 
 ## Open questions
 
