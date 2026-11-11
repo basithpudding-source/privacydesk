@@ -1,5 +1,6 @@
 // Inbound email from Postmark. Each client has a forwarding address <code>-<token>@<domain>;
-// the token is the credential for the database functions, so no service key lives here.
+// the token says which client the message is for, and INBOUND_SERVER_KEY proves to the
+// database that the call came from this route (migration 0017), so no service key lives here.
 // A shared secret on the URL (or HTTP basic auth) keeps strangers from posting fake mail.
 import { NextResponse, type NextRequest } from "next/server";
 import { triage } from "@/lib/ai/triage";
@@ -49,8 +50,20 @@ function stripHtml(html: string) {
   return html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+\n/g, "\n").replace(/[ \t]+/g, " ").trim();
 }
 
+/** The key the database asks for on every inbound call; its hash is set with pd.set_server_key('inbound_email', ...). */
+function inboundServerKey(): string | null {
+  const key = process.env.INBOUND_SERVER_KEY;
+  return key && key.length >= 32 ? key : null;
+}
+
 export async function POST(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ ok: false, error: "Not authorised." }, { status: 401 });
+  // Not a 200: the message is wanted, so Postmark should keep retrying until the key is set.
+  const serverKey = inboundServerKey();
+  if (!serverKey) {
+    console.error("[inbound] INBOUND_SERVER_KEY is not set (32 characters or more); see apps/web/README.md.");
+    return NextResponse.json({ ok: false, error: "Inbound email is not set up on the server." }, { status: 503 });
+  }
 
   let m: PostmarkInbound;
   try {
@@ -66,7 +79,12 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAnonClient();
 
-  const { data: ctx } = await supabase.rpc("inbound_context", { p_token: token }).maybeSingle();
+  const { data: ctx, error: ctxError } = await supabase.rpc("inbound_context", { p_token: token, p_server_key: serverKey }).maybeSingle();
+  if (ctxError) {
+    // 42501: the database does not know this server's key (pd.set_server_key was not run, or the values differ).
+    if (ctxError.code === "42501") console.error("[inbound] The database refused INBOUND_SERVER_KEY; see apps/web/README.md.");
+    return NextResponse.json({ ok: false, error: "Inbound email could not be stored." }, { status: 500 });
+  }
   if (!ctx) return NextResponse.json({ ok: false, reason: "Unknown forwarding address." });
 
   const { data: itemId, error } = await supabase.rpc("receive_inbound_email", {
@@ -76,6 +94,7 @@ export async function POST(request: NextRequest) {
     p_subject: m.Subject ?? null,
     p_body: body.slice(0, 50000),
     p_message_id: m.MessageID ?? null,
+    p_server_key: serverKey,
   });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   if (!itemId) return NextResponse.json({ ok: true, duplicate: true });
@@ -86,7 +105,7 @@ export async function POST(request: NextRequest) {
     receivedOn: todayInLondon(),
     aiEnabled: Boolean((ctx as { ai_enabled: boolean }).ai_enabled),
   });
-  await supabase.rpc("set_inbox_triage", { p_token: token, p_item_id: itemId, p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason } });
+  await supabase.rpc("set_inbox_triage", { p_token: token, p_item_id: itemId, p_triage: { ...outcome.result, fallbackReason: outcome.fallbackReason }, p_server_key: serverKey });
 
   return NextResponse.json({ ok: true, itemId });
 }

@@ -5,6 +5,8 @@ set client_min_messages = warning;
 select set_config('request.jwt.claim.aal', 'aal2', false);
 -- The public form's server key (0010): the app's server sends it with every form call.
 select pd.set_server_key('public_form', 'schema-test-server-key-0123456789abcdef');
+-- The inbound webhook's server key (0017).
+select pd.set_server_key('inbound_email', 'schema-test-inbound-key-0123456789abcdef');
 
 -- Extra holidays only for the ICO's 2024 example.
 insert into pd.bank_holidays values ('england-and-wales', '2024-12-25', 'Christmas Day'), ('england-and-wales', '2024-12-26', 'Boxing Day');
@@ -213,18 +215,35 @@ select 'partner A admin sees ' || count(*) || ' clients after adding one (expect
 -- Inbox (0005): an email arrives by token, a person accepts it into a case, another is declined.
 create temp table t_item as
   select pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
-    'Pat Example', 'PAT@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1') as id;
+    'Pat Example', 'PAT@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1', 'schema-test-inbound-key-0123456789abcdef') as id;
 select 'duplicate delivery returns ' || coalesce(pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
-    'Pat Example', 'pat@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1')::text, 'null (expect null)') as inbox;
+    'Pat Example', 'pat@example.com', 'My data', 'Please send me everything you hold about me.', 'msg-1', 'schema-test-inbound-key-0123456789abcdef')::text, 'null (expect null)') as inbox;
 select pd.set_inbox_triage((select inbound_token from pd.organisations where code = 'AAA'), (select id from t_item),
-  '{"by":"ai","type":"sar","confidence":0.93,"summary":"Wants a copy of their data"}'::jsonb);
+  '{"by":"ai","type":"sar","confidence":0.93,"summary":"Wants a copy of their data"}'::jsonb, 'schema-test-inbound-key-0123456789abcdef');
 do $$ begin
   begin
-    perform pd.receive_inbound_email('not-a-token', 'x', 'x@example.com', 's', 'body');
+    perform pd.receive_inbound_email('not-a-token', 'x', 'x@example.com', 's', 'body', null, 'schema-test-inbound-key-0123456789abcdef');
     raise exception 'unknown token was accepted';
   exception when no_data_found then raise notice 'PASS an unknown forwarding token is refused';
   end;
+  -- Server key (0017): the forwarding token alone is not enough.
+  begin
+    perform pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'), 'Mallory', 'm@example.com', 'Hello', 'Sent straight to the database.', 'msg-x');
+    raise exception 'inbound email without the server key was accepted';
+  exception when insufficient_privilege then raise notice 'PASS inbound email needs the server key';
+  end;
+  begin
+    perform pd.set_inbox_triage((select inbound_token from pd.organisations where code = 'AAA'), (select id from t_item), '{"by":"ai"}'::jsonb, 'not-the-key');
+    raise exception 'triage was set without the server key';
+  exception when insufficient_privilege then raise notice 'PASS inbound triage cannot be set without the server key';
+  end;
+  begin
+    perform count(*) from pd.inbound_context((select inbound_token from pd.organisations where code = 'AAA'), null);
+    raise exception 'a client was looked up by token without the server key';
+  exception when insufficient_privilege then raise notice 'PASS a forwarding token cannot be looked up without the server key';
+  end;
 end $$;
+select 'inbox items for the first client: ' || count(*) || ' (expect 1: the refused calls stored nothing)' as inbox from pd.inbox_items where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001';
 create temp table t_accepted as
   select pd.accept_inbox_item((select id from t_item), 'sar', '2026-10-06', 'Pat Example', 'pat@example.com', 'Wants a copy of their data', false) as case_id;
 select 'accepted into ' || c.ref || ' (expect AAA-003), channel ' || c.channel || ', item status ' || i.status as inbox

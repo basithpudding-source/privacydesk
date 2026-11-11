@@ -48,7 +48,7 @@ describe("public environment variables carry no secrets", () => {
   it("server-only secrets are not read from client components", () => {
     const clientFiles = files.filter((f) => /^\s*["']use client["']/m.test(read(f)));
     for (const f of clientFiles) {
-      expect(read(f), rel(f)).not.toMatch(/ANTHROPIC_API_KEY|RESEND_API_KEY|JOBS_SECRET|INBOUND_WEBHOOK_SECRET|FORM_SERVER_KEY/);
+      expect(read(f), rel(f)).not.toMatch(/ANTHROPIC_API_KEY|RESEND_API_KEY|JOBS_SECRET|INBOUND_WEBHOOK_SECRET|FORM_SERVER_KEY|INBOUND_SERVER_KEY/);
     }
   });
 });

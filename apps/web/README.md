@@ -168,6 +168,7 @@ Each client has a forwarding address `<code>-<token>@<INBOUND_DOMAIN>`, shown on
 1. Choose a domain or subdomain for inbound mail and, in Postmark, create a server with an inbound stream. Point the domain's MX record where Postmark says.
 2. Set the inbound webhook URL to `https://<your app>/api/inbound/postmark?secret=<INBOUND_WEBHOOK_SECRET>`.
 3. Put `INBOUND_DOMAIN` and a long random `INBOUND_WEBHOOK_SECRET` in the app's environment.
+4. Generate a second value of 32 characters or more (`openssl rand -hex 32`), put it in the app's environment as `INBOUND_SERVER_KEY`, and run `select pd.set_server_key('inbound_email', '<the same value>');` once in the SQL editor. The database refuses inbound email without it, so knowing a client's forwarding address is not enough to write to its inbox. Until both are done the webhook answers 503 or 500 and Postmark keeps retrying.
 
 The route looks up the client by the token in the address, creates the inbox item through a function that only that token can call, and triages it. Duplicate deliveries (same Postmark message id) are dropped. To test locally without Postmark, post a sample payload:
 
@@ -238,7 +239,7 @@ What the code now does, and what you must do by hand before any real personal da
 4. **Email sender**: point Supabase Auth's SMTP settings at the Resend account used for the public form, so sign-in links are not limited to a few an hour.
 5. **Providers' terms**: accept the data processing agreements of Supabase, the hosting provider, Resend and (if inbound email is on) Postmark. Accept Anthropic's commercial terms and DPA and confirm API traffic is not used for training. Record each date on the sub-processors page.
 6. **Legal pages**: have a solicitor review the four drafts, fill in every item in square brackets, then remove the draft banner in `src/components/legal-page.tsx`.
-7. **Environment**: in production set `APP_URL` (required: the public form refuses submissions without it), `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_SERVER_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
+7. **Environment**: in production set `APP_URL` (required: the public form refuses submissions without it), `RESEND_API_KEY`, `EMAIL_FROM`, `JOBS_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `FORM_SERVER_KEY`, `INBOUND_SERVER_KEY`, `FORM_RATE_SALT`, and `SESSION_IDLE_HOURS` if 8 is not right. Never set a `NEXT_PUBLIC_` variable to a secret.
 8. **Run the checks**: `npm test`, `npm run build`, then `supabase/live_checks.sql` in the SQL editor. Every line must say PASS.
 
 ## Checks

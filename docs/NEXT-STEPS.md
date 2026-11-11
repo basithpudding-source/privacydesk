@@ -62,7 +62,7 @@ Built on 8 November 2026 (migration 0008). Ticked items are in code and proved l
 
 ## 8. Review fixes (11 November 2026)
 
-A code review found five gaps against the rules in `CLAUDE.md` and six smaller faults. The fixes are in migrations 0009 to 0016 and the app, tested against a local in-memory Postgres (every migration, `schema_test.sql` and `live_checks.sql`). They are **not yet applied to the Supabase project**: the app on this branch needs them, so do these together.
+A code review found five gaps against the rules in `CLAUDE.md` and six smaller faults. The fixes are in migrations 0009 to 0017 and the app, tested against a local in-memory Postgres (every migration, `schema_test.sql` and `live_checks.sql`). They are **not yet applied to the Supabase project**: the app on this branch needs them, so do these together.
 
 Rule gaps:
 
@@ -80,11 +80,13 @@ Smaller faults:
 - [x] A client cannot be deleted through the API (0016).
 - [x] The emailed link opens a page with a button; pressing it sends the request. Opening the link alone does nothing.
 - [x] `APP_URL` is required in production; without it the public form refuses submissions.
+- [x] The inbound email functions need the server's key as well as the client's forwarding token (0017).
 
 Still to do by hand:
 
-- [ ] Run `0009` to `0016` in order in the SQL editor on `privacy-desk-dev`.
+- [ ] Run `0009` to `0017` in order in the SQL editor on `privacy-desk-dev`.
 - [ ] Generate a key (`openssl rand -hex 32`), put it in `apps/web/.env.local` as `FORM_SERVER_KEY`, and run `select pd.set_server_key('public_form', '<the same value>');` in the SQL editor. Until then the public form refuses submissions.
+- [ ] Do the same with a second key for inbound email: `INBOUND_SERVER_KEY` in `apps/web/.env.local`, and `select pd.set_server_key('inbound_email', '<the same value>');`. Until then the inbound webhook refuses mail.
 - [ ] Run `supabase/live_checks.sql` and check every row says PASS.
 - [ ] Click through once: log a case and act on it, try to extend an old case late, paste a message into the inbox and accept it, submit the public form, open the link and press the button, draft a letter for a client with AI off. The confirmation page with the button has not been seen in a browser yet.
 

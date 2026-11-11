@@ -42,6 +42,7 @@
 | 2026-11-11 | A client organisation cannot be deleted through the API; admins can only add and edit (migration 0016) | One call deleted a client with every case and audit event, leaving no record. Until there is an audited way to offboard a client, removal is done by the database owner by hand |
 | 2026-11-11 | The emailed link opens a page with one button; the request is verified, and the clock starts, when the button is pressed, not when the link is opened | Mail scanners and link previews open links. With the old page that verified the address and started the legal clock without the person doing anything. This refines the 8 November decision: "the day the link is opened" is now the day the button is pressed |
 | 2026-11-11 | `APP_URL` is required in production; without it the public form refuses submissions | The link in the verification email was built from the request's Host header when `APP_URL` was unset, and a sender can forge that header to have the app email someone a link to another site carrying their token |
+| 2026-11-11 | The inbound email functions need a server key (`INBOUND_SERVER_KEY`) as well as the client's forwarding token (migration 0017) | The token is part of the forwarding address and travels in mail headers, so anyone who had seen an address could write to that client's inbox with the publishable key, skipping the webhook's secret. This refines the 8 November decision that the token alone is the credential |
 
 ## Open questions
 

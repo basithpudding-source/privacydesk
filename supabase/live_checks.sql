@@ -49,6 +49,9 @@ begin
     exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot submit a form without the server key'); end;
     begin perform pd.form_verify('ZZZZZZ', repeat('0', 64), 'not-the-key'); raise exception 'anon verified a form';
     exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot verify a request without the server key'); end;
+    -- Inbound email refuses without the server's key (0017), before the token is even looked at.
+    begin perform pd.receive_inbound_email('not-a-token', 'Check', 'check@example.com', 'Check', 'A live check, never stored.', null, 'not-the-key'); raise exception 'anon stored inbound email';
+    exception when insufficient_privilege then insert into seen (note) values ('PASS anon cannot store inbound email without the server key'); end;
   end loop;
   reset role;
 
