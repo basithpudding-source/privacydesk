@@ -428,6 +428,33 @@ do $$ begin
   end if;
 end $$;
 
+-- References are never reused (0014). The newest case and the newest form submission of a
+-- client are deleted, as retention would, and the next ones must still get new numbers.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+create temp table t_ref1 as select pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', pd.today()) as id;
+alter table t_ref1 add column ref text;
+update t_ref1 set ref = (select ref from pd.cases where id = t_ref1.id);
+delete from pd.cases where id = (select id from t_ref1);
+create temp table t_ref2 as select pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', pd.today()) as id;
+alter table t_ref2 add column ref text;
+update t_ref2 set ref = (select ref from pd.cases where id = t_ref2.id);
+select case when (select ref from t_ref2) > (select ref from t_ref1) then 'PASS' else 'FAIL' end
+  || ' a deleted case reference is not reused: ' || (select ref from t_ref1) || ' then ' || (select ref from t_ref2) as refs;
+
+create temp table t_wref1 as
+  select pd.form_submit('AAA', repeat('1', 64), 'Ref Test', 'ref1@example.com', 'sar', 'A request that will be deleted.', null, 'schema-test-server-key-0123456789abcdef') as ref;
+delete from pd.form_submissions where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+create temp table t_wref2 as
+  select pd.form_submit('AAA', repeat('2', 64), 'Ref Test', 'ref2@example.com', 'sar', 'The request that comes after it.', null, 'schema-test-server-key-0123456789abcdef') as ref;
+select case when (select ref from t_wref2) > (select ref from t_wref1) then 'PASS' else 'FAIL' end
+  || ' a deleted web form reference is not reused: ' || (select ref from t_wref1) || ' then ' || (select ref from t_wref2) as refs;
+do $$ begin
+  if (select ref from t_ref2) is null or (select ref from t_ref1) is null
+     or (select ref from t_ref2) <= (select ref from t_ref1) or (select ref from t_wref2) <= (select ref from t_wref1) then
+    raise exception 'Reference reuse tests failed';
+  end if;
+end $$;
+
 -- Reminder stages (0012): a case is reminded at the stage it has reached, so a missed night
 -- is made up on the next run. -1 is overdue; nothing is due more than 7 days out.
 select case when (select array_agg(pd.reminder_bucket(d) order by d) from unnest(array[-5, -1, 0, 1, 2, 3, 6, 7]) d)
