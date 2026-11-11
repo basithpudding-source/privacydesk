@@ -374,4 +374,20 @@ do $$ begin
 end $$;
 reset role;
 
+-- Retention reaches the inbox (0011). A case that came from the inbox goes with its item (this
+-- delete used to fail on the item's check constraint), an old declined item goes too, and an
+-- item still waiting for a person stays.
 select organisation, month, received, complaints, sars, closed from pd.v_monthly_client_report order by organisation, month limit 5;
+update pd.cases set status = 'closed', closed_on = '2020-01-01', received_on = '2019-12-01' where ref = 'AAA-003';
+update pd.inbox_items set decided_at = now() - interval '10 years' where body like 'Spam%';
+select 'retention deleted ' || pd.apply_retention() || ' row(s) (expect 2: the case and the declined item)' as retention;
+select case when not exists (select 1 from pd.cases where ref = 'AAA-003') then 'PASS' else 'FAIL' end || ' retention removed a case that came from the inbox' as retention;
+select case when not exists (select 1 from pd.inbox_items where from_email = 'pat@example.com') then 'PASS' else 'FAIL' end || ' the inbox item went with its case' as retention;
+select case when not exists (select 1 from pd.inbox_items where body like 'Spam%') then 'PASS' else 'FAIL' end || ' an old declined item was removed' as retention;
+select case when exists (select 1 from pd.inbox_items where body like 'A message for%' and status = 'new') then 'PASS' else 'FAIL' end || ' an item still waiting for a person was kept' as retention;
+do $$ begin
+  if exists (select 1 from pd.cases where ref = 'AAA-003') or exists (select 1 from pd.inbox_items where from_email = 'pat@example.com' or body like 'Spam%')
+     or not exists (select 1 from pd.inbox_items where body like 'A message for%') then
+    raise exception 'Inbox retention tests failed';
+  end if;
+end $$;
