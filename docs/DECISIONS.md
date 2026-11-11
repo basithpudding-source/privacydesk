@@ -39,6 +39,7 @@
 | 2026-11-11 | "Today" is the date in London, in the database (`pd.today()`, migration 0013) and in the app (`src/lib/today.ts`) | Servers run on UTC. Between midnight and 1am in British Summer Time a UTC date is still yesterday, which put received dates and days left a day out |
 | 2026-11-11 | Case and web form references are numbered from a per-client counter that only goes up (`pd.ref_counters`, migration 0014) | Numbering from the highest surviving row let retention bring an old reference back: a client with no form requests for 90 days restarted at W0001 |
 | 2026-11-11 | An extension can only be recorded with a date inside the first month, as the clock stands (migration 0015) | The person must be told within one month (ICO guidance; UK GDPR Article 12(3)). Accepting any date let a case that was already late be extended afterwards and shown as on time. A late case now stays visibly late |
+| 2026-11-11 | A client organisation cannot be deleted through the API; admins can only add and edit (migration 0016) | One call deleted a client with every case and audit event, leaving no record. Until there is an audited way to offboard a client, removal is done by the database owner by hand |
 
 ## Open questions
 
@@ -58,3 +59,4 @@
 - Two copies of the deadline rules now exist: `packages/clocks/clocks.js` (JS, 14 tests) and `apps/web/src/lib/clocks.ts` (TypeScript, same tests plus typing). CLAUDE.md names the package as the single source of truth. Proposal: once slice 3 ships, make the TypeScript module the source and either retire `packages/clocks/` or turn it into a workspace package the app imports. Until then, change both and run both test suites.
 - Declined inbox items are kept for the client's full retention period, the same as closed cases. A declined message is often not a data protection matter at all, so a shorter period (for example 6 months) may be more proportionate. Ask the first pilots.
 - Overdue cases appear in the reminder digest every night until they are closed. Right for a missed legal deadline, but ask the first pilots whether nightly is too often.
+- Offboarding a client: when a consultancy stops acting for a client, its cases should be exported or handed back and then deleted, with a record that this happened and who asked. Today only the database owner can remove a client (migration 0016). Design this before the first client leaves.

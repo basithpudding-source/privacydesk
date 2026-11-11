@@ -191,6 +191,25 @@ begin
   end;
 end $$;
 
+-- Clients (0016): an admin can add and edit a client but not delete one, because the delete
+-- would take every case and audit event with it and leave no record.
+do $$ begin
+  begin
+    delete from pd.organisations where id = 'aaaaaaaa-0000-0000-0000-000000000002';
+    raise exception 'a client was deleted through the API';
+  exception when insufficient_privilege then raise notice 'PASS a client cannot be deleted by a user';
+  end;
+  update pd.organisations set internal_target_days = 21 where id = 'aaaaaaaa-0000-0000-0000-000000000002';
+  if not found then raise exception 'an admin could not edit their own client'; end if;
+  insert into pd.organisations (partner_id, name, code) values ('11111111-1111-1111-1111-111111111111', 'Client A3', 'AAC');
+  begin
+    insert into pd.organisations (partner_id, name, code) values ('22222222-2222-2222-2222-222222222222', 'Not mine', 'BBX');
+    raise exception 'a client was added to another consultancy';
+  exception when insufficient_privilege then raise notice 'PASS a client cannot be added to another consultancy';
+  end;
+end $$;
+select 'partner A admin sees ' || count(*) || ' clients after adding one (expect 3)' as clients from pd.organisations;
+
 -- Inbox (0005): an email arrives by token, a person accepts it into a case, another is declined.
 create temp table t_item as
   select pd.receive_inbound_email((select inbound_token from pd.organisations where code = 'AAA'),
@@ -390,7 +409,7 @@ select 'partner B admin sees ' || count(*) || ' inbox items (expect 0)' as rls f
 
 -- Client organisations are separated the same way as cases.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
-select 'partner A admin sees ' || count(*) || ' clients (expect 2)' as rls from pd.organisations;
+select 'partner A admin sees ' || count(*) || ' clients (expect 3)' as rls from pd.organisations;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
 select 'partner B admin sees ' || count(*) || ' clients (expect 1)' as rls from pd.organisations;
 

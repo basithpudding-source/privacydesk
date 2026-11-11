@@ -89,6 +89,10 @@ begin
   begin update pd.inbox_items set triage = triage where false; raise exception 'direct inbox update allowed';
   exception when insufficient_privilege then insert into seen (note) values ('PASS an inbox item cannot be changed directly'); end;
 
+  -- 4c. A client cannot be deleted through the API (0016). The filter matches no row.
+  begin delete from pd.organisations where false; raise exception 'client delete allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a client cannot be deleted by a user'); end;
+
   -- 5. Users cannot reach what only the job may.
   begin perform count(*) from pd.form_submissions; raise exception 'user read submissions';
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot read pending form submissions'); end;
