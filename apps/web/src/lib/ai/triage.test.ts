@@ -23,6 +23,34 @@ describe("keyword triage (the fallback)", () => {
     expect(r.type).toBe("not_dp");
     expect(r.confidence).toBeLessThan(0.5);
   });
+
+  // Found on 12 November 2026: this message was shown as "not about personal data".
+  test("spots a request to correct details that does not say 'correct my'", () => {
+    const r = keywordTriage("You have my old address on file. Please correct it to my new one and confirm when done. I would also like to know what else you hold about me.");
+    expect(r.type).toBe("rectification");
+    expect(r.also).toContain("sar");
+    expect(r.reasons).toContain("“correct it”");
+  });
+
+  test.each([
+    ["sar", "What do you hold about me? Please send all my data."],
+    ["sar", "I am making a DSAR."],
+    ["erasure", "Please delete everything and close my account."],
+    ["rectification", "The date of birth you have is inaccurate."],
+    ["objection", "Please stop emailing me, I opted out last year."],
+    ["complaint", "You gave out my number without my permission."],
+  ])("spots %s wording written loosely", (type, text) => {
+    expect(keywordTriage(text).type).toBe(type);
+  });
+
+  test.each([
+    "Your car insurance renewal is due. Call us today.",
+    "Can you confirm the opening hours over Christmas?",
+    "Invoice 2041 is attached. Payment is due in 30 days.",
+    "Thanks for the update, see you on Tuesday.",
+  ])("does not see a request in ordinary mail: %s", (text) => {
+    expect(keywordTriage(text).type).toBe("not_dp");
+  });
 });
 
 describe("cleaning a model answer", () => {
