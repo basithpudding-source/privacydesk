@@ -125,6 +125,13 @@ Still to do by hand:
 - [ ] Not yet tried on the live database: the other four steps that take an email (ask for proof of identity, ask for clarification, extension, close). They pass in the schema tests, and the screens were checked before 0021, but no such step has been recorded there with an email.
 - [ ] Try it with real `.msg` files dragged from Outlook's Sent folder; only `.eml` files have been tested.
 
+## 13. Case page layout and discarding drafts (12 November 2026)
+
+- [x] The details and the request as received are in the top pane, under the due date. The column beside the page holds only the box for recording a step or a note, and the audit trail.
+- [x] A letter draft can be stopped while it is being written ("Stop and discard") or cleared afterwards ("Discard draft"); the last discarded draft can be put back. Stopping also ends the request to the AI provider (checked in the dev server).
+- [x] Checked with sample data in the signed-in app, dark and light: a subject access request and a complaint, with the action box open; a draft stopped part way, then written, edited, discarded and put back with the edit intact.
+- [ ] Not seen with real examples, only imitated on the page: a case with no message (the details take the full width), a request longer than eight lines ("Show all of it"), and a narrow window or phone (the pane was narrowed, the window was not).
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
