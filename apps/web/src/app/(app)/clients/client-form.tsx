@@ -135,7 +135,7 @@ export function ClientForm({
           defaultChecked={values.form_enabled}
           className="mt-1 size-4 rounded border-input accent-primary"
         />
-        <Label htmlFor="form_enabled" className="flex flex-col gap-1 font-normal">
+        <Label htmlFor="form_enabled" className="flex flex-col items-start gap-1 font-normal">
           <span className="font-medium">Take requests through the public form</span>
           <span className="text-sm text-muted-foreground">When off, the form&apos;s address shows a notice instead.</span>
         </Label>
@@ -149,7 +149,7 @@ export function ClientForm({
           defaultChecked={values.ai_enabled}
           className="mt-1 size-4 rounded border-input accent-primary"
         />
-        <Label htmlFor="ai_enabled" className="flex flex-col gap-1 font-normal">
+        <Label htmlFor="ai_enabled" className="flex flex-col items-start gap-1 font-normal">
           <span className="font-medium">Use AI triage and letter drafts for this client</span>
           <span className="text-sm text-muted-foreground">A person still confirms every result and sends every letter.</span>
         </Label>

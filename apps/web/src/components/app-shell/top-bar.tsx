@@ -11,7 +11,7 @@ import { Kbd } from "@/components/ui/kbd";
  */
 export function TopBar({ canWrite }: { canWrite: boolean }) {
   return (
-    <div className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-canvas/85 px-4 backdrop-blur sm:px-8">
+    <div className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-canvas/95 px-4 backdrop-blur sm:px-8">
       <Link href="/cases" className="text-sm font-semibold tracking-tight md:hidden">
         Privacy Desk
       </Link>

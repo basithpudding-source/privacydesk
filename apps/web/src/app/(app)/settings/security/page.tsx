@@ -22,7 +22,7 @@ export default async function SecurityPage() {
   const mustEnrol = isAdmin && factors.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader title="Security" description={<>Signed in as {user.email}.</>} />
 
       <section className="surface mt-6 max-w-[43rem] p-6">

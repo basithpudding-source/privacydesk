@@ -21,7 +21,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const report = clientId ? await getReport(clientId, month, today) : null;
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title="Monthly report"
         description="What to send the client this month: one page, plain English, copy or PDF."
@@ -35,7 +35,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           {report && (
-            <section aria-labelledby="report-heading" className="surface mt-6">
+            <section aria-labelledby="report-heading" className="surface mt-6 max-w-4xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                 <h2 id="report-heading" className="flex items-center gap-2 text-lg font-semibold">
                   <span className="size-2.5 rounded-full" style={{ backgroundColor: report.org.colour }} aria-hidden="true" />

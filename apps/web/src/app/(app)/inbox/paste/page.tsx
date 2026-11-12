@@ -14,7 +14,7 @@ export default async function PastePage() {
   const clients = await listClientsForForms();
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         back={{ href: "/inbox", label: "Inbox" }}
         title="Paste an email"

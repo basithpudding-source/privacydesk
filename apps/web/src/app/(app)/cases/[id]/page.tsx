@@ -122,8 +122,12 @@ export default async function CasePage({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto lg:pb-1">
-          {action && <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} />}
+        <div className="flex min-w-0 flex-col gap-6">
+          {action && (
+            <div className="lg:sticky lg:top-20 lg:z-10">
+              <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} />
+            </div>
+          )}
 
           <section aria-labelledby="details-heading" className="surface p-5">
             <h2 id="details-heading" className="section-label">

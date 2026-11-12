@@ -18,7 +18,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: Prom
   const today = todayInLondon();
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         back={{ href: "/cases", label: "Cases" }}
         title="Log a case by hand"

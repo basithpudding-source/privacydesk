@@ -21,7 +21,7 @@ export default async function ClientsPage() {
   const isAdmin = user.membership.role === "partner_admin";
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title="Clients"
         description={<>The organisations {user.membership.partnerName} looks after.</>}

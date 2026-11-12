@@ -83,7 +83,7 @@ export function NewCaseForm({ initial, clients }: { initial: NewCaseValues; clie
 
       <div className="flex items-start gap-3">
         <input id="id_required" name="id_required" type="checkbox" defaultChecked={values.id_required} className="mt-1 size-4 rounded border-input accent-primary" />
-        <Label htmlFor="id_required" className="flex flex-col gap-1 font-normal">
+        <Label htmlFor="id_required" className="flex flex-col items-start gap-1 font-normal">
           <span className="font-medium">Proof of identity needed before the clock starts</span>
           <span className="text-sm text-muted-foreground">
             Only when the address does not match records or the data is sensitive. Not for complaints.
