@@ -262,6 +262,30 @@ select pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'A message for 
 select pd.decline_inbox_item((select id from pd.inbox_items where body like 'Spam%'), 'Not about personal data');
 select 'declined item status ' || status || ', reason ' || decline_reason as inbox from pd.inbox_items where body like 'Spam%';
 
+-- Imported emails (0018): the email's own date and id are kept, and a repeat is not stored.
+create temp table t_imp as
+  select pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'An imported email asking for a copy of my data', 'Imp Orter', 'IMP@example.com',
+                           'Imported', null, '2026-10-20 09:30:00+00', '<imp-1@example.com>', 'email') as id;
+select 'imported item: ' || channel || ', from ' || from_email || ', received ' || (received_at at time zone 'UTC')::date
+       || ' (expect email, from imp@example.com, received 2026-10-20)' as inbox
+  from pd.inbox_items where id = (select id from t_imp);
+select coalesce(pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'An imported email asking for a copy of my data', 'Imp Orter', 'imp@example.com',
+                                  'Imported', null, '2026-10-20 09:30:00+00', '<imp-1@example.com>', 'email')::text,
+                'null (expect null: the same email imported twice)') as inbox;
+do $$ begin
+  begin
+    perform pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'An email dated tomorrow, which cannot be right', null, null, null, null, now() + interval '1 day');
+    raise exception 'an email from the future was stored';
+  exception when check_violation then raise notice 'PASS an imported email cannot be dated in the future';
+  end;
+  begin
+    perform pd.add_inbox_item('aaaaaaaa-0000-0000-0000-000000000002', 'An item that claims to come from the web form', null, null, null, null, null, null, 'form');
+    raise exception 'a hand-added item claimed to be a web form';
+  exception when check_violation then raise notice 'PASS an item added by hand cannot claim to be a web form submission';
+  end;
+end $$;
+select pd.decline_inbox_item((select id from t_imp), 'Test item for the import checks');
+
 -- Public form (0006): a submission, its one-time link, and the inbox item the link creates.
 select 'form lookup ' || name || ' ' || colour || ' enabled ' || form_enabled || ' (expect Client A1 #1d5c86 enabled true)' as form from pd.form_lookup('aaa');
 select case when count(*) = 0 then 'PASS an unknown code looks up nothing' else 'FAIL unknown code returned a client' end as form from pd.form_lookup('ZZZZ');
