@@ -86,9 +86,9 @@ Still to do by hand:
 
 - [x] Run `0009` to `0017` in order in the SQL editor on `privacy-desk-dev`. (Done 11 November 2026, as one query.)
 - [x] Generate a key (`openssl rand -hex 32`), put it in `apps/web/.env.local` as `FORM_SERVER_KEY`, and run `select pd.set_server_key('public_form', '<the same value>');` in the SQL editor. Done 12 November 2026: a sample request went through the form, the link, the button and into the inbox.
-- [x] Do the same with a second key for inbound email: `INBOUND_SERVER_KEY` in `apps/web/.env.local`, and `select pd.set_server_key('inbound_email', '<the same value>');`. Registered 12 November 2026; the webhook itself has not been tried with a sample message.
+- [x] Do the same with a second key for inbound email: `INBOUND_SERVER_KEY` in `apps/web/.env.local`, and `select pd.set_server_key('inbound_email', '<the same value>');`. Registered 12 November 2026.
 - [x] Run `supabase/live_checks.sql` and check every row says PASS. (Done 11 November 2026: all 21 rows PASS.)
-- [ ] Click through once: log a case and act on it, try to extend an old case late, paste a message into the inbox and accept it, submit the public form, open the link and press the button, draft a letter for a client with AI off. The confirmation page with the button has not been seen in a browser yet.
+- [x] Click through once. Done 12 November 2026 with sample data: logged cases in each deadline state, a late extension was refused, inbox items were accepted and declined, the public form went through the link and the button, and a sample email reached the inbox through the webhook (a wrong secret was refused and a repeat delivery ignored). Not tried: a letter draft, the PDF report, and the nightly job.
 
 ## How to work with Claude Code on this
 
