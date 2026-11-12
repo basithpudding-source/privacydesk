@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const anthropic = vi.fn(() => {
+const anthropic = vi.fn((): unknown => {
   throw new Error("the AI provider was called");
 });
 const aiConfigured = vi.fn(() => true);
@@ -51,6 +51,37 @@ describe("letter drafts and the client's AI switch", () => {
   it("uses the AI provider only when both the client and the deployment allow it", () => {
     expect(() => streamLetter("ack", facts, true)).toThrow("the AI provider was called");
     expect(anthropic).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("stopping a draft part way", () => {
+  // A stand-in for the AI provider's stream: one piece of text, then nothing until it is stopped.
+  function modelStream() {
+    let end: (reason: Error) => void = () => {};
+    const ended = new Promise<never>((_, reject) => {
+      end = reject;
+    });
+    return {
+      abort: vi.fn(() => end(new Error("stopped"))),
+      finalMessage: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        yield { type: "content_block_delta", delta: { type: "text_delta", text: "Dear Sam Sample," } };
+        await ended;
+      },
+    };
+  }
+
+  it("ends the request to the AI provider and writes nothing more", async () => {
+    const model = modelStream();
+    anthropic.mockImplementationOnce(() => ({ messages: { stream: () => model } }));
+    const reader = streamLetter("ack", facts, true).getReader();
+    expect(new TextDecoder().decode((await reader.read()).value)).toBe("Dear Sam Sample,");
+
+    await reader.cancel();
+    expect(model.abort).toHaveBeenCalledTimes(1);
+    // Neither the rest of the letter nor the "failed part way" template is asked for.
+    expect(model.finalMessage).not.toHaveBeenCalled();
+    expect((await reader.read()).done).toBe(true);
   });
 });
 

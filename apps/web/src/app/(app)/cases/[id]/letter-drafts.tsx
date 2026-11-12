@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRight, CircleCheck, Copy, Mail, PenLine, SearchCheck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ArrowRight, CircleCheck, Copy, Mail, PenLine, SearchCheck, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,15 @@ export interface LetterEmail {
   record: Partial<Record<LetterKind, { href: string; label: string }>>;
 }
 
+/** A finished draft as it stood when it was discarded, so it can be put back. */
+interface Discarded {
+  kind: LetterKind;
+  text: string;
+  to: string;
+  subject: string;
+  quote: boolean;
+}
+
 // The draft and the highlights behind it must wrap identically, so both use exactly these.
 const layer = "[grid-area:1/1] min-h-48 whitespace-pre-wrap break-words px-3 py-2.5 font-mono text-sm leading-6";
 
@@ -54,6 +63,9 @@ const layer = "[grid-area:1/1] min-h-48 whitespace-pre-wrap break-words px-3 py-
  * A draft streams into the box; the person edits it, checks what is highlighted, and opens it
  * in their own email program with the recipient, subject, text and the original message
  * filled in. Nothing is sent from here: they press send themselves.
+ *
+ * A draft is only ever on this screen. It can be stopped while it is being written, or
+ * discarded afterwards, which puts the box back as it was before a letter was chosen.
  */
 export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: string; isComplaint: boolean; aiOn: boolean; email: LetterEmail }) {
   const [kind, setKind] = useState<LetterKind | null>(null);
@@ -67,6 +79,26 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
   const [notice, setNotice] = useState<string | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const mirror = useRef<HTMLDivElement>(null);
+  // The request that is writing a draft, so it can be stopped.
+  const writing = useRef<{ stop: AbortController | null }>({ stop: null });
+  // The last finished draft that was discarded: one wrong click must not lose a person's edits.
+  const [discarded, setDiscarded] = useState<Discarded | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
+  const [moveTo, setMoveTo] = useState<{ place: "status" | "draft"; n: number } | null>(null);
+  const status = useRef<HTMLParagraphElement>(null);
+
+  // Leaving the page stops a draft that is still being written.
+  useEffect(() => {
+    const held = writing.current;
+    return () => held.stop?.abort();
+  }, []);
+
+  // The button that discards a draft, or puts one back, disappears when it is pressed. Move
+  // to what replaced it, so keyboard and screen reader users are not left nowhere.
+  useEffect(() => {
+    if (!moveTo) return;
+    (moveTo.place === "draft" ? area.current : status.current)?.focus();
+  }, [moveTo]);
 
   const checks = useMemo(
     () => findFlags(text, { knownDates: email.knownDates, refs: email.refs, requesterName: email.requesterName }),
@@ -78,14 +110,19 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
   const body = composeEmailBody(text, quote ? email.original : null);
 
   async function draft(next: LetterKind) {
+    writing.current.stop?.abort();
+    const stop = new AbortController();
+    writing.current.stop = stop;
     setBusy(next);
     setKind(next);
     setSubject(email.subjects[next]);
     setError(null);
     setNotice(null);
+    setDiscarded(null);
+    setSaid(null);
     setText("");
     try {
-      const res = await fetch("/api/letters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseId, kind: next }) });
+      const res = await fetch("/api/letters", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caseId, kind: next }), signal: stop.signal });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({}));
         setError((j as { error?: string }).error ?? "The draft could not be written.");
@@ -98,13 +135,51 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
         const { value, done } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
+        if (stop.signal.aborted) return;
         setText(acc);
       }
     } catch {
-      setError("The draft could not be written. Try again.");
+      // Stopped by the person: that is not a failure.
+      if (!stop.signal.aborted) setError("The draft could not be written. Try again.");
     } finally {
-      setBusy(null);
+      // A stopped request has already been cleared away, and may have been replaced.
+      if (writing.current.stop === stop) {
+        writing.current.stop = null;
+        setBusy(null);
+      }
     }
+  }
+
+  /** Stop a draft that is being written, or clear a finished one, and go back to the start. */
+  function discard() {
+    const partWritten = busy !== null;
+    writing.current.stop?.abort();
+    writing.current.stop = null;
+    // A finished draft can be put back; one stopped part way is simply dropped.
+    setDiscarded(!partWritten && kind && text.trim() ? { kind, text, to, subject, quote } : null);
+    setSaid(partWritten ? "Stopped. The part-written draft was not kept." : "Draft discarded.");
+    setBusy(null);
+    setKind(null);
+    setText("");
+    setSubject("");
+    setTo(email.to);
+    setQuote(email.quoteByDefault && Boolean(email.original));
+    setError(null);
+    setNotice(null);
+    setCopied(false);
+    setMoveTo((m) => ({ place: "status", n: (m?.n ?? 0) + 1 }));
+  }
+
+  function putBack() {
+    if (!discarded) return;
+    setKind(discarded.kind);
+    setText(discarded.text);
+    setTo(discarded.to);
+    setSubject(discarded.subject);
+    setQuote(discarded.quote);
+    setDiscarded(null);
+    setSaid(null);
+    setMoveTo((m) => ({ place: "draft", n: (m?.n ?? 0) + 1 }));
   }
 
   async function copy() {
@@ -190,9 +265,31 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
           {error}
         </p>
       )}
+      {/* Always present, so a screen reader announces what is put into it. */}
+      <p
+        ref={status}
+        tabIndex={-1}
+        role="status"
+        className={cn("rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50", said ? "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground" : "sr-only")}
+      >
+        {said}
+        {said && discarded && (
+          <button type="button" onClick={putBack} className="rounded-sm text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            Put it back
+          </button>
+        )}
+      </p>
 
       {kind && (text || busy) && (
         <>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold">Draft: {KINDS.find((k) => k.kind === kind)?.label}</h3>
+            <Button type="button" variant="outline" size="sm" onClick={discard} title={busy ? "Stop writing and clear what has been written so far" : "Clear this draft and go back to choosing a letter"}>
+              {busy ? <Square data-icon="inline-start" aria-hidden="true" /> : <Trash2 data-icon="inline-start" aria-hidden="true" />}
+              {busy ? "Stop and discard" : "Discard draft"}
+            </Button>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="letter-to">To</Label>

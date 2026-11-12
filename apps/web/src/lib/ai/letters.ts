@@ -108,6 +108,8 @@ export function streamLetter(kind: LetterKind, f: LetterFacts, aiEnabled: boolea
     output_config: { effort: "low" },
     messages: [{ role: "user", content: letterPrompt(kind, f) }],
   });
+  // Set when the person stops the draft or leaves the page: there is nobody left to write to.
+  let stopped = false;
   return new ReadableStream({
     async start(controller) {
       try {
@@ -121,9 +123,16 @@ export function streamLetter(kind: LetterKind, f: LetterFacts, aiEnabled: boolea
           controller.enqueue(encoder.encode("\n\n[The AI declined to write this draft. Use the template instead.]\n\n" + letterTemplate(kind, f)));
         }
       } catch {
+        if (stopped) return;
         controller.enqueue(encoder.encode("\n\n[The AI draft failed part way. Here is the template instead.]\n\n" + letterTemplate(kind, f)));
       }
-      controller.close();
+      if (!stopped) controller.close();
+    },
+    // End the request to the AI provider too, so a discarded draft is not written (and paid
+    // for) to the end with nobody reading it.
+    cancel() {
+      stopped = true;
+      stream.abort();
     },
   });
 }
