@@ -46,7 +46,7 @@ export function CaseFilters({ filters, clients }: { filters: Filters; clients: {
 
   return (
     <form
-      className="mt-6 flex flex-wrap items-center gap-3"
+      className="mt-3 flex flex-wrap items-center gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         update("q", searchRef.current?.value.trim() ?? "");

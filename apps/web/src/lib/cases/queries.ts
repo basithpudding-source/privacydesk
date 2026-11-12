@@ -218,3 +218,23 @@ export async function listClientsForForms(): Promise<Pick<Organisation, "id" | "
 }
 
 export type { ClockState };
+
+/**
+ * Cases that were returned to the inbox (migration 0019): closed, kept for the record, and
+ * left out of counts. Before that migration the column does not exist; then nothing has been
+ * returned, so the answer is the empty set rather than an error.
+ */
+export async function returnedCaseIds(): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("cases").select("id").eq("returned_to_inbox", true).limit(5000);
+  if (error) return new Set();
+  return new Set((data ?? []).map((r) => r.id as string));
+}
+
+/** The person's saved case-list views, or null when the table is not there yet (before 0019). */
+export async function listSavedViews(): Promise<{ id: string; name: string; params: unknown }[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("saved_views").select("id, name, params").order("name");
+  if (error) return null;
+  return (data ?? []) as { id: string; name: string; params: unknown }[];
+}

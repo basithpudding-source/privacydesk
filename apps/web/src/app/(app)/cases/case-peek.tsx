@@ -14,7 +14,8 @@ import { buildTasks, nextStep } from "./[id]/task-list";
  * next step, so a row can be checked and acted on without leaving the table. The full page
  * (the working of the date, every step, letters) is one click away.
  */
-export function CasePeek({ detail, closeHref, canWrite }: { detail: CaseDetail; closeHref: string; canWrite: boolean }) {
+export function CasePeek({ detail, closeHref, canWrite, sticky = true, newWindow = false }: { detail: CaseDetail; closeHref: string; canWrite: boolean; sticky?: boolean; newWindow?: boolean }) {
+  const target = newWindow ? { target: "_blank", rel: "noopener" } : {};
   const { c, org, deadline, pauses, events } = detail;
   const closed = c.status === "closed";
   const due = c.type === "complaint" ? deadline.ack_due : deadline.response_due;
@@ -22,7 +23,7 @@ export function CasePeek({ detail, closeHref, canWrite }: { detail: CaseDetail; 
   const next = canWrite ? nextStep(buildTasks(c, pauses), c.type === "complaint") : null;
 
   return (
-    <aside aria-labelledby="peek-heading" className="surface relative flex min-w-0 flex-col overflow-hidden xl:sticky xl:top-20 xl:max-h-[calc(100vh-6.5rem)]">
+    <aside aria-labelledby="peek-heading" className={cn("surface relative flex min-w-0 flex-col overflow-hidden", sticky && "xl:sticky xl:top-20 xl:max-h-[calc(100vh-6.5rem)]")}>
       <span className={cn("absolute inset-x-0 top-0 h-1", closed ? "bg-muted-foreground/30" : TONE_SOLID[tone])} aria-hidden="true" />
       <div className="flex items-start justify-between gap-3 border-b border-border px-5 pb-4 pt-5">
         <div className="min-w-0">
@@ -99,8 +100,8 @@ export function CasePeek({ detail, closeHref, canWrite }: { detail: CaseDetail; 
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-border px-5 py-3.5">
-        <Button size="lg" render={<Link href={`/cases/${c.id}`} />} nativeButton={false}>
-          Open the case
+        <Button size="lg" render={<Link href={`/cases/${c.id}`} {...target} />} nativeButton={false}>
+          {newWindow ? "Open the case in a new window" : "Open the case"}
           <ArrowRight data-icon="inline-end" aria-hidden="true" />
         </Button>
         {next && (
