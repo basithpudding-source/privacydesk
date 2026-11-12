@@ -103,6 +103,8 @@ begin
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot list reminders due'); end;
   begin perform pd.apply_retention(); raise exception 'user ran retention';
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot run retention'); end;
+  begin insert into pd.inbox_events (inbox_item_id, organisation_id, kind, text) values (gen_random_uuid(), gen_random_uuid(), 'accepted', 'A live check, never stored.'); raise exception 'user wrote to the inbox log';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot write to the inbox log (0019)'); end;
   reset role;
 end $$;
 

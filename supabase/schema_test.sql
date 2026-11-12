@@ -286,6 +286,73 @@ do $$ begin
 end $$;
 select pd.decline_inbox_item((select id from t_imp), 'Test item for the import checks');
 
+-- Undo (0019): a declined message goes back to the inbox; a case made from a message goes
+-- back too, closed and marked, never deleted; and every step is on the inbox log.
+do $$ begin
+  begin
+    perform pd.reopen_inbox_item((select id from t_imp), '   ');
+    raise exception 'a message was reopened without a reason';
+  exception when check_violation then raise notice 'PASS reopening a declined message needs a reason';
+  end;
+end $$;
+select pd.reopen_inbox_item((select id from t_imp), 'Declined by mistake');
+select 'reopened item: ' || status || ', decline reason ' || coalesce(decline_reason, 'cleared') || ' (expect new, decline reason cleared)' as undo
+  from pd.inbox_items where id = (select id from t_imp);
+create temp table t_ret as select pd.accept_inbox_item((select id from t_imp), 'sar', '2026-10-20') as id;
+select pd.record_case_action((select id from t_ret), 'acknowledge', '2026-10-21');
+create temp table t_back as select pd.return_case_to_inbox((select id from t_ret), 'Should have been a complaint') as item;
+select case when c.status = 'closed' and c.returned_to_inbox and c.outcome like 'Returned to the inbox:%' and d.met_on_time is null
+              and i.status = 'new' and i.case_id is null and (select item from t_back) = i.id
+            then 'PASS' else 'FAIL' end
+       || ' a returned case is closed, marked, not measured, and its message is new again' as undo
+  from pd.cases c
+  join pd.v_case_deadlines d on d.case_id = c.id
+  join pd.inbox_items i on i.id = (select id from t_imp)
+ where c.id = (select id from t_ret);
+select 'inbox log: ' || string_agg(kind, ', ' order by id) || ' (expect declined, reopened, accepted, returned)' as undo
+  from pd.inbox_events where inbox_item_id = (select id from t_imp);
+select 'case trail has the return: ' || count(*) || ' (expect 1)' as undo from pd.case_events where case_id = (select id from t_ret) and kind = 'returned';
+do $$ begin
+  if not exists (select 1 from pd.cases c join pd.v_case_deadlines d on d.case_id = c.id
+                  where c.id = (select id from t_ret) and c.status = 'closed' and c.returned_to_inbox and d.met_on_time is null)
+     or (select status from pd.inbox_items where id = (select id from t_imp)) <> 'new'
+     or (select string_agg(kind, ',' order by id) from pd.inbox_events where inbox_item_id = (select id from t_imp)) <> 'declined,reopened,accepted,returned' then
+    raise exception 'Undo tests failed';
+  end if;
+  begin
+    perform pd.record_case_action((select id from t_ret), 'reopen', current_date, 'Trying to bring it back');
+    raise exception 'a returned case was reopened';
+  exception when invalid_parameter_value then raise notice 'PASS a returned case cannot be reopened';
+  end;
+  begin
+    perform pd.return_case_to_inbox((select id from t_ret), 'Again');
+    raise exception 'a closed case was returned';
+  exception when invalid_parameter_value then raise notice 'PASS only an open case can be returned';
+  end;
+  begin
+    update pd.inbox_events set text = 'edited' where inbox_item_id = (select id from t_imp);
+    raise exception 'the inbox log was edited';
+  exception when insufficient_privilege then raise notice 'PASS the inbox log cannot be edited';
+  end;
+end $$;
+select pd.decline_inbox_item((select id from t_imp), 'Test item for the import and undo checks');
+
+-- Saved views (0019): each person has their own.
+insert into pd.saved_views (name, params) values ('My overdue SARs', '{"status":"overdue","type":"sar"}');
+select 'saved views I can see: ' || count(*) || ' (expect 1)' as views from pd.saved_views;
+do $$ begin
+  begin
+    insert into pd.saved_views (name, params) values ('my OVERDUE sars', '{}');
+    raise exception 'two views with the same name';
+  exception when unique_violation then raise notice 'PASS a view name is used once per person';
+  end;
+  begin
+    insert into pd.saved_views (user_id, name, params) values ('00000000-0000-0000-0000-00000000000b', 'For someone else', '{}');
+    raise exception 'a view was saved for another person';
+  exception when insufficient_privilege then raise notice 'PASS a view cannot be saved for someone else';
+  end;
+end $$;
+
 -- Public form (0006): a submission, its one-time link, and the inbox item the link creates.
 select 'form lookup ' || name || ' ' || colour || ' enabled ' || form_enabled || ' (expect Client A1 #1d5c86 enabled true)' as form from pd.form_lookup('aaa');
 select case when count(*) = 0 then 'PASS an unknown code looks up nothing' else 'FAIL unknown code returned a client' end as form from pd.form_lookup('ZZZZ');
