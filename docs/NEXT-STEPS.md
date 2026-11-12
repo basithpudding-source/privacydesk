@@ -94,7 +94,7 @@ Still to do by hand:
 
 - [x] Column headings sort the cases table and the dashboard's by-client table.
 - [x] Import several saved emails into the inbox at once (`/inbox/import`), keeping each email's own date and id.
-- [ ] Run `supabase/migrations/0018_import_emails.sql` in the SQL editor on `privacy-desk-dev`. Until then the import page lists emails but refuses to store them, and says so. Pasting one email still works.
+- [x] Run `supabase/migrations/0018_import_emails.sql` in the SQL editor on `privacy-desk-dev`. Done 12 November 2026; two sample `.eml` files were imported, a repeat was refused, and the accept form started from the email's own date.
 - [ ] Try the import with real `.msg` files dragged from classic Outlook; only `.eml` files have been tested.
 
 ## How to work with Claude Code on this

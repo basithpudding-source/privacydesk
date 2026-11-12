@@ -69,19 +69,20 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
       const parsed = await parseEmailFile(file.name, await file.arrayBuffer());
       added.push({ ...parsed, key: `${file.name}:${file.size}:${file.lastModified}`, organisationId: defaultClient });
     }
-    setRows((current) => {
-      // The same email dropped twice shows once.
-      const seen = new Set(current.map((r) => r.messageId).filter(Boolean));
-      const fresh = added.filter((r) => {
-        if (r.problem || !r.messageId) return true;
-        if (seen.has(r.messageId)) return false;
-        seen.add(r.messageId);
-        return true;
-      });
-      const repeats = added.length - fresh.length;
-      if (repeats > 0) notes.push(`${repeats} ${repeats === 1 ? "email was" : "emails were"} already in the list.`);
-      return [...current.filter((r) => !settled(r)), ...fresh];
+    // Emails already imported this visit leave the list; the database is what knows whether
+    // one of those is a repeat, and it answers "Already in the inbox". The same email
+    // dropped twice while still waiting shows once.
+    const waiting = rows.filter((r) => !settled(r));
+    const seen = new Set(waiting.map((r) => r.messageId).filter(Boolean));
+    const fresh = added.filter((r) => {
+      if (r.problem || !r.messageId) return true;
+      if (seen.has(r.messageId)) return false;
+      seen.add(r.messageId);
+      return true;
     });
+    const repeats = added.length - fresh.length;
+    if (repeats > 0) notes.push(`${repeats} ${repeats === 1 ? "email was" : "emails were"} already in the list.`);
+    setRows([...waiting, ...fresh]);
     setNote(notes.length ? notes.join(" ") : null);
     setReading(false);
   }
