@@ -120,8 +120,9 @@ Still to do by hand:
 - [x] Drop or choose a sent email (.eml or Outlook .msg) on a step that sends one: the date is taken from it and a short record is kept with the step.
 - [x] The record says whether it went to the address on the case, and names any attachments; the email itself is not stored.
 - [x] A note typed when asking for proof of identity is now recorded (it was being dropped).
-- [ ] Run `supabase/migrations/0021_email_evidence.sql` in the SQL editor on `privacy-desk-dev`. Until then a step can still be recorded by hand, but not with an email attached; the app says so.
-- [ ] After 0021: record one step with a sample sent email and check the audit entry.
+- [x] Run `supabase/migrations/0021_email_evidence.sql` in the SQL editor on `privacy-desk-dev`. Done 12 November 2026; checked on the live database that there is one version of the function, with the new sixth parameter, that it still runs with definer rights, and that signed-in users can run it and anonymous ones cannot. All 22 live checks pass.
+- [x] After 0021, tested with sample data on case 158949-003: a sample sent email was dropped on "Mark acknowledged"; the date was set to the day it was sent (11 Nov 2026), and the audit entry reads "Acknowledgement sent on 11 Nov 2026." with the short record underneath (when, to the address on the case, subject, attachment name, a one-sentence AI summary). A plain note with no email was then added to the same case and recorded as before.
+- [ ] Not yet tried on the live database: the other four steps that take an email (ask for proof of identity, ask for clarification, extension, close). They pass in the schema tests, and the screens were checked before 0021, but no such step has been recorded there with an email.
 - [ ] Try it with real `.msg` files dragged from Outlook's Sent folder; only `.eml` files have been tested.
 
 ## How to work with Claude Code on this
