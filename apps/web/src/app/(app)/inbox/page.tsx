@@ -146,11 +146,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
             <div className="grid gap-5 p-5 xl:grid-cols-2">
               <section aria-labelledby="message-heading">
-                <h3 id="message-heading" className="section-label">The message</h3>
+                <h3 id="message-heading" className="section-label flex h-7 items-center">The message</h3>
                 <p className="mt-2 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg bg-muted/60 p-4 text-sm leading-relaxed">{selected.body}</p>
               </section>
               <section aria-labelledby="triage-heading">
-                <div className="flex items-center justify-between">
+                <div className="flex h-7 items-center justify-between">
                   <h3 id="triage-heading" className="section-label">Triage</h3>
                   {canWrite && selected.status === "new" && <RetriageButton itemId={selected.id} />}
                 </div>
