@@ -18,6 +18,7 @@ import { REGIONS } from "@/lib/db/types";
 import { aiConfigured } from "@/lib/ai/client";
 import { ActionPanel } from "./action-panel";
 import { AuditTrail } from "./audit-trail";
+import { CaseFacts } from "./case-facts";
 import { DeadlineBlock } from "./deadline-block";
 import { RequestText } from "./request-text";
 import { LetterDrafts, type LetterEmail } from "./letter-drafts";
@@ -107,60 +108,47 @@ export default async function CasePage({
     ),
   };
 
-  // Shown in the top pane, under the date. The details run in two columns once their half of
-  // the pane is wide enough, or sooner when there is no message beside them.
+  // The second row of the top pane, closed until asked for. The details run in two columns
+  // once their half of the pane is wide enough, or sooner when there is no message beside them.
   const fact = "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3";
   const details = (
-    <section aria-labelledby="details-heading">
-      <h2 id="details-heading" className="section-label">
-        Details
-      </h2>
-      <dl className={cn("mt-3 grid gap-x-8 gap-y-2.5 text-sm @6xl:grid-cols-2", !c.message && "@2xl:grid-cols-2")}>
+    <dl className={cn("mt-3 grid gap-x-8 gap-y-2.5 text-sm @6xl:grid-cols-2", !c.message && "@2xl:grid-cols-2")}>
+      <div className={fact}>
+        <dt className="text-muted-foreground">Client</dt>
+        <dd>
+          <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
+            {org.name}
+          </Link>
+        </dd>
+      </div>
+      <div className={fact}>
+        <dt className="text-muted-foreground">From</dt>
+        <dd className="min-w-0">
+          {c.requester_name ?? <span className="text-muted-foreground">Unknown</span>}
+          {c.requester_email && <span className="block truncate text-muted-foreground" title={c.requester_email}>{c.requester_email}</span>}
+        </dd>
+      </div>
+      <div className={fact}>
+        <dt className="text-muted-foreground">Received</dt>
+        <dd>
+          {longDate(c.received_on)}
+          <span className="block text-muted-foreground">by {c.channel.toLowerCase()}</span>
+        </dd>
+      </div>
+      {c.source_ref && (
         <div className={fact}>
-          <dt className="text-muted-foreground">Client</dt>
-          <dd>
-            <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
-              {org.name}
-            </Link>
-          </dd>
+          <dt className="text-muted-foreground">Their ref</dt>
+          <dd className="font-mono text-xs leading-5">{c.source_ref}</dd>
         </div>
+      )}
+      {c.summary && (
         <div className={fact}>
-          <dt className="text-muted-foreground">From</dt>
-          <dd className="min-w-0">
-            {c.requester_name ?? <span className="text-muted-foreground">Unknown</span>}
-            {c.requester_email && <span className="block truncate text-muted-foreground" title={c.requester_email}>{c.requester_email}</span>}
-          </dd>
+          <dt className="text-muted-foreground">Summary</dt>
+          <dd>{c.summary}</dd>
         </div>
-        <div className={fact}>
-          <dt className="text-muted-foreground">Received</dt>
-          <dd>
-            {longDate(c.received_on)}
-            <span className="block text-muted-foreground">by {c.channel.toLowerCase()}</span>
-          </dd>
-        </div>
-        {c.source_ref && (
-          <div className={fact}>
-            <dt className="text-muted-foreground">Their ref</dt>
-            <dd className="font-mono text-xs leading-5">{c.source_ref}</dd>
-          </div>
-        )}
-        {c.summary && (
-          <div className={fact}>
-            <dt className="text-muted-foreground">Summary</dt>
-            <dd>{c.summary}</dd>
-          </div>
-        )}
-      </dl>
-    </section>
+      )}
+    </dl>
   );
-  const request = c.message ? (
-    <section aria-labelledby="request-heading">
-      <h2 id="request-heading" className="section-label">
-        The request as received
-      </h2>
-      <RequestText text={c.message} />
-    </section>
-  ) : null;
 
   return (
     <div className="w-full">
@@ -227,8 +215,7 @@ export default async function CasePage({
             regionLabel={REGIONS.find((r) => r.value === org.region)?.label ?? org.region}
             holidayCount={holidayCount}
             returned={returned}
-            details={details}
-            request={request}
+            facts={<CaseFacts details={details} request={c.message ? <RequestText text={c.message} /> : null} />}
           />
 
           <div className="grid gap-6 2xl:grid-cols-2 2xl:items-start">

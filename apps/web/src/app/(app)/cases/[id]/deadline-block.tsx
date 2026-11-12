@@ -5,6 +5,7 @@ import { clockLabel, urgencyFor, URGENCY_TONE } from "@/lib/cases/labels";
 import type { DeadlineRow } from "@/lib/cases/types";
 import { longDate, shortDate, type CaseClock } from "@/lib/clocks";
 import { cn } from "@/lib/utils";
+import { PANE_ROW, PANE_SECOND } from "./pane-grid";
 
 /**
  * The top pane of a case. The due date is the largest thing on the page; beside it, the
@@ -12,10 +13,10 @@ import { cn } from "@/lib/utils";
  * waiting-for-ID are grey with a sentence saying what restarts the clock. The internal target
  * is visibly a target.
  *
- * Under the date, in the same pane, sit the case's details and the request as the person
- * sent it, so the column beside the page is left for recording steps and the audit trail.
- * The pane lays itself out by its own width, not the window's: two columns when there is
- * room, one when there is not.
+ * Under the date, in the same pane, sits a second row (case-facts.tsx): the case's details
+ * and the request as the person sent it, closed until asked for. That leaves the column
+ * beside the page for recording steps and the audit trail. The pane lays itself out by its
+ * own width, not the window's: two columns when there is room, one when there is not.
  */
 export function DeadlineBlock({
   clock,
@@ -26,8 +27,7 @@ export function DeadlineBlock({
   regionLabel,
   holidayCount,
   returned = false,
-  details,
-  request,
+  facts,
 }: {
   clock: CaseClock;
   deadline: DeadlineRow;
@@ -38,10 +38,8 @@ export function DeadlineBlock({
   holidayCount: number;
   /** The case was returned to the inbox: closed, and not measured against its deadline. */
   returned?: boolean;
-  /** Who the case is for and from, shown under the date. */
-  details?: ReactNode;
-  /** The request as received, shown beside the details; nothing when the case holds no message. */
-  request?: ReactNode;
+  /** The second row of the pane: the case's details and the request as received. */
+  facts?: ReactNode;
 }) {
   const viewDue = deadline.type === "complaint" ? deadline.ack_due : deadline.response_due;
   const urgency = urgencyFor(deadline.clock_state, deadline.days_left);
@@ -68,7 +66,7 @@ export function DeadlineBlock({
     <div className="surface @container relative overflow-hidden">
       {/* The edge repeats the state for scanning; the tag below carries the words. */}
       <span className={cn("absolute inset-y-0 left-0 w-1.5", closed ? "bg-muted-foreground/30" : TONE_SOLID[tone])} aria-hidden="true" />
-      <div className="grid gap-x-8 gap-y-5 py-5 pl-7 pr-5 @2xl:grid-cols-2">
+      <div className={cn(PANE_ROW, "py-5")}>
         <section aria-labelledby="deadline-heading" className="min-w-0">
           <h2 id="deadline-heading" className="section-label">
             {heading}
@@ -110,7 +108,7 @@ export function DeadlineBlock({
           )}
         </section>
 
-        <div className="min-w-0 @2xl:border-l @2xl:border-border @2xl:pl-8">
+        <div className={PANE_SECOND}>
           <h3 className="section-label">How this date is worked out</h3>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm marker:text-muted-foreground">
             {clock.steps.map((s, i) => (
@@ -144,12 +142,7 @@ export function DeadlineBlock({
         </div>
       )}
 
-      {(details || request) && (
-        <div className="grid gap-x-8 gap-y-5 border-t border-border py-5 pl-7 pr-5 @2xl:grid-cols-2">
-          {details && <div className={cn("min-w-0", !request && "@2xl:col-span-2")}>{details}</div>}
-          {request && <div className="min-w-0 @2xl:border-l @2xl:border-border @2xl:pl-8">{request}</div>}
-        </div>
-      )}
+      {facts}
     </div>
   );
 }
