@@ -59,6 +59,7 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const active = [...saved, ...builtIn].find((v) => sameFilters(v.params, current));
@@ -90,7 +91,7 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
       }
     >
       {(close) => (
-        <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto">
+        <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto overflow-x-hidden">
           <div>
             <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">Ready-made</p>
             <ul>
@@ -117,7 +118,7 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
                   <li key={v.id} className="flex items-center gap-0.5">
                     {editing?.id === v.id ? (
                       <form
-                        className="flex flex-1 items-center gap-1.5 px-1 py-0.5"
+                        className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5"
                         onSubmit={(e) => {
                           e.preventDefault();
                           run(() => updateView(v.id, { name: editing.name }), () => setEditing(null));
@@ -126,6 +127,16 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
                         <Input value={editing.name} onChange={(e) => setEditing({ id: v.id, name: e.target.value })} maxLength={60} aria-label={`New name for ${v.name}`} className="h-7" autoFocus />
                         <Button type="submit" size="sm" disabled={pending}>Rename</Button>
                       </form>
+                    ) : deleting === v.id ? (
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-sm">
+                        <span className="min-w-0 flex-1 truncate">Delete “{v.name}”?</span>
+                        <Button type="button" size="sm" variant="destructive" disabled={pending} onClick={() => run(() => deleteView(v.id), () => setDeleting(null))}>
+                          Delete
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setDeleting(null)}>
+                          Keep
+                        </Button>
+                      </div>
                     ) : (
                       <>
                         <button type="button" className={cn(item, "min-w-0 flex-1")} onClick={() => apply(v, close)}>
@@ -145,7 +156,7 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
                         >
                           <RefreshCw className="size-3.5" aria-hidden="true" />
                         </button>
-                        <button type="button" className={iconBtn} title={`Delete “${v.name}”`} aria-label={`Delete ${v.name}`} disabled={pending} onClick={() => run(() => deleteView(v.id))}>
+                        <button type="button" className={iconBtn} title={`Delete “${v.name}”`} aria-label={`Delete ${v.name}`} disabled={pending} onClick={() => setDeleting(v.id)}>
                           <Trash2 className="size-3.5" aria-hidden="true" />
                         </button>
                       </>

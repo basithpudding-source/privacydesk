@@ -18,6 +18,7 @@ export interface Task {
 /** The steps of the process in order, with where each one stands. */
 export function buildTasks(c: CaseRow, pauses: ClockPauseRow[]): Task[] {
   const closed = c.status === "closed";
+  const returned = Boolean(c.returned_to_inbox);
   const openPause = pauses.find((p) => p.resumed_on === null);
   const lastPause = pauses[pauses.length - 1];
   const clockStarted = !c.id_required || Boolean(c.id_received_on);
@@ -59,16 +60,27 @@ export function buildTasks(c: CaseRow, pauses: ClockPauseRow[]): Task[] {
         ? { title: "Extended", detail: `Person told ${shortDate(c.extended_on as string)}; three months from the start`, status: "Completed" }
         : { title: "Extended", detail: clockStarted ? "Only if the request is complex or numerous; tell the person within one month" : "Cannot start until the clock is running", status: clockStarted ? "Not needed" : "Cannot start yet", action: closed || !clockStarted ? undefined : "extend" },
     );
-    tasks.push({
-      title: "Data gathered",
-      detail: closed ? "Done" : "Add notes as the search progresses",
-      status: closed ? "Completed" : "In progress",
-      action: "note",
-    });
+    tasks.push(
+      returned
+        ? { title: "Data gathered", detail: "Not finished: the case went back to the inbox first", status: "Not needed" }
+        : {
+            title: "Data gathered",
+            detail: closed ? "Done" : "Add notes as the search progresses",
+            status: closed ? "Completed" : "In progress",
+            action: "note",
+          },
+    );
   }
 
   tasks.push(
-    closed
+    returned
+      ? {
+          // No response was sent: the last thing that happened to this case is the return.
+          title: "Returned to the inbox",
+          detail: `${shortDate(c.closed_on as string)}: ${(c.outcome ?? "").replace(/^Returned to the inbox:\s*/, "") || "no reason recorded"}`,
+          status: "Completed",
+        }
+      : closed
       ? { title: c.type === "complaint" ? "Outcome sent" : "Response sent", detail: `${shortDate(c.closed_on as string)}: ${c.outcome ?? "closed"}`, status: "Completed", action: "reopen" }
       : { title: c.type === "complaint" ? "Outcome sent" : "Response sent", detail: c.type === "complaint" ? "Close with the outcome of the complaint" : "Close once the response has gone", status: "Not started", action: "close" },
   );

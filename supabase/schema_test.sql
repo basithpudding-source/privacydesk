@@ -312,6 +312,15 @@ select case when c.status = 'closed' and c.returned_to_inbox and c.outcome like 
 select 'inbox log: ' || string_agg(kind, ', ' order by id) || ' (expect declined, reopened, accepted, returned)' as undo
   from pd.inbox_events where inbox_item_id = (select id from t_imp);
 select 'case trail has the return: ' || count(*) || ' (expect 1)' as undo from pd.case_events where case_id = (select id from t_ret) and kind = 'returned';
+-- The reason comes last in the audit entry (0020), so it cannot run into the next sentence.
+select case when text like 'Returned to the inbox so the message can be triaged and decided again. This case is closed,%Why: Should have been a complaint'
+            then 'PASS' else 'FAIL' end || ' the return entry ends with the reason' as undo
+  from pd.case_events where case_id = (select id from t_ret) and kind = 'returned';
+do $$ begin
+  if not exists (select 1 from pd.case_events where case_id = (select id from t_ret) and kind = 'returned' and text like '%figures. Why: Should have been a complaint') then
+    raise exception 'Return wording test failed';
+  end if;
+end $$;
 do $$ begin
   if not exists (select 1 from pd.cases c join pd.v_case_deadlines d on d.case_id = c.id
                   where c.id = (select id from t_ret) and c.status = 'closed' and c.returned_to_inbox and d.met_on_time is null)

@@ -18,6 +18,7 @@ export function DeadlineBlock({
   internalTargetDays,
   regionLabel,
   holidayCount,
+  returned = false,
 }: {
   clock: CaseClock;
   deadline: DeadlineRow;
@@ -26,6 +27,8 @@ export function DeadlineBlock({
   internalTargetDays: number;
   regionLabel: string;
   holidayCount: number;
+  /** The case was returned to the inbox: closed, and not measured against its deadline. */
+  returned?: boolean;
 }) {
   const viewDue = deadline.type === "complaint" ? deadline.ack_due : deadline.response_due;
   const urgency = urgencyFor(deadline.clock_state, deadline.days_left);
@@ -58,7 +61,7 @@ export function DeadlineBlock({
           </h2>
 
           {closed ? (
-            <p className={cn("mt-1.5", big)}>{deadline.met_on_time === false ? "Late" : deadline.met_on_time ? "On time" : "Closed"}</p>
+            <p className={cn("mt-1.5", big)}>{returned ? "Returned to the inbox" : deadline.met_on_time === false ? "Late" : deadline.met_on_time ? "On time" : "Closed"}</p>
           ) : acknowledged ? (
             <p className={cn("mt-1.5", big)}>{viewDue ? longDate(viewDue) : "Done"}</p>
           ) : stopped ? (

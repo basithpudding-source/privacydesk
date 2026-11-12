@@ -117,6 +117,7 @@ export default async function CasePage({
             internalTargetDays={org.internal_target_days}
             regionLabel={REGIONS.find((r) => r.value === org.region)?.label ?? org.region}
             holidayCount={holidayCount}
+            returned={returned}
           />
 
           <div className="grid gap-6 2xl:grid-cols-2 2xl:items-start">
@@ -125,7 +126,7 @@ export default async function CasePage({
               Steps
             </h2>
             <TaskList tasks={tasks} canWrite={canWrite} caseId={c.id} active={action} />
-            {!canWrite && <p className="mt-2 text-xs text-muted-foreground">You can read this case but not change it.</p>}
+            {user.membership.role === "read_only" && <p className="mt-2 text-xs text-muted-foreground">You can read this case but not change it.</p>}
           </section>
 
           <div className="flex min-w-0 flex-col gap-6">
