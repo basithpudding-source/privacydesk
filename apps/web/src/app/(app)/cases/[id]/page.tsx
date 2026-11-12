@@ -19,9 +19,10 @@ import { aiConfigured } from "@/lib/ai/client";
 import { ActionPanel } from "./action-panel";
 import { AuditTrail } from "./audit-trail";
 import { DeadlineBlock } from "./deadline-block";
-import { LetterDrafts } from "./letter-drafts";
+import { LetterDrafts, type LetterEmail } from "./letter-drafts";
 import { buildTasks, nextStep, TaskList } from "./task-list";
-import { todayInLondon } from "@/lib/today";
+import { emailSubject, type KnownDate, type LetterKind } from "@/lib/letters/email";
+import { londonDate, todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Case" };
 
@@ -52,6 +53,57 @@ export default async function CasePage({
   const isComplaint = c.type === "complaint";
   const tasks = buildTasks(c, pauses);
   const next = canWrite ? nextStep(tasks, isComplaint) : null;
+
+  // What the letters box needs to turn a draft into a reply: who it goes to, a subject for
+  // each kind of letter, the person's own message to quote underneath, and this case's dates
+  // and references to check a draft against.
+  const kinds: LetterKind[] = ["ack", "id", "clarify", "extend", "outcome"];
+  const dated: [string | null | undefined, string][] = [
+    [c.received_on, "received"],
+    [isComplaint ? deadline.ack_due : deadline.response_due, "legal deadline"],
+    [deadline.internal_target, "internal target"],
+    [c.acknowledged_on, "acknowledged"],
+    [c.id_received_on, "proof of identity received"],
+    [c.extended_on, "extension told"],
+    [clock.kind !== "complaint" ? clock.extensionNoticeBy : null, "last day to tell them of an extension"],
+    ...pauses.flatMap((p): [string | null, string][] => [[p.paused_on, "clarification asked"], [p.resumed_on, "clarification received"]]),
+    [c.closed_on, "closed"],
+    [today, "today"],
+  ];
+  const knownDates: KnownDate[] = [];
+  for (const [date, label] of dated) if (date && !knownDates.some((k) => k.date === date)) knownDates.push({ date, label });
+  const recordStep: Record<LetterKind, { action: CaseAction; label: string }> = {
+    ack: { action: "acknowledge", label: "Mark acknowledged" },
+    id: { action: "ask_id", label: "Record the ID request" },
+    clarify: { action: "pause", label: "Record the clarification request" },
+    extend: { action: "extend", label: "Record the extension" },
+    outcome: { action: "close", label: isComplaint ? "Close with the outcome" : "Close: response sent" },
+  };
+  const letterEmail: LetterEmail = {
+    to: c.requester_email ?? "",
+    subjects: Object.fromEntries(
+      kinds.map((k) => [k, emailSubject({ kind: k, typeLabel: typeLabel(c.type), ref: c.ref, originalSubject: fromInbox?.subject, isComplaint })]),
+    ) as Record<LetterKind, string>,
+    original: c.message
+      ? {
+          fromName: fromInbox?.from_name ?? c.requester_name,
+          fromEmail: fromInbox?.from_email ?? c.requester_email,
+          sentOn: fromInbox ? londonDate(fromInbox.received_at) : c.received_on,
+          subject: fromInbox?.subject ?? null,
+          body: c.message,
+        }
+      : null,
+    // Their own words are worth quoting when they wrote in; notes of a phone call are not.
+    quoteByDefault: c.channel === "Email" || c.channel === "Web form",
+    knownDates,
+    refs: [c.ref, c.source_ref].filter((r): r is string => Boolean(r)),
+    requesterName: c.requester_name,
+    signerComplete: Boolean(user.name && user.jobTitle),
+    // Offer to record a step only when the case can take it now.
+    record: Object.fromEntries(
+      kinds.filter((k) => tasks.some((t) => t.action === recordStep[k].action)).map((k) => [k, { href: `/cases/${c.id}?do=${recordStep[k].action}`, label: recordStep[k].label }]),
+    ),
+  };
 
   return (
     <div className="w-full">
@@ -136,7 +188,7 @@ export default async function CasePage({
                 Letters
               </h2>
               <div className="surface p-5">
-                <LetterDrafts caseId={c.id} isComplaint={isComplaint} aiOn={aiConfigured() && org.ai_enabled} />
+                <LetterDrafts caseId={c.id} isComplaint={isComplaint} aiOn={aiConfigured() && org.ai_enabled} email={letterEmail} />
               </div>
             </section>
           )}

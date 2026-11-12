@@ -67,9 +67,20 @@ export async function listInboxEvents(itemId: string): Promise<InboxEventRow[]> 
   return (data ?? []) as InboxEventRow[];
 }
 
-/** The inbox message a case was made from, if it was (a case logged by hand has none). */
-export async function inboxItemForCase(caseId: string): Promise<string | null> {
+export interface CaseSourceMessage {
+  id: string;
+  subject: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  received_at: string;
+}
+
+/**
+ * The inbox message a case was made from, if it was (a case logged by hand has none): enough
+ * of it to quote under a reply and to keep the person's own subject line.
+ */
+export async function inboxItemForCase(caseId: string): Promise<CaseSourceMessage | null> {
   const supabase = await createClient();
-  const { data } = await supabase.from("inbox_items").select("id").eq("case_id", caseId).maybeSingle();
-  return (data?.id as string | undefined) ?? null;
+  const { data } = await supabase.from("inbox_items").select("id, subject, from_name, from_email, received_at").eq("case_id", caseId).maybeSingle();
+  return (data as CaseSourceMessage | null) ?? null;
 }

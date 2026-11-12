@@ -106,6 +106,15 @@ Still to do by hand:
 - [x] After 0019, tested with sample data: a view was saved, applied (filters and hidden column restored), updated, renamed and deleted; a declined message was put back in the inbox; a case was returned to the inbox, closed and marked, with both steps on the message's log and the dashboard counts adjusted (one fewer open case, on-time figure unchanged).
 - [x] Run `supabase/migrations/0020_return_event_wording.sql`. Done 12 November 2026; checked on the live database that the function carries the new wording, still runs with definer rights, can be run by signed-in users and not by anonymous ones. It was not exercised by returning another case, so the first new entry is the first time the wording shows in the app.
 
+## 11. Letters as ready replies (12 November 2026)
+
+- [x] Drafts are signed with the sender's name and job title from their profile.
+- [x] Each draft has a recipient, a subject with the case reference, and the person's original message quoted underneath.
+- [x] Gaps, dates that are not the case's, a near-miss reference and a guessed title are highlighted, with a "Before you send" list.
+- [x] "Open in my email program" hands the draft to the person's own email program; the app still sends nothing.
+- [ ] Add your name and job title on the profile page, so drafts are signed with them.
+- [ ] Press "Open in my email program" on a sample case and check what arrives in Outlook. The link was checked in the browser (recipient, subject, text, original message, line breaks, length), but it was intercepted there and never handed to a real email program.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
