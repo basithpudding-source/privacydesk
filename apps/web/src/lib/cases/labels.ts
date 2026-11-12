@@ -59,10 +59,11 @@ export function clockLabel(state: ClockState, daysLeft: number | null): string {
   }
 }
 
-export const URGENCY_CLASSES: Record<Urgency, string> = {
-  fine: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  warning: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  overdue: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
-  stopped: "bg-muted text-muted-foreground",
-  none: "bg-muted text-muted-foreground",
+/** The tag tone for each deadline state: green fine, amber warning, red overdue, grey stopped. */
+export const URGENCY_TONE: Record<Urgency, "ok" | "warn" | "danger" | "neutral"> = {
+  fine: "ok",
+  warning: "warn",
+  overdue: "danger",
+  stopped: "neutral",
+  none: "neutral",
 };

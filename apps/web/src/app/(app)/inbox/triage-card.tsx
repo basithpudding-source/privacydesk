@@ -1,4 +1,5 @@
 import type { TriageResult } from "@/lib/ai/triage-types";
+import { Tag } from "@/components/ui/tag";
 import { typeLabel } from "@/lib/cases/labels";
 
 type Stored = TriageResult & { fallbackReason?: string | null };
@@ -7,7 +8,7 @@ type Stored = TriageResult & { fallbackReason?: string | null };
 export function TriageCard({ triage }: { triage: Stored | null }) {
   if (!triage) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+      <div className="rounded-lg border border-dashed border-input p-4 text-sm text-muted-foreground">
         Not triaged yet. Use “Run triage again” or read the message and decide.
       </div>
     );
@@ -15,7 +16,7 @@ export function TriageCard({ triage }: { triage: Stored | null }) {
   const pct = Math.round(triage.confidence * 100);
   const label = triage.type === "not_dp" ? "Not about personal data" : typeLabel(triage.type);
   return (
-    <div className="rounded-lg border border-border p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm">
           <span className="text-muted-foreground">{triage.by === "ai" ? "AI triage proposes" : "Keyword check suggests"}</span>{" "}
@@ -27,20 +28,20 @@ export function TriageCard({ triage }: { triage: Stored | null }) {
         <p className="text-xs tabular-nums text-muted-foreground">{pct}% confident</p>
       </div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted" role="img" aria-label={`${pct} percent confident`}>
-        <div className="h-full rounded bg-sky-600 dark:bg-sky-400" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded bg-info" style={{ width: `${pct}%` }} />
       </div>
       {triage.summary && <p className="mt-3 text-sm">{triage.summary}</p>}
       {triage.reasons.length > 0 && (
         <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
           {triage.reasons.map((r, i) => (
-            <li key={i} className="border-l-2 border-border pl-2">“{r.replace(/^[“"]|[”"]$/g, "")}”</li>
+            <li key={i} className="border-l-2 border-info/50 pl-2.5">“{r.replace(/^[“"]|[”"]$/g, "")}”</li>
           ))}
         </ul>
       )}
       {(triage.idCheckSuggested || triage.clarificationSuggested) && (
         <p className="mt-3 text-sm">
-          {triage.idCheckSuggested && <span className="mr-3 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">ID check suggested</span>}
-          {triage.clarificationSuggested && <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">May need clarification</span>}
+          {triage.idCheckSuggested && <Tag tone="warn" className="mr-2">ID check suggested</Tag>}
+          {triage.clarificationSuggested && <Tag tone="warn">May need clarification</Tag>}
         </p>
       )}
       <p className="mt-3 text-xs text-muted-foreground">

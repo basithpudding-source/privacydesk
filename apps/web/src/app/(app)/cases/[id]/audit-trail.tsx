@@ -6,15 +6,16 @@ import { londonDate } from "@/lib/today";
 export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; currentUserId: string }) {
   if (events.length === 0) return <p className="text-sm text-muted-foreground">No events yet.</p>;
   return (
-    <ol className="space-y-3">
+    <ol className="relative space-y-4 before:absolute before:inset-y-1.5 before:left-[3px] before:w-px before:bg-border">
       {events.map((e) => (
-        <li key={e.id} className="grid grid-cols-[6.5rem_1fr] gap-3 text-sm">
-          <time dateTime={e.at} className="tabular-nums text-muted-foreground" title={new Date(e.at).toLocaleString("en-GB")}>
-            {shortDate(londonDate(e.at))}
-          </time>
-          <p>
-            {e.text}
-            <span className="text-muted-foreground"> · {who(e.actor, currentUserId)}</span>
+        <li key={e.id} className="relative pl-5 text-sm">
+          <span className="absolute left-0 top-1.5 size-[7px] rounded-full bg-muted-foreground/60 ring-4 ring-card" aria-hidden="true" />
+          <p>{e.text}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            <time dateTime={e.at} className="tabular-nums" title={new Date(e.at).toLocaleString("en-GB")}>
+              {shortDate(londonDate(e.at))}
+            </time>{" "}
+            · {who(e.actor, currentUserId)}
           </p>
         </li>
       ))}

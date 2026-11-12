@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { Check, ChevronRight } from "lucide-react";
+import { Tag, type Tone } from "@/components/ui/tag";
 import type { CaseAction, CaseRow, ClockPauseRow } from "@/lib/cases/types";
 import { shortDate } from "@/lib/clocks";
 import { cn } from "@/lib/utils";
 
 type TaskStatus = "Completed" | "In progress" | "Not started" | "Not needed" | "Cannot start yet";
 
-interface Task {
+export interface Task {
   title: string;
   detail: string;
   status: TaskStatus;
@@ -13,11 +15,8 @@ interface Task {
   action?: CaseAction;
 }
 
-/**
- * GOV.UK task list: the steps of the process in order, each with a status word
- * (adjectives in sentence case, never verbs). The whole row is clickable.
- */
-export function TaskList({ c, pauses, canWrite, caseId }: { c: CaseRow; pauses: ClockPauseRow[]; canWrite: boolean; caseId: string }) {
+/** The steps of the process in order, with where each one stands. */
+export function buildTasks(c: CaseRow, pauses: ClockPauseRow[]): Task[] {
   const closed = c.status === "closed";
   const openPause = pauses.find((p) => p.resumed_on === null);
   const lastPause = pauses[pauses.length - 1];
@@ -74,17 +73,66 @@ export function TaskList({ c, pauses, canWrite, caseId }: { c: CaseRow; pauses: 
       : { title: c.type === "complaint" ? "Outcome sent" : "Response sent", detail: c.type === "complaint" ? "Close with the outcome of the complaint" : "Close once the response has gone", status: "Not started", action: "close" },
   );
 
+  return tasks;
+}
+
+/** Short button words for the step that should happen next. */
+const NEXT_LABEL: Partial<Record<CaseAction, (isComplaint: boolean) => string>> = {
+  id_received: () => "Record ID received",
+  resume: () => "Record clarification received",
+  acknowledge: () => "Mark acknowledged",
+  close: (c) => (c ? "Close with outcome" : "Close: response sent"),
+};
+
+/**
+ * The step to offer as the page's main button: something being waited for comes first
+ * (ID, a clarification), then the first step not yet started.
+ */
+export function nextStep(tasks: Task[], isComplaint: boolean): { action: CaseAction; label: string } | null {
+  const pick =
+    tasks.find((t) => t.status === "In progress" && (t.action === "id_received" || t.action === "resume")) ??
+    tasks.find((t) => t.status === "Not started" && t.action);
+  const label = pick?.action ? NEXT_LABEL[pick.action]?.(isComplaint) : undefined;
+  return pick?.action && label ? { action: pick.action, label } : null;
+}
+
+const STATUS_TONE: Record<TaskStatus, Tone> = {
+  Completed: "ok",
+  "In progress": "info",
+  "Not started": "neutral",
+  "Not needed": "neutral",
+  "Cannot start yet": "neutral",
+};
+
+/**
+ * GOV.UK task list: the steps of the process in order, each with a status word
+ * (adjectives in sentence case, never verbs). The whole row is clickable.
+ */
+export function TaskList({ tasks, canWrite, caseId, active }: { tasks: Task[]; canWrite: boolean; caseId: string; active: CaseAction | null }) {
   return (
-    <ol className="divide-y divide-border rounded-lg border border-border">
-      {tasks.map((t) => {
+    <ol className="surface divide-y divide-border overflow-hidden">
+      {tasks.map((t, i) => {
         const clickable = canWrite && t.action;
+        const done = t.status === "Completed";
         const inner = (
           <>
+            <span
+              className={cn(
+                "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                done ? "bg-ok-bg text-ok-fg" : t.status === "In progress" ? "bg-info-bg text-info-fg" : "bg-muted text-muted-foreground",
+              )}
+              aria-hidden="true"
+            >
+              {done ? <Check className="size-3.5" /> : i + 1}
+            </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-medium">{t.title}</span>
+              <span className={cn("block font-medium", (t.status === "Not needed" || t.status === "Cannot start yet") && "text-muted-foreground")}>{t.title}</span>
               <span className="block text-sm text-muted-foreground">{t.detail}</span>
             </span>
-            <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-xs font-medium", STATUS_CLASSES[t.status])}>{t.status}</span>
+            <Tag tone={STATUS_TONE[t.status]} className={t.status === "Not started" ? "text-foreground" : undefined}>
+              {t.status}
+            </Tag>
+            <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground", !clickable && "invisible")} aria-hidden="true" />
           </>
         );
         return (
@@ -93,12 +141,16 @@ export function TaskList({ c, pauses, canWrite, caseId }: { c: CaseRow; pauses: 
               <Link
                 href={`/cases/${caseId}?do=${t.action}`}
                 scroll={false}
-                className="flex items-center gap-4 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+                aria-current={active === t.action ? "true" : undefined}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-accent/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+                  active === t.action && "bg-accent/60",
+                )}
               >
                 {inner}
               </Link>
             ) : (
-              <div className="flex items-center gap-4 px-4 py-3">{inner}</div>
+              <div className="flex items-center gap-3 px-4 py-3">{inner}</div>
             )}
           </li>
         );
@@ -106,11 +158,3 @@ export function TaskList({ c, pauses, canWrite, caseId }: { c: CaseRow; pauses: 
     </ol>
   );
 }
-
-const STATUS_CLASSES: Record<TaskStatus, string> = {
-  Completed: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  "In progress": "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
-  "Not started": "bg-muted text-foreground",
-  "Not needed": "bg-muted text-muted-foreground",
-  "Cannot start yet": "bg-muted text-muted-foreground",
-};

@@ -43,6 +43,10 @@
 | 2026-11-11 | The emailed link opens a page with one button; the request is verified, and the clock starts, when the button is pressed, not when the link is opened | Mail scanners and link previews open links. With the old page that verified the address and started the legal clock without the person doing anything. This refines the 8 November decision: "the day the link is opened" is now the day the button is pressed |
 | 2026-11-11 | `APP_URL` is required in production; without it the public form refuses submissions | The link in the verification email was built from the request's Host header when `APP_URL` was unset, and a sender can forge that header to have the app email someone a link to another site carrying their token |
 | 2026-11-11 | The inbound email functions need a server key (`INBOUND_SERVER_KEY`) as well as the client's forwarding token (migration 0017) | The token is part of the forwarding address and travels in mail headers, so anyone who had seen an address could write to that client's inbox with the publishable key, skipping the webhook's secret. This refines the 8 November decision that the token alone is the credential |
+| 2026-11-12 | Redesign: indigo is the one accent colour, on a soft grey canvas with white cards and a dark navigation rail | The first build used the component library's default greys, so nothing stood out and it read as a template. Indigo is kept apart from the four status colours (green, amber, red, blue), which still only ever mean a status |
+| 2026-11-12 | Status colours are theme tokens used through one `Tag` component, not per-page colour classes | The same status was coloured by hand in six files; one component keeps tags consistent and always worded |
+| 2026-11-12 | The navigation shows two counts: inbox items waiting and overdue cases | They answer "is there anything I must look at?" from any page. Both are counted through the user's own session, so row-level security decides what is counted |
+| 2026-11-12 | "Log a case" and the command palette live in a bar above every page; the case page names the next step as its main button | Common jobs took a trip to the case list first, and the case page left the user to work out which step was next |
 
 ## Open questions
 
@@ -63,3 +67,4 @@
 - Declined inbox items are kept for the client's full retention period, the same as closed cases. A declined message is often not a data protection matter at all, so a shorter period (for example 6 months) may be more proportionate. Ask the first pilots.
 - Overdue cases appear in the reminder digest every night until they are closed. Right for a missed legal deadline, but ask the first pilots whether nightly is too often.
 - Offboarding a client: when a consultancy stops acting for a client, its cases should be exported or handed back and then deleted, with a record that this happened and who asked. Today only the database owner can remove a client (migration 0016). Design this before the first client leaves.
+- Redesign (12 November 2026): the dark theme has matching colours but nothing switches it on. Should the app follow the device setting, offer a switch, or stay light only?

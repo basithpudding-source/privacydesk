@@ -33,7 +33,7 @@ export function FactorList({ factors, canRemove }: { factors: FactorSummary[]; c
           {error}
         </p>
       )}
-      <ul className="divide-y divide-border rounded-lg border border-border">
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card">
         {factors.map((f) => (
           <li key={f.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <div>

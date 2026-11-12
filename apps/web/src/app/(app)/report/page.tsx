@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ClientPicker, MonthPicker } from "@/components/client-picker";
 import { requireMember } from "@/lib/auth";
@@ -21,20 +22,21 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Monthly report</h1>
-        <p className="mt-1 text-sm text-muted-foreground">What to send the client this month: one page, plain English, copy or PDF.</p>
-      </div>
+      <PageHeader
+        title="Monthly report"
+        description="What to send the client this month: one page, plain English, copy or PDF."
+        actions={clients.length > 0 && <ClientPicker clients={clients} value={clientId} allowAll={false} extra={<MonthPicker value={month} />} />}
+      />
 
       {clients.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">Add a client first.</p>
+        <div className="mt-6">
+          <EmptyState title="No clients yet">Add a client first; each one gets its own monthly report.</EmptyState>
+        </div>
       ) : (
         <>
-          <ClientPicker clients={clients} value={clientId} allowAll={false} extra={<MonthPicker value={month} />} />
-
           {report && (
-            <section aria-labelledby="report-heading" className="mt-6 rounded-lg border border-border p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+            <section aria-labelledby="report-heading" className="surface mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                 <h2 id="report-heading" className="flex items-center gap-2 text-lg font-semibold">
                   <span className="size-2.5 rounded-full" style={{ backgroundColor: report.org.colour }} aria-hidden="true" />
                   {report.org.name}, {monthLabel(month)}
@@ -46,7 +48,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
                   </Button>
                 </div>
               </div>
-              <pre className="mt-4 whitespace-pre-wrap font-sans text-sm leading-relaxed">{report.text}</pre>
+              <pre className="max-w-[72ch] whitespace-pre-wrap px-6 py-5 font-sans text-sm leading-relaxed">{report.text}</pre>
             </section>
           )}
         </>

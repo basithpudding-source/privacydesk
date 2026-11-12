@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { requireMember } from "@/lib/auth";
@@ -30,23 +30,25 @@ export default async function ClientPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <Link href="/clients" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        Clients
-      </Link>
-      <h1 className="mt-2 flex items-center gap-3 text-2xl font-semibold tracking-tight">
-        <span className="size-3 rounded-full" style={{ backgroundColor: client.colour }} aria-hidden="true" />
-        {client.name}
-        <span className="font-mono text-sm font-normal text-muted-foreground">{client.code}</span>
-      </h1>
+      <PageHeader
+        back={{ href: "/clients", label: "Clients" }}
+        title={
+          <span className="flex items-center gap-3">
+            <span className="size-3 rounded-full" style={{ backgroundColor: client.colour }} aria-hidden="true" />
+            {client.name}
+            <span className="font-mono text-sm font-normal text-muted-foreground">{client.code}</span>
+          </span>
+        }
+      />
 
       {saved && (
-        <Alert className="mt-4 max-w-xl">
+        <Alert className="mt-4 max-w-[43rem]">
           <AlertTitle>{saved === "added" ? "Client added." : "Changes saved."}</AlertTitle>
         </Alert>
       )}
 
-      <section aria-labelledby="form-heading" className="mt-6 max-w-xl rounded-lg border border-border p-4">
-        <h2 id="form-heading" className="text-sm font-medium">
+      <section aria-labelledby="form-heading" className="surface mt-6 max-w-[43rem] px-6 py-4">
+        <h2 id="form-heading" className="section-label">
           Public request form
         </h2>
         <p className="mt-1 font-mono text-sm break-all">
@@ -61,8 +63,8 @@ export default async function ClientPage({
         </p>
       </section>
 
-      <section aria-labelledby="forwarding-heading" className="mt-4 max-w-xl rounded-lg border border-border p-4">
-        <h2 id="forwarding-heading" className="text-sm font-medium">
+      <section aria-labelledby="forwarding-heading" className="surface mt-4 max-w-[43rem] px-6 py-4">
+        <h2 id="forwarding-heading" className="section-label">
           Forwarding address
         </h2>
         {forwardingAddress(client) ? (
@@ -80,7 +82,7 @@ export default async function ClientPage({
         )}
       </section>
 
-      <div className="mt-6">
+      <div className="surface mt-4 max-w-[43rem] p-6">
         {isAdmin ? (
           <ClientForm action={updateClient.bind(null, client.id)} initial={{ ...client, contact_email: client.contact_email ?? "" }} submitLabel="Save changes" />
         ) : (

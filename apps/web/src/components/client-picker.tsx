@@ -18,14 +18,14 @@ export function ClientPicker({ clients, value, allowAll = true, extra }: { clien
   }
 
   return (
-    <div className="mt-6 flex flex-wrap items-end gap-3">
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="f-client" className="text-xs">Client</Label>
+    <div className="flex flex-wrap items-center gap-2">
+      <div>
+        <Label htmlFor="f-client" className="sr-only">Client</Label>
         <select
           id="f-client"
           value={value}
           onChange={(e) => update("client", e.target.value)}
-          className={cn("h-8 rounded-lg border border-input bg-background px-2.5 text-sm", "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none")}
+          className={cn("h-9 rounded-lg border border-input bg-card px-2.5 text-sm", "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none")}
         >
           {allowAll && <option value="">All clients</option>}
           {clients.map((c) => (
@@ -44,8 +44,8 @@ export function MonthPicker({ value }: { value: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor="f-month" className="text-xs">Month</Label>
+    <div>
+      <Label htmlFor="f-month" className="sr-only">Month</Label>
       <input
         id="f-month"
         type="month"
@@ -56,7 +56,7 @@ export function MonthPicker({ value }: { value: string }) {
           else next.delete("month");
           router.replace(`${pathname}?${next.toString()}`);
         }}
-        className={cn("h-8 rounded-lg border border-input bg-background px-2.5 text-sm tabular-nums", "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none")}
+        className={cn("h-9 rounded-lg border border-input bg-card px-2.5 text-sm tabular-nums", "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none")}
       />
     </div>
   );

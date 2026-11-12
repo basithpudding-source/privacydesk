@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { requireUser } from "@/lib/auth";
 import { longDate } from "@/lib/clocks";
@@ -22,11 +23,10 @@ export default async function SecurityPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Signed in as {user.email}.</p>
+      <PageHeader title="Security" description={<>Signed in as {user.email}.</>} />
 
-      <section className="mt-8 max-w-xl">
-        <h2 className="text-lg font-semibold">Second factor</h2>
+      <section className="surface mt-6 max-w-[43rem] p-6">
+        <h2 className="font-semibold">Second factor</h2>
         {mustEnrol ? (
           <Alert className="mt-3">
             <AlertTitle>Partner administrators must use a second factor</AlertTitle>

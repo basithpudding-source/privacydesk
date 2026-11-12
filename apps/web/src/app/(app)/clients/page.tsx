@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
+import { Tag } from "@/components/ui/tag";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requireMember } from "@/lib/auth";
@@ -21,26 +22,24 @@ export default async function ClientsPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            The organisations {user.membership.partnerName} looks after.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button render={<Link href="/clients/new" />} nativeButton={false}>
-            Add client
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Clients"
+        description={<>The organisations {user.membership.partnerName} looks after.</>}
+        actions={
+          isAdmin && (
+            <Button variant="outline" size="lg" render={<Link href="/clients/new" />} nativeButton={false}>
+              Add client
+            </Button>
+          )
+        }
+      />
 
       {error ? (
         <p className="mt-8 text-sm text-destructive" role="alert">
           The client list could not be loaded: {error.message}. Reload the page.
         </p>
       ) : clients.length === 0 ? (
-        <div className="mt-8 rounded-lg border border-dashed border-border p-8 text-center">
+        <div className="mt-6 rounded-xl border border-dashed border-input bg-card/60 px-6 py-10 text-center">
           <p className="font-medium">No clients yet</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
@@ -54,7 +53,7 @@ export default async function ClientsPage() {
           )}
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-border">
+        <div className="surface mt-6 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -84,7 +83,7 @@ export default async function ClientsPage() {
                   <TableCell className="text-right tabular-nums">{c.internal_target_days} days</TableCell>
                   <TableCell className="text-right tabular-nums">{c.retention_months} months</TableCell>
                   <TableCell>
-                    {c.ai_enabled ? <Badge variant="secondary">On</Badge> : <Badge variant="outline">Off</Badge>}
+                    <Tag tone={c.ai_enabled ? "info" : "neutral"}>{c.ai_enabled ? "On" : "Off"}</Tag>
                   </TableCell>
                 </TableRow>
               ))}

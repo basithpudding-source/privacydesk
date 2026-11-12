@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/auth";
 import { addClient } from "../actions";
@@ -14,14 +14,14 @@ export default async function NewClientPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <Link href="/clients" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        Clients
-      </Link>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Add client</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">
-        An organisation {user.membership.partnerName} looks after. You can change everything except the code later.
-      </p>
-      <ClientForm action={addClient} initial={DEFAULT_CLIENT} submitLabel="Add client" />
+      <PageHeader
+        back={{ href: "/clients", label: "Clients" }}
+        title="Add client"
+        description={<>An organisation {user.membership.partnerName} looks after. You can change everything except the code later.</>}
+      />
+      <div className="surface mt-6 w-full max-w-[43rem] p-6">
+        <ClientForm action={addClient} initial={DEFAULT_CLIENT} submitLabel="Add client" />
+      </div>
     </div>
   );
 }

@@ -96,7 +96,7 @@ export function ActionPanel({ caseId, action, isComplaint, today }: { caseId: st
   });
 
   return (
-    <aside aria-labelledby="action-heading" className="rounded-lg border border-border bg-card p-5">
+    <aside aria-labelledby="action-heading" className="surface border-ring/50 p-5 ring-3 ring-ring/15">
       <div className="flex items-start justify-between gap-3">
         <h2 id="action-heading" className="text-lg font-semibold">
           {copy.title}
