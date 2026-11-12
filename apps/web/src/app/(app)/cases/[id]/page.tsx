@@ -19,10 +19,12 @@ import { aiConfigured } from "@/lib/ai/client";
 import { ActionPanel } from "./action-panel";
 import { AuditTrail } from "./audit-trail";
 import { DeadlineBlock } from "./deadline-block";
+import { RequestText } from "./request-text";
 import { LetterDrafts, type LetterEmail } from "./letter-drafts";
 import { buildTasks, nextStep, TaskList } from "./task-list";
 import { emailSubject, type KnownDate, type LetterKind } from "@/lib/letters/email";
 import { londonDate, todayInLondon } from "@/lib/today";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Case" };
 
@@ -105,6 +107,61 @@ export default async function CasePage({
     ),
   };
 
+  // Shown in the top pane, under the date. The details run in two columns once their half of
+  // the pane is wide enough, or sooner when there is no message beside them.
+  const fact = "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3";
+  const details = (
+    <section aria-labelledby="details-heading">
+      <h2 id="details-heading" className="section-label">
+        Details
+      </h2>
+      <dl className={cn("mt-3 grid gap-x-8 gap-y-2.5 text-sm @6xl:grid-cols-2", !c.message && "@2xl:grid-cols-2")}>
+        <div className={fact}>
+          <dt className="text-muted-foreground">Client</dt>
+          <dd>
+            <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
+              {org.name}
+            </Link>
+          </dd>
+        </div>
+        <div className={fact}>
+          <dt className="text-muted-foreground">From</dt>
+          <dd className="min-w-0">
+            {c.requester_name ?? <span className="text-muted-foreground">Unknown</span>}
+            {c.requester_email && <span className="block truncate text-muted-foreground" title={c.requester_email}>{c.requester_email}</span>}
+          </dd>
+        </div>
+        <div className={fact}>
+          <dt className="text-muted-foreground">Received</dt>
+          <dd>
+            {longDate(c.received_on)}
+            <span className="block text-muted-foreground">by {c.channel.toLowerCase()}</span>
+          </dd>
+        </div>
+        {c.source_ref && (
+          <div className={fact}>
+            <dt className="text-muted-foreground">Their ref</dt>
+            <dd className="font-mono text-xs leading-5">{c.source_ref}</dd>
+          </div>
+        )}
+        {c.summary && (
+          <div className={fact}>
+            <dt className="text-muted-foreground">Summary</dt>
+            <dd>{c.summary}</dd>
+          </div>
+        )}
+      </dl>
+    </section>
+  );
+  const request = c.message ? (
+    <section aria-labelledby="request-heading">
+      <h2 id="request-heading" className="section-label">
+        The request as received
+      </h2>
+      <RequestText text={c.message} />
+    </section>
+  ) : null;
+
   return (
     <div className="w-full">
       <PageHeader
@@ -170,6 +227,8 @@ export default async function CasePage({
             regionLabel={REGIONS.find((r) => r.value === org.region)?.label ?? org.region}
             holidayCount={holidayCount}
             returned={returned}
+            details={details}
+            request={request}
           />
 
           <div className="grid gap-6 2xl:grid-cols-2 2xl:items-start">
@@ -181,9 +240,8 @@ export default async function CasePage({
             {user.membership.role === "read_only" && <p className="mt-2 text-xs text-muted-foreground">You can read this case but not change it.</p>}
           </section>
 
-          <div className="flex min-w-0 flex-col gap-6">
           {canWrite && (
-            <section aria-labelledby="letters-heading">
+            <section aria-labelledby="letters-heading" className="min-w-0">
               <h2 id="letters-heading" className="section-label mb-2">
                 Letters
               </h2>
@@ -192,17 +250,10 @@ export default async function CasePage({
               </div>
             </section>
           )}
-
-          {c.message && (
-            <details className="surface group">
-              <summary className="cursor-pointer rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50">The request as received</summary>
-              <p className="max-w-[65ch] whitespace-pre-wrap border-t border-border px-5 py-4 text-sm">{c.message}</p>
-            </details>
-          )}
-          </div>
           </div>
         </div>
 
+        {/* Beside the page: recording a step or a note, and the audit trail. Nothing else. */}
         <div className="flex min-w-0 flex-col gap-6">
           {returning && (
             <div className="surface border-ring/50 p-5 ring-3 ring-ring/15 lg:sticky lg:top-20 lg:z-10">
@@ -223,42 +274,6 @@ export default async function CasePage({
               <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} requesterEmail={c.requester_email} receivedOn={c.received_on} />
             </div>
           )}
-
-          <section aria-labelledby="details-heading" className="surface p-5">
-            <h2 id="details-heading" className="section-label">
-              Details
-            </h2>
-            <dl className="mt-3 grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
-              <dt className="text-muted-foreground">Client</dt>
-              <dd>
-                <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
-                  {org.name}
-                </Link>
-              </dd>
-              <dt className="text-muted-foreground">From</dt>
-              <dd className="min-w-0">
-                {c.requester_name ?? <span className="text-muted-foreground">Unknown</span>}
-                {c.requester_email && <span className="block truncate text-muted-foreground" title={c.requester_email}>{c.requester_email}</span>}
-              </dd>
-              <dt className="text-muted-foreground">Received</dt>
-              <dd>
-                {longDate(c.received_on)}
-                <span className="block text-muted-foreground">by {c.channel.toLowerCase()}</span>
-              </dd>
-              {c.source_ref && (
-                <>
-                  <dt className="text-muted-foreground">Their ref</dt>
-                  <dd className="font-mono text-xs leading-5">{c.source_ref}</dd>
-                </>
-              )}
-              {c.summary && (
-                <>
-                  <dt className="text-muted-foreground">Summary</dt>
-                  <dd>{c.summary}</dd>
-                </>
-              )}
-            </dl>
-          </section>
 
           <section aria-labelledby="audit-heading" className="surface p-5">
             <h2 id="audit-heading" className="section-label mb-3">

@@ -38,6 +38,8 @@ Status words are adjectives in sentence case (Completed, In progress, Not starte
 - The due date is the largest thing on the page. Under it, the working in numbered steps, exactly as the ICO would explain it.
 - Three visual states only: fine (more than 5 days), warning (5 days or fewer), overdue. Paused and waiting-for-ID are grey, with a sentence saying what restarts the clock.
 - The internal target (28 days) is visibly a target, not a legal limit.
+- The same pane holds the case's details and the request as received, under the date, so who it is from and what they asked for are read with the deadline. A long request is cut to eight lines with a button to show all of it. (Changed 12 November 2026: these were separate cards.)
+- The column beside the page is for recording a step or a note, and for the audit trail. Nothing else goes there.
 
 ## 5. Status and colour
 
