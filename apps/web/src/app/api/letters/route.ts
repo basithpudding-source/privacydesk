@@ -33,6 +33,9 @@ export async function POST(request: NextRequest) {
     dueOn: c.type === "complaint" ? deadline.ack_due : deadline.response_due,
     outcome: c.outcome,
     isComplaint: c.type === "complaint",
+    // The sender's own name and job title, from their profile, for the sign-off.
+    signerName: user.name,
+    signerTitle: user.jobTitle,
   }, Boolean(org.ai_enabled));
   return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 }

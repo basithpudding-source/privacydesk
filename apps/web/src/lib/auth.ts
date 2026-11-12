@@ -21,6 +21,8 @@ export interface CurrentUser {
   email: string | null;
   /** The name the person gave on their profile page, if any. */
   name: string | null;
+  /** Their job title from the profile page, used to sign letters. */
+  jobTitle: string | null;
   /** aal2 means the user passed a second factor this session. */
   assurance: AssuranceLevel;
   /** aal2 means the user has enrolled a second factor. */
@@ -60,6 +62,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     id: String(claims.sub),
     email: typeof claims.email === "string" ? claims.email : null,
     name: displayName(claims.user_metadata),
+    jobTitle: jobTitle(claims.user_metadata),
     assurance: aal?.currentLevel === "aal2" ? "aal2" : "aal1",
     enrolled: aal?.nextLevel === "aal2",
     membership,
@@ -68,8 +71,18 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
 /** The display name kept in the user's own sign-in record; trimmed and capped. */
 export function displayName(metadata: unknown): string | null {
-  const v = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>).display_name : null;
-  return typeof v === "string" && v.trim() ? v.trim().slice(0, 80) : null;
+  return profileText(metadata, "display_name");
+}
+
+/** The job title kept beside the display name, used to sign letters. */
+export function jobTitle(metadata: unknown): string | null {
+  return profileText(metadata, "job_title");
+}
+
+function profileText(metadata: unknown, key: string): string | null {
+  const v = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>)[key] : null;
+  // One line only: these go into letters and the top bar.
+  return typeof v === "string" && v.trim() ? v.replace(/\s+/g, " ").trim().slice(0, 80) : null;
 }
 
 /** Redirects to sign-in when nobody is signed in. */

@@ -4,7 +4,7 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
-import { displayName, requireUser } from "@/lib/auth";
+import { displayName, jobTitle, requireUser } from "@/lib/auth";
 import { longDate } from "@/lib/clocks";
 import { getPrefs } from "@/lib/prefs-server";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +29,7 @@ export default async function ProfilePage() {
     user.membership?.organisationId ? supabase.from("organisations").select("name").eq("id", user.membership.organisationId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const name = displayName(auth.user?.user_metadata) ?? user.name ?? "";
+  const title = jobTitle(auth.user?.user_metadata) ?? user.jobTitle ?? "";
   const role = ROLES[user.membership?.role ?? ""] ?? { label: "No role yet", can: "You have not joined a consultancy." };
   const day = (iso: string | undefined | null) => (iso ? longDate(londonDate(iso)) : "Not known");
   const time = (iso: string | undefined | null) => (iso ? new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }) : "");
@@ -42,9 +43,9 @@ export default async function ProfilePage() {
           <section aria-labelledby="you-heading" className="surface p-6">
             <h2 id="you-heading" className="font-semibold">Signed in as</h2>
             <p className="mt-2 text-lg font-medium">{name || user.email}</p>
-            {name && <p className="text-sm text-muted-foreground">{user.email}</p>}
+            {(name || title) && <p className="text-sm text-muted-foreground">{[title, name ? user.email : null].filter(Boolean).join(" · ")}</p>}
             <div className="mt-5">
-              <NameForm initial={name} />
+              <NameForm initial={name} initialTitle={title} />
             </div>
             <dl className="mt-6 grid grid-cols-[9rem_minmax(0,1fr)] gap-x-4 gap-y-3 border-t border-border pt-5 text-sm">
               <dt className="text-muted-foreground">Email</dt>

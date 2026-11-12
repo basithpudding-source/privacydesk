@@ -9,7 +9,7 @@ const anthropic = vi.fn(() => {
 const aiConfigured = vi.fn(() => true);
 vi.mock("./client", () => ({ AI_MODEL: "test-model", aiConfigured: () => aiConfigured(), anthropic: () => anthropic() }));
 
-import { letterTemplate, streamLetter, type LetterFacts } from "./letters";
+import { letterPrompt, letterTemplate, signOff, streamLetter, type LetterFacts } from "./letters";
 
 const facts: LetterFacts = {
   organisation: "Example Housing Trust",
@@ -21,6 +21,8 @@ const facts: LetterFacts = {
   dueOn: "2026-12-02",
   outcome: null,
   isComplaint: false,
+  signerName: "Alex Carter",
+  signerTitle: "Data Protection Officer",
 };
 
 async function read(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -49,5 +51,25 @@ describe("letter drafts and the client's AI switch", () => {
   it("uses the AI provider only when both the client and the deployment allow it", () => {
     expect(() => streamLetter("ack", facts, true)).toThrow("the AI provider was called");
     expect(anthropic).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("how a draft is signed", () => {
+  it("uses the sender's name and job title from their profile", () => {
+    expect(signOff(facts)).toBe("Yours sincerely,\n\nAlex Carter\nData Protection Officer\nExample Housing Trust");
+    expect(letterTemplate("ack", facts)).toContain("Yours sincerely,\n\nAlex Carter\nData Protection Officer\nExample Housing Trust\nReference EHT-001");
+  });
+
+  it("leaves gaps to fill when the profile has no name or job title", () => {
+    const blank = { ...facts, signerName: null, signerTitle: null };
+    expect(signOff(blank)).toBe("Yours sincerely,\n\n[Your name]\n[Your job title]\nExample Housing Trust");
+    expect(letterTemplate("outcome", blank)).toContain("[Your name]\n[Your job title]");
+  });
+
+  it("tells the AI to copy the sign-off, not to guess a title for the person, and not to write a subject", () => {
+    const prompt = letterPrompt("ack", facts);
+    expect(prompt).toContain("Alex Carter\nData Protection Officer\nExample Housing Trust");
+    expect(prompt).toContain("Do not add or guess a title");
+    expect(prompt).toContain("Do not write a subject line");
   });
 });

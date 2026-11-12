@@ -24,6 +24,17 @@ export interface LetterFacts {
   dueOn: string | null;
   outcome: string | null;
   isComplaint: boolean;
+  /** The person sending the letter, from their profile; null leaves a gap to fill. */
+  signerName: string | null;
+  signerTitle: string | null;
+}
+
+/**
+ * How every draft ends: the sender's own name and job title when their profile has them,
+ * a gap in square brackets when it does not, then the organisation the letter is from.
+ */
+export function signOff(f: Pick<LetterFacts, "signerName" | "signerTitle" | "organisation">): string {
+  return ["Yours sincerely,", "", f.signerName ?? "[Your name]", f.signerTitle ?? "[Your job title]", f.organisation].join("\n");
 }
 
 export function letterPrompt(kind: LetterKind, f: LetterFacts): string {
@@ -46,7 +57,10 @@ export function letterPrompt(kind: LetterKind, f: LetterFacts): string {
     kind === "clarify" ? "Explain that the one-month time limit is paused until the clarification arrives." : "",
     kind === "id" ? "Explain that the time limit starts when proof of identity is received, and suggest two acceptable documents in [square brackets]." : "",
     kind === "extend" ? "Give the reason as [reason for extension] and state the new date." : "",
-    "Return only the letter text, starting with the greeting.",
+    "Greet the person by the name given under Requester, exactly as written. Do not add or guess a title such as Mr, Mrs or Ms.",
+    "Return only the letter text, starting with the greeting. Do not write a subject line.",
+    "End with exactly this sign-off, copied as it is, and nothing after it:",
+    signOff(f),
     "Facts:",
     facts,
   ]
@@ -58,7 +72,7 @@ export function letterPrompt(kind: LetterKind, f: LetterFacts): string {
 export function letterTemplate(kind: LetterKind, f: LetterFacts): string {
   const name = f.requesterName ?? "[name]";
   const due = f.dueOn ? longDate(f.dueOn) : "[date]";
-  const sign = `\n\nYours sincerely,\n\n[name]\n${f.organisation}\nReference ${f.ref}`;
+  const sign = `\n\n${signOff(f)}\nReference ${f.ref}`;
   switch (kind) {
     case "ack":
       return `Dear ${name},\n\nThank you for your ${f.typeLabel.toLowerCase()}, which we received on ${longDate(f.receivedOn)}. We are looking into it now and will ${f.isComplaint ? "respond" : "send you a full response"} by ${due}.\n\nIf you have any questions in the meantime, please reply to this email quoting the reference below.${sign}`;

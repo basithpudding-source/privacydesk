@@ -10,15 +10,23 @@ import { DEFAULT_PREFS, type Prefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { saveDisplayName, type NameState } from "./actions";
 
-export function NameForm({ initial }: { initial: string }) {
+export function NameForm({ initial, initialTitle }: { initial: string; initialTitle: string }) {
   const [state, formAction, pending] = useActionState<NameState, FormData>(saveDisplayName, { error: null, saved: false });
   return (
-    <form action={formAction} className="flex flex-col gap-2">
-      <Label htmlFor="display_name">Your name</Label>
+    <form action={formAction} className="flex flex-col gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="display_name">Your name</Label>
+          <Input id="display_name" name="display_name" defaultValue={initial} maxLength={80} autoComplete="name" placeholder="How you want to be shown" className="bg-card" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="job_title">Your job title</Label>
+          <Input id="job_title" name="job_title" defaultValue={initialTitle} maxLength={80} autoComplete="organization-title" placeholder="For example: Data Protection Officer" className="bg-card" />
+        </div>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Input id="display_name" name="display_name" defaultValue={initial} maxLength={80} autoComplete="name" placeholder="How you want to be shown" className="max-w-xs bg-card" />
         <Button type="submit" variant="outline" disabled={pending}>
-          {pending ? "Saving…" : "Save name"}
+          {pending ? "Saving…" : "Save name and job title"}
         </Button>
         {state.saved && !pending && (
           <span className="text-sm text-ok-fg" role="status">
@@ -29,7 +37,7 @@ export function NameForm({ initial }: { initial: string }) {
       {state.error ? (
         <p className="text-sm text-destructive" role="alert">{state.error}</p>
       ) : (
-        <p className="text-xs text-muted-foreground">Shown at the top of the app. Other people still see your actions on the audit trail by your account, not this name.</p>
+        <p className="text-xs text-muted-foreground">Your name shows at the top of the app, and both are used to sign letter drafts. Other people still see your actions on the audit trail by your account, not this name.</p>
       )}
     </form>
   );
