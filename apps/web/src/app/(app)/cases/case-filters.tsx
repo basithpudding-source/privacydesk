@@ -2,11 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CASE_TYPES } from "@/lib/cases/labels";
 import type { CaseFilters as Filters } from "@/lib/cases/queries";
+import { shortDate } from "@/lib/clocks";
 import { cn } from "@/lib/utils";
 
 const STATUSES: { value: Filters["status"]; label: string }[] = [
@@ -16,6 +17,8 @@ const STATUSES: { value: Filters["status"]; label: string }[] = [
   { value: "closed", label: "Closed" },
   { value: "all", label: "All" },
 ];
+
+const SHOW_LABELS = { today: "Due today", soon: "Due in 1 to 5 days", onTrack: "On track", notRunning: "Clock not running" } as const;
 
 const selectClass = cn(
   "h-8 rounded-lg border border-input bg-card px-2.5 text-sm",
@@ -87,6 +90,24 @@ export function CaseFilters({ filters, clients }: { filters: Filters; clients: {
           ))}
         </select>
       </div>
+      {(filters.show || filters.due) && (
+        // A narrowing that came from the dashboard: say what it is and let it be removed.
+        <button
+          type="button"
+          onClick={() => {
+            const next = new URLSearchParams(params.toString());
+            next.delete("show");
+            next.delete("due");
+            router.replace(`/cases?${next.toString()}`);
+          }}
+          title="Remove this filter"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ring/50 bg-accent px-2.5 text-sm font-medium text-accent-foreground outline-none hover:bg-accent/70 focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {filters.due ? `Due ${shortDate(filters.due)}` : SHOW_LABELS[filters.show as Exclude<typeof filters.show, "">]}
+          <X className="size-3.5" aria-hidden="true" />
+          <span className="sr-only">Remove this filter</span>
+        </button>
+      )}
       <div className="relative min-w-[14rem] flex-1">
         <Label htmlFor="f-q" className="sr-only">Search</Label>
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />

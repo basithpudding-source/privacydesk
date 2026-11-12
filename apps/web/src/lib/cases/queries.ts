@@ -1,5 +1,6 @@
 // Reads for the case screens. Every query goes through the user's own Supabase client, so
 // row-level security decides what comes back; nothing here filters by partner itself.
+import { bucketOf } from "@/lib/dashboard/live";
 import "server-only";
 import type { Holidays } from "@/lib/clocks";
 import type { Organisation } from "@/lib/db/types";
@@ -13,7 +14,15 @@ export type StatusFilter = "open" | "overdue" | "week" | "closed" | "all";
 export const CASE_SORTS = ["ref", "status", "deadline", "from", "summary", "client", "type", "channel", "received", "target", "acknowledged"] as const;
 export type CaseSort = (typeof CASE_SORTS)[number] | "";
 
+/** A dashboard bucket the list can be narrowed to (see lib/dashboard/live.ts). */
+export const SHOWS = ["today", "soon", "onTrack", "notRunning"] as const;
+export type Show = (typeof SHOWS)[number] | "";
+
 export interface CaseFilters {
+  /** Only open cases in this dashboard bucket. */
+  show: Show;
+  /** Only open cases whose next deadline is this day (YYYY-MM-DD). */
+  due: string;
   sort: CaseSort;
   dir: "asc" | "desc";
   status: StatusFilter;
@@ -32,6 +41,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     type: one(params.type),
     client: one(params.client),
     q: one(params.q).trim(),
+    show: (SHOWS as readonly string[]).includes(one(params.show)) ? (one(params.show) as Show) : "",
+    due: /^\d{4}-\d{2}-\d{2}$/.test(one(params.due)) ? one(params.due) : "",
     sort: (CASE_SORTS as readonly string[]).includes(one(params.sort)) ? (one(params.sort) as CaseSort) : "",
     dir: one(params.dir) === "desc" ? "desc" : "asc",
   };
@@ -90,6 +101,9 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
         .some((v) => String(v).toLowerCase().includes(q)),
     );
   }
+
+  if (filters.show) rows = rows.filter((r) => r.status === "open" && bucketOf(r) === filters.show);
+  if (filters.due) rows = rows.filter((r) => r.status === "open" && r.days_left !== null && (r.type === "complaint" ? r.ack_due : r.response_due) === filters.due);
 
   rows.sort(compareByDeadline);
   if (filters.sort) rows = sortRows(rows, filters.sort, filters.dir);

@@ -41,7 +41,7 @@ export default async function CasesPage({
   const peekId = typeof params.peek === "string" ? params.peek : "";
   const [{ rows, error }, clients, peek] = await Promise.all([listCases(filters), listClientsForForms(), peekId ? getCase(peekId) : Promise.resolve(null)]);
   const canWrite = user.membership.role !== "read_only";
-  const filtered = Boolean(filters.q || filters.type || filters.client || filters.status !== "open");
+  const filtered = Boolean(filters.q || filters.type || filters.client || filters.show || filters.due || filters.status !== "open");
 
   // The list's address with the current filters, with or without a case opened beside it.
   const href = (o: { peek?: string; sort?: CaseSort; dir?: "asc" | "desc" }) => {
@@ -50,6 +50,8 @@ export default async function CasesPage({
     if (filters.type) q.set("type", filters.type);
     if (filters.client) q.set("client", filters.client);
     if (filters.q) q.set("q", filters.q);
+    if (filters.show) q.set("show", filters.show);
+    if (filters.due) q.set("due", filters.due);
     if (o.sort) {
       q.set("sort", o.sort);
       if (o.dir === "desc") q.set("dir", "desc");

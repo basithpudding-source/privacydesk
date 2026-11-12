@@ -9,7 +9,7 @@ The standard to build to, drawn from three products that get this right: the GOV
 | Inbox (new) | "What has come in that nobody has looked at yet?" | Linear's Triage inbox: items land here first and are accepted or declined, so the case list stays clean |
 | Cases | "What is due, and in what order?" | A GOV.UK-style list: one row per case, sorted by next legal deadline, status as a tag |
 | Case | "Where is this case, what is the deadline, what happens next?" | GOV.UK task list: the steps of the process in order, each with a status, the next step obvious |
-| Dashboard | "Is any client at risk this week?" | Summary before detail: tiles, then the attention list, then charts |
+| Dashboard | "Is any client at risk this week?" | A live operations board: the queue as tiles and one bar, what needs attention beside a calendar of due dates, a board by client, then work by type and the monthly chart. Every number opens the cases behind it |
 | Report | "What do I send the client this month?" | One page, plain English, copy or PDF |
 | Public form | "How does a member of the public raise this with the organisation?" | A DSAR portal: short form, verify by email link, confirmation with reference and date |
 
