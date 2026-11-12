@@ -62,6 +62,9 @@ export interface DeadlineRow {
 /** One row of the case list: the deadlines view joined to the case and its client. */
 export interface CaseListRow extends DeadlineRow {
   requester_name: string | null;
+  requester_email: string | null;
+  channel: string | null;
+  acknowledged_on: string | null;
   summary: string | null;
   organisation_name: string;
   organisation_code: string;

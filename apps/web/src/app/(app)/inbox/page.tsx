@@ -31,7 +31,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const backHref = view === "decided" ? "/inbox?view=decided" : "/inbox";
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         title="Inbox"
         description="What has come in that nobody has looked at yet. Accept it into a case, or decline it."
@@ -45,7 +45,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         }
       />
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)]">
         {/* On a phone the list gives way to the open message; "Back to the inbox" returns to it. */}
         <div className={cn("min-w-0", selected && "hidden lg:block")}>
           <div className="mb-3 flex w-fit rounded-lg border border-border bg-card p-0.5">
@@ -144,12 +144,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               )}
             </div>
 
-            <div className="grid gap-5 p-5 xl:grid-cols-2">
-              <section aria-labelledby="message-heading">
+            <div className="grid xl:grid-cols-[minmax(0,1fr)_28rem]">
+              <section aria-labelledby="message-heading" className="p-5">
                 <h3 id="message-heading" className="section-label flex h-7 items-center">The message</h3>
-                <p className="mt-2 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg bg-muted/60 p-4 text-sm leading-relaxed">{selected.body}</p>
+                <p className="mt-2 max-h-96 max-w-[80ch] overflow-y-auto whitespace-pre-wrap rounded-lg bg-muted/60 p-4 text-sm leading-relaxed xl:max-h-[calc(100vh-22rem)]">{selected.body}</p>
               </section>
-              <section aria-labelledby="triage-heading">
+              <div className="min-w-0 border-t border-border xl:border-l xl:border-t-0">
+              <section aria-labelledby="triage-heading" className="p-5">
                 <div className="flex h-7 items-center justify-between">
                   <h3 id="triage-heading" className="section-label">Triage</h3>
                   {canWrite && selected.status === "new" && <RetriageButton itemId={selected.id} />}
@@ -158,12 +159,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                   <TriageCard triage={selected.triage} />
                 </div>
               </section>
-            </div>
 
             <div className="border-t border-border p-5">
               {selected.status === "new" ? (
                 canWrite ? (
-                  <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                  <div className="flex flex-col gap-5">
                     <section aria-labelledby="accept-heading">
                       <h3 id="accept-heading" className="mb-3 font-semibold">Accept into a case</h3>
                       <AcceptForm
@@ -185,7 +185,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                         }}
                       />
                     </section>
-                    <section aria-labelledby="decline-heading" className="xl:border-l xl:border-border xl:pl-6">
+                    <section aria-labelledby="decline-heading" className="border-t border-border pt-5">
                       <h3 id="decline-heading" className="mb-3 font-semibold">Or decline</h3>
                       <DeclineForm itemId={selected.id} />
                     </section>
@@ -208,6 +208,8 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                   )}
                 </p>
               )}
+            </div>
+              </div>
             </div>
           </article>
         )}

@@ -13,7 +13,7 @@ export default async function NewClientPage() {
   if (user.membership.role !== "partner_admin") redirect("/clients");
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         back={{ href: "/clients", label: "Clients" }}
         title="Add client"

@@ -18,7 +18,7 @@ export default async function MfaPage() {
   if (!factor) redirect("/settings/security");
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader title="Enter your code" description="Open your authenticator app and enter the code it shows for Privacy Desk." />
       <div className="surface mt-6 w-full max-w-md p-6">
         <VerifyTotp factorId={factor.id} nextHref="/clients" />

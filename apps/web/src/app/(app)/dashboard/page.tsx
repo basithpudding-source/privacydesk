@@ -28,7 +28,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         title="Dashboard"
         description={<>{scopeName}. Is any client at risk this week? “On time” counts complaint acknowledgements and closed requests against their legal limits.</>}
@@ -50,7 +50,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         />
       </ul>
 
-      <section aria-labelledby="attention-heading" className="mt-8">
+      <div className="mt-8 grid gap-6 xl:grid-cols-2 xl:items-start">
+      <section aria-labelledby="attention-heading" className="min-w-0">
         <h2 id="attention-heading" className="section-label mb-2">Needs attention</h2>
         {s.attention.length === 0 ? (
           <p className="surface flex items-center gap-2.5 px-5 py-4 text-sm">
@@ -83,11 +84,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         )}
       </section>
 
-      <section aria-labelledby="chart-heading" className="surface mt-8 p-5">
+      <section aria-labelledby="chart-heading" className="surface min-w-0 p-5">
         <h2 id="chart-heading" className="font-semibold">Cases received per month</h2>
         <p className="mb-4 mt-0.5 text-sm text-muted-foreground">The last six months, by the month the request arrived.</p>
         <MonthlyChart months={s.months} />
       </section>
+      </div>
 
       <section aria-labelledby="clients-heading" className="mt-8">
         <h2 id="clients-heading" className="section-label mb-2">By client</h2>

@@ -29,7 +29,7 @@ export default async function ClientPage({
   const isAdmin = user.membership.role === "partner_admin";
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         back={{ href: "/clients", label: "Clients" }}
         title={

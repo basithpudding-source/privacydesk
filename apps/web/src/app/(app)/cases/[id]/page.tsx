@@ -46,7 +46,7 @@ export default async function CasePage({
   const next = canWrite ? nextStep(tasks, isComplaint) : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         back={{ href: "/cases", label: "Cases" }}
         title={
@@ -83,7 +83,7 @@ export default async function CasePage({
         </p>
       </PageHeader>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <DeadlineBlock
             clock={clock}
@@ -95,7 +95,8 @@ export default async function CasePage({
             holidayCount={holidayCount}
           />
 
-          <section aria-labelledby="steps-heading">
+          <div className="grid gap-6 2xl:grid-cols-2 2xl:items-start">
+          <section aria-labelledby="steps-heading" className="min-w-0">
             <h2 id="steps-heading" className="section-label mb-2">
               Steps
             </h2>
@@ -103,6 +104,7 @@ export default async function CasePage({
             {!canWrite && <p className="mt-2 text-xs text-muted-foreground">You can read this case but not change it.</p>}
           </section>
 
+          <div className="flex min-w-0 flex-col gap-6">
           {canWrite && (
             <section aria-labelledby="letters-heading">
               <h2 id="letters-heading" className="section-label mb-2">
@@ -120,6 +122,8 @@ export default async function CasePage({
               <p className="max-w-[65ch] whitespace-pre-wrap border-t border-border px-5 py-4 text-sm">{c.message}</p>
             </details>
           )}
+          </div>
+          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">

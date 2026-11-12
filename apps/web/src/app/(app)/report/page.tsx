@@ -21,7 +21,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const report = clientId ? await getReport(clientId, month, today) : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       <PageHeader
         title="Monthly report"
         description="What to send the client this month: one page, plain English, copy or PDF."

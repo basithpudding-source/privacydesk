@@ -47,6 +47,8 @@
 | 2026-11-12 | Status colours are theme tokens used through one `Tag` component, not per-page colour classes | The same status was coloured by hand in six files; one component keeps tags consistent and always worded |
 | 2026-11-12 | The navigation shows two counts: inbox items waiting and overdue cases | They answer "is there anything I must look at?" from any page. Both are counted through the user's own session, so row-level security decides what is counted |
 | 2026-11-12 | "Log a case" and the command palette live in a bar above every page; the case page names the next step as its main button | Common jobs took a trip to the case list first, and the case page left the user to work out which step was next |
+| 2026-11-12 | The navigation is a bar across the top, not a side rail, and every signed-in page uses the full width | Asked for after the first redesign: content sat in a narrow column with empty space either side. Five sections fit a top bar, which gives the whole width to tables and side-by-side panes. `docs/DESIGN-STANDARD.md` section 8 is updated to match |
+| 2026-11-12 | The case list is a dense table grouped by urgency (Overdue, Due within 5 days, On track, Clock not running, Acknowledged, Closed), with a preview panel beside it | Patterns taken from enterprise table guidance and Linear: pinned headings, grouping with headings that stay in view, and "find, decide, act" without leaving the list. The groups follow the existing deadline sort, so no date rule changed |
 
 ## Open questions
 
@@ -68,3 +70,4 @@
 - Overdue cases appear in the reminder digest every night until they are closed. Right for a missed legal deadline, but ask the first pilots whether nightly is too often.
 - Offboarding a client: when a consultancy stops acting for a client, its cases should be exported or handed back and then deleted, with a record that this happened and who asked. Today only the database owner can remove a client (migration 0016). Design this before the first client leaves.
 - Redesign (12 November 2026): the dark theme has matching colours but nothing switches it on. Should the app follow the device setting, offer a switch, or stay light only?
+- Case list (12 November 2026): rows are a fixed compact height and columns cannot be sorted, hidden or resized. Table guidance suggests a density switch and sortable columns; add them when a pilot user asks, and decide then whether the choice is remembered per person.

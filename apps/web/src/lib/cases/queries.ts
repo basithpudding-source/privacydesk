@@ -51,7 +51,7 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
 
   const ids = dl.map((d) => d.case_id);
   const [{ data: cases }, { data: orgs }] = await Promise.all([
-    supabase.from("cases").select("id, requester_name, requester_email, summary, source_ref").in("id", ids),
+    supabase.from("cases").select("id, requester_name, requester_email, summary, source_ref, channel, acknowledged_on").in("id", ids),
     supabase.from("organisations").select("id, name, code, colour"),
   ]);
   const caseById = new Map((cases ?? []).map((c) => [c.id as string, c]));
@@ -63,6 +63,9 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
     return {
       ...d,
       requester_name: (c?.requester_name as string | null) ?? null,
+      requester_email: (c?.requester_email as string | null) ?? null,
+      channel: (c?.channel as string | null) ?? null,
+      acknowledged_on: (c?.acknowledged_on as string | null) ?? null,
       summary: (c?.summary as string | null) ?? null,
       organisation_name: (o?.name as string) ?? "",
       organisation_code: (o?.code as string) ?? "",

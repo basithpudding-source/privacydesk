@@ -23,7 +23,7 @@ export function MonthlyChart({ months }: { months: MonthCount[] }) {
   const empty = months.every((m) => m.complaint + m.sar + m.other === 0);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_16rem] xl:grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_16rem]">
       <div>
         <ul className="mb-2 flex flex-wrap gap-4 text-xs text-muted-foreground" aria-label="Series">
           {SERIES.map((s) => (

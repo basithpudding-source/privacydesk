@@ -61,7 +61,9 @@ Status words are adjectives in sentence case (Completed, In progress, Not starte
 
 ## 8. Layout rules
 
-- Three-column desktop: nav rail (220 px), content, optional detail panel. On phones, nav becomes a bottom bar; tables become cards.
+- One bar across the top holds the five sections, search and "Log a case"; everything below it uses the full width of the window. (Changed 12 November 2026 from a 220 px side rail: with five sections a top bar is enough, and the rail left the work in a narrow column.) On phones the sections move to a bottom bar.
+- Lists are dense tables, one line per row: column headings stay in view while the table scrolls, rows are grouped under headings that also stay in view, and the first column is the reference. A row can be previewed in a panel beside the list, so it can be found, checked and acted on without leaving the table.
+- Wide screens show related things side by side (list, message and decision in the inbox; steps and letters on a case) before they add empty margin.
 - 65-character running text; tabular numerals in tables; 8 px spacing steps.
 - Same card, same padding, same baseline everywhere. One accent colour; semantic colours separate.
 - Light and dark themes with equal care.
