@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { summariseSentEmail, type SentSummaryOutcome } from "@/lib/ai/sent-summary";
+import { requireMember } from "@/lib/auth";
+import { EMAIL_STEPS } from "@/lib/cases/evidence";
 import { ACTIONS, type CaseAction } from "@/lib/cases/types";
 import { createClient } from "@/lib/supabase/server";
 import { todayInLondon } from "@/lib/today";
@@ -19,6 +22,8 @@ export async function applyCaseAction(caseId: string, action: CaseAction, _prev:
     note: String(formData.get("note") ?? "").trim(),
     outcome: String(formData.get("outcome") ?? "").trim(),
   };
+  // The short record of a sent email (lib/cases/evidence.ts), only on steps where one is sent.
+  const evidence = EMAIL_STEPS.includes(action) ? String(formData.get("evidence") ?? "").replace(/\s+/g, " ").trim().slice(0, 1500) : "";
   if (!ACTIONS.includes(action)) return { error: "Unknown action.", values };
   if (action !== "note" && !ISO_DATE.test(values.on)) return { error: "Enter the date this happened.", values };
 
@@ -29,14 +34,40 @@ export async function applyCaseAction(caseId: string, action: CaseAction, _prev:
     p_on: action === "note" ? todayInLondon() : values.on,
     p_note: values.note || null,
     p_outcome: values.outcome || null,
+    // Left out entirely when there is none, so the step still works on a database that has
+    // not had migration 0021.
+    ...(evidence ? { p_evidence: evidence } : {}),
   });
 
   if (error) {
     // The function's messages already say what went wrong and how to fix it.
-    const message = error.code === "42501" ? "You can read this case but not change it." : error.message;
+    const message =
+      error.code === "42501"
+        ? "You can read this case but not change it."
+        : error.code === "PGRST202" && evidence
+          ? "The database needs migration 0021 before an email can be recorded with a step. Remove the email to record the step without it."
+          : error.message;
     return { error: message, values };
   }
   revalidatePath("/cases");
   revalidatePath(`/cases/${caseId}`);
   redirect(`/cases/${caseId}`);
+}
+
+/**
+ * A one-line summary of a sent email, for the evidence kept with a step. The text arrives
+ * from the browser, where the email was read; nothing else of the email reaches the server.
+ * AI is used only when the client's AI switch is on; otherwise the caller keeps its own
+ * plain summary. The person sees and can change the summary before it is recorded.
+ */
+export async function summariseSent(caseId: string, text: string): Promise<SentSummaryOutcome> {
+  const user = await requireMember();
+  if (user.membership.role === "read_only") return { summary: null, reason: "You can read this case but not change it." };
+  const supabase = await createClient();
+  // Through the person's own session, so row-level security decides whether the case is theirs.
+  const { data: c } = await supabase.from("cases").select("organisation_id").eq("id", caseId).maybeSingle();
+  if (!c) return { summary: null, reason: "That case is not here." };
+  const { data: org } = await supabase.from("organisations").select("name, ai_enabled").eq("id", c.organisation_id).maybeSingle();
+  if (!org) return { summary: null, reason: "That case is not here." };
+  return summariseSentEmail({ text: String(text ?? "").slice(0, 20000), organisationName: org.name as string, aiEnabled: Boolean(org.ai_enabled) });
 }

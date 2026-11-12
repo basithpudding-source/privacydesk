@@ -220,7 +220,7 @@ export default async function CasePage({
           )}
           {action && !returning && (
             <div className="lg:sticky lg:top-20 lg:z-10">
-              <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} />
+              <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} requesterEmail={c.requester_email} receivedOn={c.received_on} />
             </div>
           )}
 

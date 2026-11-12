@@ -117,3 +117,104 @@ export async function parseEmailFile(fileName: string, data: ArrayBuffer): Promi
     problem: nothing ? "This file does not look like an email." : body.length < 10 ? "No text was found in this email." : null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// A sent email, read as evidence that a step on a case happened
+// ---------------------------------------------------------------------------
+
+export interface Party {
+  name: string;
+  /** Lowercased; empty when the file gives no usable email address (some Outlook files do not). */
+  email: string;
+}
+
+export interface SentEmail {
+  fileName: string;
+  from: Party;
+  to: Party[];
+  cc: Party[];
+  subject: string;
+  /** When it was sent, as an ISO timestamp, or null when the file does not say. */
+  sentAt: string | null;
+  /** Names of the files attached, leaving out pictures that are part of the message itself. */
+  attachments: string[];
+  /** What the sender wrote this time: any earlier message quoted underneath is cut off. */
+  replyText: string;
+  problem: string | null;
+}
+
+function party(name: string | undefined | null, email: string | undefined | null): Party {
+  const address = (email ?? "").trim().toLowerCase();
+  return { name: (name ?? "").trim(), email: EMAIL.test(address) ? address : "" };
+}
+
+/**
+ * Cut an email down to the new text, dropping whatever is quoted from earlier messages:
+ * an "Original message" block, an Outlook divider line, "On ... wrote:", a From/Sent header
+ * pair, or lines that start with ">".
+ */
+export function stripQuoted(text: string): string {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const cut = lines.findIndex((raw, i) => {
+    const line = raw.trim();
+    return (
+      /^-{2,}\s*original message\s*-{2,}$/i.test(line) ||
+      /^_{10,}$/.test(line) ||
+      /^on .{5,200} wrote:$/i.test(line) ||
+      (/^from:\s/i.test(line) && lines.slice(i + 1, i + 5).some((next) => /^(sent|date):\s/i.test(next.trim()))) ||
+      line.startsWith(">")
+    );
+  });
+  return tidy((cut === -1 ? lines : lines.slice(0, cut)).join("\n"));
+}
+
+/** Read a sent email (.eml or Outlook .msg) for who it went to, when, and what was attached. */
+export async function parseSentEmail(fileName: string, data: ArrayBuffer): Promise<SentEmail> {
+  const empty: SentEmail = { fileName, from: party("", ""), to: [], cc: [], subject: "", sentAt: null, attachments: [], replyText: "", problem: null };
+  try {
+    if (isMsg(fileName, data)) {
+      const m = new MsgReader(data).getFileData();
+      const recipients = m.recipients ?? [];
+      const list = (kind: "to" | "cc") =>
+        recipients.filter((r) => (r.recipType ?? "to") === kind).map((r) => party(r.name, [r.smtpAddress, r.email].find((a) => a && EMAIL.test(a.trim().toLowerCase()))));
+      const text = m.body || (m.bodyHtml ? htmlToText(m.bodyHtml) : "");
+      const out: SentEmail = {
+        fileName,
+        from: party(m.senderName, [m.senderSmtpAddress, m.senderEmail].find((a) => a && EMAIL.test(a.trim().toLowerCase()))),
+        to: list("to"),
+        cc: list("cc"),
+        subject: (m.subject ?? "").replace(/\s+/g, " ").trim(),
+        // For something you sent, the moment you pressed send comes first.
+        sentAt: isoOrNull(m.clientSubmitTime) ?? isoOrNull(m.messageDeliveryTime) ?? isoOrNull(m.creationTime),
+        attachments: (m.attachments ?? []).filter((a) => !a.attachmentHidden).map((a) => (a.fileName || a.fileNameShort || a.name || "unnamed attachment").trim()),
+        replyText: stripQuoted(text),
+        problem: null,
+      };
+      return { ...out, problem: problemWith(out) };
+    }
+    const m = await PostalMime.parse(data);
+    const flat = (list: typeof m.to): Party[] =>
+      (list ?? []).flatMap((a) => ("address" in a && a.address ? [party(a.name, a.address)] : "group" in a && a.group ? a.group.map((g) => party(g.name, g.address)) : []));
+    const from = m.from && "address" in m.from ? party(m.from.name, m.from.address) : party("", "");
+    const out: SentEmail = {
+      fileName,
+      from,
+      to: flat(m.to),
+      cc: flat(m.cc),
+      subject: (m.subject ?? "").replace(/\s+/g, " ").trim(),
+      sentAt: isoOrNull(m.date),
+      // Pictures shown inside the message (a logo in a signature) are not attachments.
+      attachments: m.attachments.filter((a) => !a.related).map((a) => (a.filename ?? "").trim() || `unnamed attachment (${a.mimeType})`),
+      replyText: stripQuoted(m.text || (m.html ? htmlToText(m.html) : "")),
+      problem: null,
+    };
+    return { ...out, problem: problemWith(out) };
+  } catch {
+    return { ...empty, problem: "This file could not be read as an email. Save the sent email again as .eml or .msg." };
+  }
+}
+
+function problemWith(e: SentEmail): string | null {
+  if (e.to.length === 0 && e.cc.length === 0 && !e.subject && !e.sentAt) return "This file does not look like an email.";
+  return null;
+}

@@ -115,6 +115,15 @@ Still to do by hand:
 - [ ] Add your name and job title on the profile page, so drafts are signed with them.
 - [ ] Press "Open in my email program" on a sample case and check what arrives in Outlook. The link was checked in the browser (recipient, subject, text, original message, line breaks, length), but it was intercepted there and never handed to a real email program.
 
+## 12. Sent email as evidence for a step (12 November 2026)
+
+- [x] Drop or choose a sent email (.eml or Outlook .msg) on a step that sends one: the date is taken from it and a short record is kept with the step.
+- [x] The record says whether it went to the address on the case, and names any attachments; the email itself is not stored.
+- [x] A note typed when asking for proof of identity is now recorded (it was being dropped).
+- [ ] Run `supabase/migrations/0021_email_evidence.sql` in the SQL editor on `privacy-desk-dev`. Until then a step can still be recorded by hand, but not with an email attached; the app says so.
+- [ ] After 0021: record one step with a sample sent email and check the audit entry.
+- [ ] Try it with real `.msg` files dragged from Outlook's Sent folder; only `.eml` files have been tested.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
