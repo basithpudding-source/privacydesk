@@ -1,3 +1,4 @@
+import { Brand } from "@/components/brand";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,10 +18,10 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   const { error, detail } = await searchParams;
 
   return (
-    <main className="flex flex-1 flex-col justify-center px-4 py-16 sm:px-8">
-      <div className="mx-auto w-full max-w-md">
-        <p className="text-sm font-medium text-muted-foreground">Privacy Desk</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Name your consultancy</h1>
+    <main className="flex flex-1 flex-col justify-center bg-canvas px-4 py-16 sm:px-8">
+      <div className="surface mx-auto w-full max-w-md p-6 sm:p-8">
+        <Brand />
+        <h1 className="mt-6 text-2xl font-semibold tracking-tight">Name your consultancy</h1>
         <p className="mt-3 text-muted-foreground">
           You are signed in as <span className="font-medium text-foreground">{user.email}</span>.
           Give your consultancy a name to set up its desk. You will be its administrator.

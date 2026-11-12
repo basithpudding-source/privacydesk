@@ -59,9 +59,16 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
           break;
       }
     }
+    // The top bar's buttons open the same palette and help as the keys do.
+    const openPalette = () => setPalette(true);
+    const openHelp = () => setHelp(true);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("pd:open-palette", openPalette);
+    window.addEventListener("pd:open-help", openHelp);
     return () => {
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pd:open-palette", openPalette);
+      window.removeEventListener("pd:open-help", openHelp);
       clearTimeout(timer);
     };
   }, [router, canWrite]);

@@ -1,3 +1,4 @@
+import { Brand } from "@/components/brand";
 import type { Metadata } from "next";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,13 +18,13 @@ export default async function SignInPage({
   const { sent, error, detail, reason } = await searchParams;
 
   return (
-    <main className="flex flex-1 flex-col justify-center px-4 py-16 sm:px-8">
-      <div className="mx-auto w-full max-w-md">
-        <p className="text-sm font-medium text-muted-foreground">Privacy Desk</p>
+    <main className="flex flex-1 flex-col justify-center bg-canvas px-4 py-16 sm:px-8">
+      <div className="surface mx-auto w-full max-w-md p-6 sm:p-8">
+        <Brand />
 
         {sent ? (
           <>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Check your email</h1>
+            <h1 className="mt-6 text-2xl font-semibold tracking-tight">Check your email</h1>
             <p className="mt-3 text-muted-foreground">
               We have sent a sign-in link to <span className="font-medium text-foreground">{sent}</span>.
               It works for one hour. Open it on this device.
@@ -38,7 +39,7 @@ export default async function SignInPage({
           </>
         ) : (
           <>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Sign in</h1>
+            <h1 className="mt-6 text-2xl font-semibold tracking-tight">Sign in</h1>
             <p className="mt-3 text-muted-foreground">
               Enter your work email and we will send you a link that signs you in. No password needed.
             </p>
@@ -83,12 +84,12 @@ export default async function SignInPage({
                   placeholder="you@consultancy.co.uk"
                 />
               </div>
-              <Button type="submit">Email me a sign-in link</Button>
+              <Button type="submit" size="lg">Email me a sign-in link</Button>
             </form>
           </>
         )}
 
-        <p className="mt-10 text-xs text-muted-foreground">
+        <p className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
           Privacy Desk is software, not legal advice. By signing in you agree to the{" "}
           <a href="/terms" className="underline underline-offset-4">terms of use</a>; see also the{" "}
           <a href="/privacy" className="underline underline-offset-4">privacy notice</a>.
