@@ -29,12 +29,12 @@ function countFor(href: string, counts: NavCounts): { n: number; words: string; 
   return null;
 }
 
-/** The five sections: across the top bar on a desktop ("top"), along the bottom on a phone ("bar"). */
-export function NavLinks({ variant, counts }: { variant: "top" | "bar"; counts: NavCounts }) {
+/** The five sections: across the top bar ("top"), down a side rail ("rail"), or along the bottom on a phone ("bar"). */
+export function NavLinks({ variant, counts }: { variant: "top" | "rail" | "bar"; counts: NavCounts }) {
   const pathname = usePathname();
 
   return (
-    <ul className={cn("flex flex-row", variant === "top" && "h-full items-stretch gap-1")}>
+    <ul className={cn("flex", variant === "rail" ? "flex-col gap-0.5" : "flex-row", variant === "top" && "h-full items-stretch gap-1")}>
       {NAV_ITEMS.map(({ href, label, icon: Icon, shortcut }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         const count = countFor(href, counts);
@@ -42,8 +42,9 @@ export function NavLinks({ variant, counts }: { variant: "top" | "bar"; counts: 
           <span
             className={cn(
               "rounded-full text-center font-semibold tabular-nums",
-              variant === "top" ? "min-w-5 px-1.5 text-xs leading-5" : "absolute -right-2.5 -top-1.5 min-w-4 px-1 text-[10px] leading-4",
-              count.urgent ? "bg-danger text-white" : variant === "top" ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-primary text-primary-foreground",
+              variant === "bar" ? "absolute -right-2.5 -top-1.5 min-w-4 px-1 text-[10px] leading-4" : "min-w-5 px-1.5 text-xs leading-5",
+              variant === "rail" && "ml-auto",
+              count.urgent ? "bg-danger text-white" : variant === "bar" ? "bg-primary text-primary-foreground" : "bg-sidebar-primary text-sidebar-primary-foreground",
             )}
           >
             {count.n}
@@ -51,16 +52,17 @@ export function NavLinks({ variant, counts }: { variant: "top" | "bar"; counts: 
           </span>
         );
         return (
-          <li key={href} className={variant === "bar" ? "flex-1" : "flex"}>
+          <li key={href} className={variant === "bar" ? "flex-1" : variant === "top" ? "flex" : undefined}>
             <Link
               href={href}
               title={`${label} (${shortcut})`}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex items-center outline-none focus-visible:ring-3",
-                variant === "top"
+                variant !== "bar"
                   ? cn(
-                      "gap-2 self-center rounded-lg px-3 py-1.5 text-sm font-medium focus-visible:ring-sidebar-ring/60",
+                      "rounded-lg text-sm font-medium focus-visible:ring-sidebar-ring/60",
+                      variant === "top" ? "gap-2 self-center px-3 py-1.5" : "gap-3 px-3 py-2",
                       active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
                     )
                   : cn("flex-col gap-1 rounded-lg px-2 py-1.5 text-xs font-medium focus-visible:ring-ring/50", active ? "text-primary" : "text-muted-foreground hover:text-foreground"),
@@ -68,12 +70,13 @@ export function NavLinks({ variant, counts }: { variant: "top" | "bar"; counts: 
             >
               {/* The line under the current section, so the place is marked by more than a shade. */}
               {variant === "top" && active && <span className="absolute inset-x-3 -bottom-[11px] h-0.5 rounded-full bg-sidebar-primary" aria-hidden="true" />}
+              {variant === "rail" && active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-sidebar-primary" aria-hidden="true" />}
               <span className="relative">
-                <Icon className={variant === "top" ? "size-4" : "size-5"} aria-hidden="true" />
+                <Icon className={variant === "bar" ? "size-5" : "size-4"} aria-hidden="true" />
                 {variant === "bar" && badge}
               </span>
               {label}
-              {variant === "top" && badge}
+              {variant !== "bar" && badge}
             </Link>
           </li>
         );

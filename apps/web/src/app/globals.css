@@ -2,7 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(.theme-system, .theme-system *) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -116,6 +125,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --canvas: oklch(0.165 0.012 268);
   --background: oklch(0.2 0.015 268);
   --foreground: oklch(0.96 0.005 268);
@@ -163,6 +173,58 @@
   --info-fg: oklch(0.9 0.06 240);
 }
 
+/* "Follow my device": the same dark colours when the device asks for dark. Keep in step with .dark above. */
+@media (prefers-color-scheme: dark) {
+  .theme-system {
+    color-scheme: dark;
+    --canvas: oklch(0.165 0.012 268);
+    --background: oklch(0.2 0.015 268);
+    --foreground: oklch(0.96 0.005 268);
+    --card: oklch(0.225 0.016 268);
+    --card-foreground: oklch(0.96 0.005 268);
+    --popover: oklch(0.225 0.016 268);
+    --popover-foreground: oklch(0.96 0.005 268);
+    --primary: oklch(0.7 0.14 277);
+    --primary-foreground: oklch(0.18 0.03 272);
+    --secondary: oklch(0.28 0.018 268);
+    --secondary-foreground: oklch(0.96 0.005 268);
+    --muted: oklch(0.27 0.016 268);
+    --muted-foreground: oklch(0.74 0.015 268);
+    --accent: oklch(0.31 0.06 277);
+    --accent-foreground: oklch(0.9 0.06 277);
+    --destructive: oklch(0.7 0.19 22);
+    --border: oklch(1 0 0 / 11%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.65 0.14 277);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.15 0.014 268);
+    --sidebar-foreground: oklch(0.95 0.008 272);
+    --sidebar-primary: oklch(0.7 0.14 277);
+    --sidebar-primary-foreground: oklch(0.18 0.03 272);
+    --sidebar-accent: oklch(0.26 0.03 272);
+    --sidebar-accent-foreground: oklch(0.99 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.72 0.14 277);
+
+    --ok: oklch(0.7 0.15 155);
+    --ok-bg: oklch(0.3 0.055 155);
+    --ok-fg: oklch(0.9 0.08 155);
+    --warn: oklch(0.8 0.15 75);
+    --warn-bg: oklch(0.32 0.06 75);
+    --warn-fg: oklch(0.92 0.09 85);
+    --danger: oklch(0.68 0.19 25);
+    --danger-bg: oklch(0.31 0.08 25);
+    --danger-fg: oklch(0.9 0.07 22);
+    --info: oklch(0.7 0.12 240);
+    --info-bg: oklch(0.31 0.055 245);
+    --info-fg: oklch(0.9 0.06 240);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -196,4 +258,13 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted-foreground);
+}
+
+/* Preferences: "compact" tightens table rows across the app (set on <html> from the cookie). */
+.density-compact table :where(td, th) {
+  padding-top: 0.2rem !important;
+  padding-bottom: 0.2rem !important;
+}
+.density-compact table {
+  font-size: 0.8125rem;
 }

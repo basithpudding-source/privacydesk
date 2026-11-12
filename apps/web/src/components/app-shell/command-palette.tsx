@@ -97,6 +97,9 @@ export function CommandPalette({
             <CommandItem onSelect={() => go("/report")}>
               <FileText aria-hidden="true" /> Monthly report
             </CommandItem>
+            <CommandItem onSelect={() => go("/settings/profile")}>
+              <ShieldCheck aria-hidden="true" /> Your profile and preferences
+            </CommandItem>
             <CommandItem onSelect={() => go("/settings/security")}>
               <ShieldCheck aria-hidden="true" /> Security
             </CommandItem>
