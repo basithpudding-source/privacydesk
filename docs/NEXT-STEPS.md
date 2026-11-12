@@ -128,6 +128,7 @@ Still to do by hand:
 ## 13. Case page layout and discarding drafts (12 November 2026)
 
 - [x] The details and the request as received are in the top pane, under the due date. The column beside the page holds only the box for recording a step or a note, and the audit trail.
+- [x] That row starts closed, showing only the headings "Details" and "The request as received" with arrows; either heading opens or closes it, by mouse or keyboard. Checked in the signed-in app.
 - [x] A letter draft can be stopped while it is being written ("Stop and discard") or cleared afterwards ("Discard draft"); the last discarded draft can be put back. Stopping also ends the request to the AI provider (checked in the dev server).
 - [x] Checked with sample data in the signed-in app, dark and light: a subject access request and a complaint, with the action box open; a draft stopped part way, then written, edited, discarded and put back with the edit intact.
 - [ ] Not seen with real examples, only imitated on the page: a case with no message (the details take the full width), a request longer than eight lines ("Show all of it"), and a narrow window or phone (the pane was narrowed, the window was not).
