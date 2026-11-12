@@ -104,7 +104,7 @@ Still to do by hand:
 - [x] Undo: put a declined message back in the inbox; return a case to the inbox; an inbox log of every decision.
 - [x] Run `supabase/migrations/0019_saved_views_and_undo.sql` in the SQL editor on `privacy-desk-dev`. Done 12 November 2026. Supabase warned that a table was created without row-level security; that was a false alarm, checked on the live database: both new tables have it on, the inbox log cannot be written by users, and all 22 live checks pass.
 - [x] After 0019, tested with sample data: a view was saved, applied (filters and hidden column restored), updated, renamed and deleted; a declined message was put back in the inbox; a case was returned to the inbox, closed and marked, with both steps on the message's log and the dashboard counts adjusted (one fewer open case, on-time figure unchanged).
-- [ ] Run `supabase/migrations/0020_return_event_wording.sql`. It only rewords the audit entry written when a case is returned, so the reason comes last. Until then the entry reads awkwardly when the reason has no full stop; nothing else is affected.
+- [x] Run `supabase/migrations/0020_return_event_wording.sql`. Done 12 November 2026; checked on the live database that the function carries the new wording, still runs with definer rights, can be run by signed-in users and not by anonymous ones. It was not exercised by returning another case, so the first new entry is the first time the wording shows in the app.
 
 ## How to work with Claude Code on this
 
