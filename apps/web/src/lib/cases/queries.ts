@@ -9,7 +9,13 @@ import type { CaseEventRow, CaseListRow, CaseRow, ClockPauseRow, DeadlineRow } f
 
 export type StatusFilter = "open" | "overdue" | "week" | "closed" | "all";
 
+/** The columns the case list can be sorted by; "" keeps the default order (next deadline first, grouped). */
+export const CASE_SORTS = ["ref", "status", "deadline", "from", "summary", "client", "type", "channel", "received", "target", "acknowledged"] as const;
+export type CaseSort = (typeof CASE_SORTS)[number] | "";
+
 export interface CaseFilters {
+  sort: CaseSort;
+  dir: "asc" | "desc";
   status: StatusFilter;
   type: string;
   client: string;
@@ -26,6 +32,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     type: one(params.type),
     client: one(params.client),
     q: one(params.q).trim(),
+    sort: (CASE_SORTS as readonly string[]).includes(one(params.sort)) ? (one(params.sort) as CaseSort) : "",
+    dir: one(params.dir) === "desc" ? "desc" : "asc",
   };
 }
 
@@ -84,7 +92,53 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
   }
 
   rows.sort(compareByDeadline);
+  if (filters.sort) rows = sortRows(rows, filters.sort, filters.dir);
   return { rows, error: null };
+}
+
+/** The value a column sorts by. Dates are ISO strings, so they sort as text. */
+function sortValue(r: CaseListRow, sort: Exclude<CaseSort, "">): string | number | null {
+  switch (sort) {
+    case "ref":
+      return r.ref;
+    case "status":
+      return r.status === "closed" ? null : r.days_left;
+    case "deadline":
+      return r.status === "closed" ? null : r.type === "complaint" ? r.ack_due : r.response_due;
+    case "from":
+      return r.requester_name?.toLowerCase() ?? null;
+    case "summary":
+      return r.summary?.toLowerCase() ?? null;
+    case "client":
+      return r.organisation_name.toLowerCase();
+    case "type":
+      return r.type;
+    case "channel":
+      return r.channel?.toLowerCase() ?? null;
+    case "received":
+      return r.received_on;
+    case "target":
+      return r.status === "open" ? r.internal_target : null;
+    case "acknowledged":
+      return r.acknowledged_on;
+  }
+}
+
+/**
+ * Sort by one column. Rows with nothing in that column go last whichever way the sort runs,
+ * and ties keep the deadline order they arrived in (Array.prototype.sort is stable).
+ */
+export function sortRows(rows: CaseListRow[], sort: Exclude<CaseSort, "">, dir: "asc" | "desc"): CaseListRow[] {
+  const sign = dir === "desc" ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = sortValue(a, sort);
+    const vb = sortValue(b, sort);
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === "number" && typeof vb === "number") return sign * (va - vb);
+    return sign * String(va).localeCompare(String(vb), "en-GB", { numeric: true });
+  });
 }
 
 /** Dated deadlines first (soonest first), then stopped clocks, then acknowledged, then closed. */

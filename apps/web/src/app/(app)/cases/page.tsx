@@ -5,7 +5,8 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { Tag, TONE_SOLID } from "@/components/ui/tag";
 import { requireMember } from "@/lib/auth";
 import { clockLabel, typeLabel, urgencyFor, URGENCY_TONE, type Urgency } from "@/lib/cases/labels";
-import { getCase, listCases, listClientsForForms, parseFilters } from "@/lib/cases/queries";
+import { ariaSort, SortHeader } from "@/components/sort-header";
+import { getCase, listCases, listClientsForForms, parseFilters, type CaseSort } from "@/lib/cases/queries";
 import type { CaseListRow } from "@/lib/cases/types";
 import { shortDate } from "@/lib/clocks";
 import { cn } from "@/lib/utils";
@@ -43,22 +44,35 @@ export default async function CasesPage({
   const filtered = Boolean(filters.q || filters.type || filters.client || filters.status !== "open");
 
   // The list's address with the current filters, with or without a case opened beside it.
-  const listHref = (peekCase?: string) => {
+  const href = (o: { peek?: string; sort?: CaseSort; dir?: "asc" | "desc" }) => {
     const q = new URLSearchParams();
     if (filters.status !== "open") q.set("status", filters.status);
     if (filters.type) q.set("type", filters.type);
     if (filters.client) q.set("client", filters.client);
     if (filters.q) q.set("q", filters.q);
-    if (peekCase) q.set("peek", peekCase);
+    if (o.sort) {
+      q.set("sort", o.sort);
+      if (o.dir === "desc") q.set("dir", "desc");
+    }
+    if (o.peek) q.set("peek", o.peek);
     const s = q.toString();
     return s ? `/cases?${s}` : "/cases";
   };
+  const listHref = (peekCase?: string) => href({ peek: peekCase, sort: filters.sort, dir: filters.dir });
+  // Sorting keeps the filters and any open preview; a third click clears the sort.
+  const sortState = (col: CaseSort) => (filters.sort === col ? filters.dir : "none");
+  const sortHrefs = (col: CaseSort) => ({
+    asc: href({ peek: peek?.c.id, sort: col, dir: "asc" }),
+    desc: href({ peek: peek?.c.id, sort: col, dir: "desc" }),
+    clear: href({ peek: peek?.c.id }),
+  });
 
-  // Rows arrive sorted by deadline, so each group is a run of neighbours.
-  const groups: { name: Group; rows: { r: CaseListRow; urgency: Urgency }[] }[] = [];
+  // In the default order rows arrive sorted by deadline, so each group is a run of
+  // neighbours. Sorted by a column, the list is one flat run with no group headings.
+  const groups: { name: Group | ""; rows: { r: CaseListRow; urgency: Urgency }[] }[] = [];
   for (const r of rows) {
     const urgency = urgencyFor(r.clock_state, r.days_left);
-    const name = groupOf(r, urgency);
+    const name = filters.sort ? "" : groupOf(r, urgency);
     const last = groups[groups.length - 1];
     if (last && last.name === name) last.rows.push({ r, urgency });
     else groups.push({ name, rows: [{ r, urgency }] });
@@ -106,17 +120,39 @@ export default async function CasesPage({
                 <caption className="sr-only">Cases sorted by next deadline, grouped by how pressing they are</caption>
                 <thead>
                   <tr>
-                    <th scope="col" className={cn(th, "w-28 pl-5")}>Ref</th>
-                    <th scope="col" className={th}>Status</th>
-                    <th scope="col" className={th}>Next deadline</th>
-                    <th scope="col" className={th}>From</th>
-                    <th scope="col" className={cn(th, "w-full")}>Summary</th>
-                    <th scope="col" className={th}>Client</th>
-                    <th scope="col" className={th}>Type</th>
-                    <th scope="col" className={cn(th, "hidden 2xl:table-cell")}>Channel</th>
-                    <th scope="col" className={th}>Received</th>
-                    <th scope="col" className={cn(th, "hidden xl:table-cell")} title="The team's internal target, not a legal limit">Target</th>
-                    <th scope="col" className={cn(th, "hidden xl:table-cell")}>Acknowledged</th>
+                    <th scope="col" className={cn(th, "w-28 pl-5")} aria-sort={ariaSort(sortState("ref"))}>
+                      <SortHeader label="Ref" state={sortState("ref")} hrefs={sortHrefs("ref")} />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("status"))}>
+                      <SortHeader label="Status" state={sortState("status")} hrefs={sortHrefs("status")} title="Sorts by days left" />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("deadline"))}>
+                      <SortHeader label="Next deadline" state={sortState("deadline")} hrefs={sortHrefs("deadline")} />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("from"))}>
+                      <SortHeader label="From" state={sortState("from")} hrefs={sortHrefs("from")} />
+                    </th>
+                    <th scope="col" className={cn(th, "w-full")} aria-sort={ariaSort(sortState("summary"))}>
+                      <SortHeader label="Summary" state={sortState("summary")} hrefs={sortHrefs("summary")} />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("client"))}>
+                      <SortHeader label="Client" state={sortState("client")} hrefs={sortHrefs("client")} />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("type"))}>
+                      <SortHeader label="Type" state={sortState("type")} hrefs={sortHrefs("type")} />
+                    </th>
+                    <th scope="col" className={cn(th, "hidden 2xl:table-cell")} aria-sort={ariaSort(sortState("channel"))}>
+                      <SortHeader label="Channel" state={sortState("channel")} hrefs={sortHrefs("channel")} />
+                    </th>
+                    <th scope="col" className={th} aria-sort={ariaSort(sortState("received"))}>
+                      <SortHeader label="Received" state={sortState("received")} hrefs={sortHrefs("received")} />
+                    </th>
+                    <th scope="col" className={cn(th, "hidden xl:table-cell")} aria-sort={ariaSort(sortState("target"))}>
+                      <SortHeader label="Target" state={sortState("target")} hrefs={sortHrefs("target")} title="The team's internal target, not a legal limit" />
+                    </th>
+                    <th scope="col" className={cn(th, "hidden xl:table-cell")} aria-sort={ariaSort(sortState("acknowledged"))}>
+                      <SortHeader label="Acknowledged" state={sortState("acknowledged")} hrefs={sortHrefs("acknowledged")} />
+                    </th>
                     <th scope="col" className={cn(th, "pr-4")}>
                       <span className="sr-only">Preview</span>
                     </th>
@@ -124,11 +160,13 @@ export default async function CasesPage({
                 </thead>
                 {groups.map((g) => (
                   <tbody key={g.name}>
-                    <tr>
-                      <th scope="rowgroup" colSpan={12} className="sticky top-[33px] z-10 border-b border-border bg-muted px-5 py-1.5 text-left text-xs font-semibold">
-                        {g.name} <span className="ml-1 font-normal tabular-nums text-muted-foreground">{g.rows.length}</span>
-                      </th>
-                    </tr>
+                    {g.name && (
+                      <tr>
+                        <th scope="rowgroup" colSpan={12} className="sticky top-[37px] z-10 border-b border-border bg-muted px-5 py-1.5 text-left text-xs font-semibold">
+                          {g.name} <span className="ml-1 font-normal tabular-nums text-muted-foreground">{g.rows.length}</span>
+                        </th>
+                      </tr>
+                    )}
                     {g.rows.map(({ r, urgency }) => {
                       const due = r.type === "complaint" ? r.ack_due : r.response_due;
                       const tone = URGENCY_TONE[urgency];
@@ -206,7 +244,9 @@ export default async function CasesPage({
               </table>
             </div>
           )}
-          <p className="mt-3 text-xs text-muted-foreground">Dates follow ICO guidance. “Target” is the team&apos;s internal target, not a legal limit.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Dates follow ICO guidance. “Target” is the team&apos;s internal target, not a legal limit. Click a column heading to sort by it{filters.sort ? "; click it a third time to go back to the grouped order" : ""}.
+          </p>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlarmClock, CalendarClock, CircleCheck, FolderOpen, type LucideIcon } from "lucide-react";
 import { ClientPicker } from "@/components/client-picker";
 import { PageHeader } from "@/components/page-header";
+import { ariaSort, SortHeader } from "@/components/sort-header";
 import { Tag, TONE_SOLID, type Tone } from "@/components/ui/tag";
 import { requireMember } from "@/lib/auth";
 import { clockLabel, typeLabel, urgencyFor, URGENCY_TONE } from "@/lib/cases/labels";
@@ -14,9 +15,14 @@ import { todayInLondon } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
+const CLIENT_SORTS = ["name", "open", "dueWeek", "overdue", "receivedThisMonth", "onTime"] as const;
+type ClientSort = (typeof CLIENT_SORTS)[number];
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string; sort?: string; dir?: string }> }) {
   await requireMember();
-  const { client = "" } = await searchParams;
+  const { client = "", sort: sortParam = "", dir: dirParam } = await searchParams;
+  const sort = (CLIENT_SORTS as readonly string[]).includes(sortParam) ? (sortParam as ClientSort) : null;
+  const dir = dirParam === "desc" ? "desc" : "asc";
   const today = todayInLondon();
   const { summary: s, clients, error } = await getDashboard(client, today);
   const scopeName = clients.find((c) => c.id === client)?.name ?? "All clients";
@@ -26,6 +32,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const q = new URLSearchParams({ ...(status ? { status } : {}), ...(client ? { client } : {}) }).toString();
     return q ? `/cases?${q}` : "/cases";
   };
+
+  // The by-client table sorts by any column; the share met on time sorts as a fraction.
+  const value = (c: (typeof s.clients)[number], by: ClientSort) => (by === "name" ? c.name.toLowerCase() : by === "onTime" ? (c.measured ? c.met / c.measured : null) : c[by]);
+  const clientRows = sort
+    ? [...s.clients].sort((a, b) => {
+        const va = value(a, sort);
+        const vb = value(b, sort);
+        if (va === null || vb === null) return va === vb ? 0 : va === null ? 1 : -1;
+        const d = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), "en-GB");
+        return dir === "desc" ? -d : d;
+      })
+    : s.clients;
+  const sortHref = (by?: ClientSort, d?: "asc" | "desc") => {
+    const q = new URLSearchParams({ ...(client ? { client } : {}), ...(by ? { sort: by } : {}), ...(d === "desc" ? { dir: "desc" } : {}) }).toString();
+    return q ? `/dashboard?${q}` : "/dashboard";
+  };
+  const sortState = (by: ClientSort) => (sort === by ? dir : "none");
+  const sortHrefs = (by: ClientSort) => ({ asc: sortHref(by, "asc"), desc: sortHref(by, "desc"), clear: sortHref() });
 
   return (
     <div className="w-full">
@@ -98,19 +122,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <caption className="sr-only">Cases by client</caption>
             <thead className="border-b border-border text-left text-xs text-muted-foreground">
               <tr>
-                <th scope="col" className="py-2.5 pl-5 pr-3 font-medium">Client</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-medium">Open</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-medium">Due in 7 days</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-medium">Overdue</th>
-                <th scope="col" className="px-3 py-2.5 text-right font-medium">Received this month</th>
-                <th scope="col" className="py-2.5 pl-3 pr-5 text-right font-medium">On time</th>
+                <th scope="col" className="py-2.5 pl-5 pr-3 font-medium" aria-sort={ariaSort(sortState("name"))}><SortHeader label="Client" state={sortState("name")} hrefs={sortHrefs("name")} /></th>
+                <th scope="col" className="px-3 py-2.5 text-right font-medium" aria-sort={ariaSort(sortState("open"))}><SortHeader label="Open" align="right" state={sortState("open")} hrefs={sortHrefs("open")} /></th>
+                <th scope="col" className="px-3 py-2.5 text-right font-medium" aria-sort={ariaSort(sortState("dueWeek"))}><SortHeader label="Due in 7 days" align="right" state={sortState("dueWeek")} hrefs={sortHrefs("dueWeek")} /></th>
+                <th scope="col" className="px-3 py-2.5 text-right font-medium" aria-sort={ariaSort(sortState("overdue"))}><SortHeader label="Overdue" align="right" state={sortState("overdue")} hrefs={sortHrefs("overdue")} /></th>
+                <th scope="col" className="px-3 py-2.5 text-right font-medium" aria-sort={ariaSort(sortState("receivedThisMonth"))}><SortHeader label="Received this month" align="right" state={sortState("receivedThisMonth")} hrefs={sortHrefs("receivedThisMonth")} /></th>
+                <th scope="col" className="py-2.5 pl-3 pr-5 text-right font-medium" aria-sort={ariaSort(sortState("onTime"))}><SortHeader label="On time" align="right" state={sortState("onTime")} hrefs={sortHrefs("onTime")} /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {s.clients.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">No clients yet.</td></tr>
               ) : (
-                s.clients.map((c) => (
+                clientRows.map((c) => (
                   <tr key={c.id} className="hover:bg-muted/50">
                     <td className="py-2.5 pl-5 pr-3">
                       <Link href={`/dashboard?client=${c.id}`} className="inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline">
