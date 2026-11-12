@@ -7,8 +7,10 @@ import { Tag } from "@/components/ui/tag";
 import { requireMember } from "@/lib/auth";
 import { typeLabel } from "@/lib/cases/labels";
 import { shortDate } from "@/lib/clocks";
-import { getInboxItem, listInbox } from "@/lib/inbox/queries";
+import { getInboxItem, listInbox, listInboxEvents } from "@/lib/inbox/queries";
 import { cn } from "@/lib/utils";
+import { UndoForm } from "@/components/undo-form";
+import { reopenItem, returnCaseToInbox } from "./actions";
 import { AcceptForm, DeclineForm, RetriageButton } from "./decide-forms";
 import { TriageCard } from "./triage-card";
 import { londonDate, todayInLondon } from "@/lib/today";
@@ -19,7 +21,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const user = await requireMember();
   const { item: itemId, view: viewParam } = await searchParams;
   const view = viewParam === "decided" ? "decided" : "new";
-  const [{ rows, error }, selected] = await Promise.all([listInbox(view), itemId ? getInboxItem(itemId) : Promise.resolve(null)]);
+  const [{ rows, error }, selected, history] = await Promise.all([listInbox(view), itemId ? getInboxItem(itemId) : Promise.resolve(null), itemId ? listInboxEvents(itemId) : Promise.resolve([])]);
   const canWrite = user.membership.role !== "read_only";
   const today = todayInLondon();
 
@@ -213,6 +215,45 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     <>Declined{selected.decided_at && <> on {shortDate(londonDate(selected.decided_at))}</>}: {selected.decline_reason}</>
                   )}
                 </p>
+              )}
+
+              {/* Undo: a decided message can go back to the inbox, with the reason on the record. */}
+              {selected.status !== "new" && canWrite && (
+                <div className="mt-5 border-t border-border pt-5">
+                  {selected.status === "declined" ? (
+                    <UndoForm
+                      action={reopenItem.bind(null, selected.id)}
+                      title="Put it back in the inbox"
+                      explain="Use this if it was declined by mistake. It returns to New so triage can be run again and it can be accepted or declined afresh. The decline stays on the log below."
+                      button="Put back in the inbox"
+                      placeholder="For example: declined by mistake; it is a subject access request"
+                    />
+                  ) : selected.case_id ? (
+                    <UndoForm
+                      action={returnCaseToInbox.bind(null, selected.case_id)}
+                      title="Return the case to the inbox"
+                      explain={`Use this if it was accepted with the wrong details. Case ${selected.case_ref ?? ""} is closed and kept for the record (it is never deleted), and this message returns to New to be triaged and accepted again as a new case. The case must be open.`}
+                      button="Close the case and put the message back"
+                      placeholder="For example: accepted as a SAR; it is a complaint"
+                    />
+                  ) : null}
+                </div>
+              )}
+
+              {history.length > 0 && (
+                <section aria-labelledby="history-heading" className="mt-5 border-t border-border pt-5">
+                  <h3 id="history-heading" className="section-label">What has happened to this message</h3>
+                  <ol className="mt-2 space-y-2.5 text-sm">
+                    {history.map((e) => (
+                      <li key={e.id}>
+                        <p>{e.text}</p>
+                        <p className="text-xs tabular-nums text-muted-foreground">
+                          {shortDate(londonDate(e.at))} · {e.actor === user.id ? "you" : e.actor ? `user ${e.actor.slice(0, 8)}` : "system"}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
               )}
             </div>
               </div>

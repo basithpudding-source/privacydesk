@@ -66,7 +66,7 @@ Status words are adjectives in sentence case (Completed, In progress, Not starte
 - Wide screens show related things side by side (list, message and decision in the inbox; steps and letters on a case) before they add empty margin.
 - 65-character running text; tabular numerals in tables; 8 px spacing steps.
 - Same card, same padding, same baseline everywhere. One accent colour; semantic colours separate.
-- Light and dark themes with equal care.
+- Light and dark themes with equal care. Each person chooses light, dark or "match my device" on their profile page, with table density, where the navigation sits and how cases open. Light, top navigation and comfortable rows are the standard.
 
 ## 9. What to copy from the prototype, and what to fix
 

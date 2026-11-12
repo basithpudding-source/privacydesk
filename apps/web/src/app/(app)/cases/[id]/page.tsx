@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, StickyNote } from "lucide-react";
+import { ArrowRight, StickyNote, Undo2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { UndoForm } from "@/components/undo-form";
+import { inboxItemForCase } from "@/lib/inbox/queries";
+import { returnCaseToInbox } from "../../inbox/actions";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
 import { requireMember } from "@/lib/auth";
@@ -32,13 +35,18 @@ export default async function CasePage({
   const user = await requireMember();
   const { id } = await params;
   const { do: doParam } = await searchParams;
-  const detail = await getCase(id);
+  const [detail, fromInbox] = await Promise.all([getCase(id), inboxItemForCase(id)]);
   if (!detail) notFound();
   const { c, org, deadline, pauses, events, holidays, holidayCount } = detail;
 
   const clock = clockFor(c, pauses, holidays);
-  const canWrite = user.membership.role !== "read_only";
+  const returned = Boolean(c.returned_to_inbox);
+  // A returned case is a closed record: nothing more can be done to it.
+  const canWrite = user.membership.role !== "read_only" && !returned;
   const action = canWrite && ACTIONS.includes(doParam as CaseAction) ? (doParam as CaseAction) : null;
+  // Only a case that came from an inbox message, and is still open, can go back there.
+  const canReturn = canWrite && Boolean(fromInbox) && c.status === "open";
+  const returning = canReturn && doParam === "return";
   const today = todayInLondon();
   const closed = c.status === "closed";
   const isComplaint = c.type === "complaint";
@@ -54,12 +62,18 @@ export default async function CasePage({
             <span>
               <span className="font-mono">{c.ref}</span> <span className="font-normal text-muted-foreground">·</span> {typeLabel(c.type)}
             </span>
-            <Tag tone={closed ? "neutral" : "info"}>{closed ? "Closed" : "Open"}</Tag>
+            <Tag tone={closed ? "neutral" : "info"}>{returned ? "Returned to the inbox" : closed ? "Closed" : "Open"}</Tag>
           </span>
         }
         actions={
           canWrite && (
             <>
+              {canReturn && (
+                <Button variant="outline" size="lg" render={<Link href={`/cases/${c.id}?do=return`} scroll={false} />} nativeButton={false} title="Close this case and put its message back in the inbox, to be triaged and accepted again">
+                  <Undo2 data-icon="inline-start" aria-hidden="true" />
+                  Return to the inbox
+                </Button>
+              )}
               <Button variant="outline" size="lg" render={<Link href={`/cases/${c.id}?do=note`} scroll={false} />} nativeButton={false}>
                 <StickyNote data-icon="inline-start" aria-hidden="true" />
                 Add a note
@@ -82,6 +96,16 @@ export default async function CasePage({
           {c.requester_name && <span>· from {c.requester_name}</span>}
         </p>
       </PageHeader>
+
+      {returned && (
+        <p className="surface mt-6 flex items-start gap-2.5 px-5 py-4 text-sm">
+          <Undo2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span>
+            This case was returned to the inbox, so its message could be triaged and accepted again. It is closed and kept for the record, cannot be changed or reopened, and is not counted in the on-time figures.{" "}
+            <Link href="/inbox" className="underline underline-offset-4">Go to the inbox</Link>
+          </span>
+        </p>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
         <div className="flex min-w-0 flex-col gap-6">
@@ -127,7 +151,21 @@ export default async function CasePage({
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
-          {action && (
+          {returning && (
+            <div className="surface border-ring/50 p-5 ring-3 ring-ring/15 lg:sticky lg:top-20 lg:z-10">
+              <UndoForm
+                action={returnCaseToInbox.bind(null, c.id)}
+                title="Return this case to the inbox"
+                explain={`Use this if the message was accepted with the wrong details. Case ${c.ref} is closed and kept for the record (it is never deleted, and its reference is not reused). The message returns to the inbox to be triaged and accepted again as a new case.`}
+                button="Close the case and put the message back"
+                placeholder="For example: accepted as a SAR; it is a complaint"
+              />
+              <Link href={`/cases/${c.id}`} scroll={false} className="mt-3 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline">
+                Cancel
+              </Link>
+            </div>
+          )}
+          {action && !returning && (
             <div className="lg:sticky lg:top-20 lg:z-10">
               <ActionPanel key={action} caseId={c.id} action={action} isComplaint={isComplaint} today={today} />
             </div>

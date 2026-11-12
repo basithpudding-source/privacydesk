@@ -97,6 +97,14 @@ Still to do by hand:
 - [x] Run `supabase/migrations/0018_import_emails.sql` in the SQL editor on `privacy-desk-dev`. Done 12 November 2026; two sample `.eml` files were imported, a repeat was refused, and the accept form started from the email's own date.
 - [ ] Try the import with real `.msg` files dragged from classic Outlook; only `.eml` files have been tested.
 
+## 10. Profile, preferences, views and undo (12 November 2026)
+
+- [x] Profile page: who is signed in, role, consultancy, second factor, a display name, and look-and-layout preferences (theme, density, navigation position, preview position, how cases open).
+- [x] Cases: ready-made views, saved views, a column picker, and opening a case in a new window.
+- [x] Undo: put a declined message back in the inbox; return a case to the inbox; an inbox log of every decision.
+- [ ] Run `supabase/migrations/0019_saved_views_and_undo.sql` in the SQL editor on `privacy-desk-dev`. Until then saved views and the undo actions say they need it; everything else works.
+- [ ] After 0019: save a view, rename and delete it; decline a sample message and put it back; accept one and return its case to the inbox; check the inbox log and that the returned case is not counted on the dashboard.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.

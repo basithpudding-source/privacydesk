@@ -50,3 +50,26 @@ export async function getInboxItem(id: string): Promise<InboxListRow | null> {
     case_ref: (caseRow?.data?.ref as string | undefined) ?? null,
   };
 }
+
+export interface InboxEventRow {
+  id: number;
+  at: string;
+  kind: string;
+  text: string;
+  actor: string | null;
+}
+
+/** The log of decisions on a message, newest first. Empty before migration 0019. */
+export async function listInboxEvents(itemId: string): Promise<InboxEventRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("inbox_events").select("id, at, kind, text, actor").eq("inbox_item_id", itemId).order("id", { ascending: false });
+  if (error) return [];
+  return (data ?? []) as InboxEventRow[];
+}
+
+/** The inbox message a case was made from, if it was (a case logged by hand has none). */
+export async function inboxItemForCase(caseId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("inbox_items").select("id").eq("case_id", caseId).maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}

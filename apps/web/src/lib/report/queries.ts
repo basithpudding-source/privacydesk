@@ -1,6 +1,7 @@
 import "server-only";
 import type { CaseRow, DeadlineRow } from "@/lib/cases/types";
 import type { Organisation } from "@/lib/db/types";
+import { returnedCaseIds } from "@/lib/cases/queries";
 import { createClient } from "@/lib/supabase/server";
 import { buildReport, type MonthNumbers, type ReportCase } from "./build";
 
@@ -21,13 +22,15 @@ export async function getReport(orgId: string, month: string, today: string): Pr
   const { data: org } = await supabase.from("organisations").select("id, name, code, colour").eq("id", orgId).maybeSingle();
   if (!org) return null;
 
-  const [{ data: numbers }, { data: cases }, { data: deadlines }] = await Promise.all([
+  const [{ data: numbers }, { data: cases }, { data: deadlines }, returned] = await Promise.all([
+    // (the last entry: cases returned to the inbox, which the report leaves out)
     supabase.from("v_monthly_client_report").select("*").eq("organisation_id", orgId).eq("month", `${month}-01`).maybeSingle(),
     supabase.from("cases").select("id, ref, type, status, received_on, closed_on, outcome").eq("organisation_id", orgId).order("received_on"),
     supabase.from("v_case_deadlines").select("case_id, clock_state, ack_due, response_due, days_left").eq("organisation_id", orgId),
+    returnedCaseIds(),
   ]);
   const dlById = new Map(((deadlines ?? []) as Pick<DeadlineRow, "case_id" | "clock_state" | "ack_due" | "response_due" | "days_left">[]).map((d) => [d.case_id, d]));
-  const rows: ReportCase[] = ((cases ?? []) as Pick<CaseRow, "id" | "ref" | "type" | "status" | "received_on" | "closed_on" | "outcome">[]).map((c) => {
+  const rows: ReportCase[] = ((cases ?? []) as Pick<CaseRow, "id" | "ref" | "type" | "status" | "received_on" | "closed_on" | "outcome">[]).filter((c) => !returned.has(c.id)).map((c) => {
     const d = dlById.get(c.id);
     return {
       ref: c.ref,

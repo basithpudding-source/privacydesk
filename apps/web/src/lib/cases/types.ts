@@ -23,6 +23,8 @@ export interface CaseRow {
   outcome: string | null;
   /** The reference a web form gave the requester (slice 5), when the case came from one. */
   source_ref: string | null;
+  /** True when the case was sent back to the inbox (migration 0019): closed, kept, not counted. */
+  returned_to_inbox?: boolean;
   created_at: string;
   updated_at: string;
 }

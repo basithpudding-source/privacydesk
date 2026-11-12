@@ -198,3 +198,38 @@ export async function importEmails(items: ImportItem[]): Promise<{ error: string
   revalidatePath("/inbox");
   return { error: null, results };
 }
+
+/** PGRST202: the undo functions arrive with migration 0019. */
+function describeUndo(code: string | undefined, message: string) {
+  if (code === "PGRST202") return "The database needs migration 0019 before this can be undone.";
+  return describe(code, message);
+}
+
+/**
+ * Undo a decline: the message goes back to the inbox to be triaged and decided again. The
+ * reason is required, and the decline and its undoing both stay on the message's log.
+ */
+export async function reopenItem(itemId: string, _prev: InboxActionState, formData: FormData): Promise<InboxActionState> {
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) return { error: "Say why it is going back to the inbox." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reopen_inbox_item", { p_item_id: itemId, p_reason: reason.slice(0, 500) });
+  if (error) return { error: describeUndo(error.code, error.message) };
+  revalidatePath("/inbox");
+  redirect(`/inbox?item=${itemId}`);
+}
+
+/**
+ * Undo an accept: the case is closed and marked as returned (never deleted), and the message
+ * it came from goes back to the inbox. Works from the case page and from the inbox.
+ */
+export async function returnCaseToInbox(caseId: string, _prev: InboxActionState, formData: FormData): Promise<InboxActionState> {
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) return { error: "Say why the case is going back to the inbox." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("return_case_to_inbox", { p_case_id: caseId, p_reason: reason.slice(0, 500) });
+  if (error) return { error: describeUndo(error.code, error.message) };
+  revalidatePath("/inbox");
+  revalidatePath("/cases");
+  redirect(`/inbox?item=${data as string}`);
+}

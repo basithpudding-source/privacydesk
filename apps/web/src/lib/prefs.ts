@@ -38,7 +38,8 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
-  theme: "system",
+  // Light unless the person chooses otherwise: the app should not change its look on its own.
+  theme: "light",
   density: "comfortable",
   nav: "top",
   preview: "right",
