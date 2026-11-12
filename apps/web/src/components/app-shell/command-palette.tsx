@@ -106,6 +106,9 @@ export function CommandPalette({
               <CommandItem onSelect={() => go("/cases/new")}>
                 <Plus aria-hidden="true" /> Log a case
               </CommandItem>
+              <CommandItem onSelect={() => go("/inbox/import")}>
+                <Plus aria-hidden="true" /> Import emails
+              </CommandItem>
               <CommandItem onSelect={() => go("/clients/new")}>
                 <Plus aria-hidden="true" /> Add client
               </CommandItem>

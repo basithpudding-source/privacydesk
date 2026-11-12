@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ClipboardPaste } from "lucide-react";
+import { ArrowLeft, ClipboardPaste, FileUp } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
@@ -37,10 +37,16 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         description="What has come in that nobody has looked at yet. Accept it into a case, or decline it."
         actions={
           canWrite && (
-            <Button variant="outline" size="lg" render={<Link href="/inbox/paste" />} nativeButton={false}>
-              <ClipboardPaste data-icon="inline-start" aria-hidden="true" />
-              Paste an email
-            </Button>
+            <>
+              <Button variant="outline" size="lg" render={<Link href="/inbox/paste" />} nativeButton={false}>
+                <ClipboardPaste data-icon="inline-start" aria-hidden="true" />
+                Paste an email
+              </Button>
+              <Button variant="outline" size="lg" render={<Link href="/inbox/import" />} nativeButton={false}>
+                <FileUp data-icon="inline-start" aria-hidden="true" />
+                Import emails
+              </Button>
+            </>
           )
         }
       />
@@ -131,7 +137,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               <p className="mt-1 text-sm text-muted-foreground">
                 From <span className="text-foreground">{selected.from_name ?? "unknown"}</span>
                 {selected.from_email ? ` <${selected.from_email}>` : ""} · to {selected.organisation_name} ·{" "}
-                {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · {shortDate(londonDate(selected.received_at))}
+                {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · received {shortDate(londonDate(selected.received_at))}
               </p>
               {selected.channel === "form" && (
                 <p className="mt-2 text-sm">
