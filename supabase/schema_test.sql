@@ -346,6 +346,37 @@ do $$ begin
 end $$;
 select pd.decline_inbox_item((select id from t_imp), 'Test item for the import and undo checks');
 
+-- Email evidence (0021): a short record of the sent email goes on the same audit entry as the
+-- step, only for steps where an email is sent, and a note on an ID request is no longer lost.
+create temp table t_ev as
+  select pd.create_case('aaaaaaaa-0000-0000-0000-000000000002', 'sar', current_date - 3, 'Email', 'Ev Idence', 'ev@example.com', 'Evidence test', null, false) as id;
+select pd.record_case_action((select id from t_ev), 'acknowledge', current_date - 1, null, null,
+  'Email evidence: sent 11 Nov 2026 at 14:32 to ev@example.com, the address on the case. Subject: "We have received your request". No attachments. Summary: acknowledged the request and gave the reference.');
+select case when text like 'Acknowledgement sent on %. Email evidence: sent 11 Nov 2026 at 14:32 to ev@example.com, the address on the case.%Summary: acknowledged the request and gave the reference.'
+            then 'PASS' else 'FAIL' end || ' the evidence is on the same audit entry as the step' as evidence
+  from pd.case_events where case_id = (select id from t_ev) and kind = 'acknowledge';
+select pd.record_case_action((select id from t_ev), 'ask_id', current_date - 1, 'A passport or driving licence');
+select case when text like '%the clock waits until it arrives. Asked for: A passport or driving licence'
+            then 'PASS' else 'FAIL' end || ' a note on an ID request is recorded' as evidence
+  from pd.case_events where case_id = (select id from t_ev) and kind = 'ask_id';
+do $$ begin
+  if not exists (select 1 from pd.case_events where case_id = (select id from t_ev) and kind = 'acknowledge' and text like '%. Email evidence: sent 11 Nov 2026%')
+     or not exists (select 1 from pd.case_events where case_id = (select id from t_ev) and kind = 'ask_id' and text like '%Asked for: A passport or driving licence')
+     or (select acknowledged_on from pd.cases where id = (select id from t_ev)) <> current_date - 1 then
+    raise exception 'Email evidence tests failed';
+  end if;
+  begin
+    perform pd.record_case_action((select id from t_ev), 'note', current_date, 'A note', null, 'Email evidence: something');
+    raise exception 'evidence was accepted on a step with no email';
+  exception when invalid_parameter_value then raise notice 'PASS evidence is refused on a step where no email is sent';
+  end;
+  begin
+    perform pd.record_case_action((select id from t_ev), 'close', current_date, null, null, repeat('x', 1501));
+    raise exception 'over-long evidence was accepted';
+  exception when check_violation then raise notice 'PASS evidence is kept short';
+  end;
+end $$;
+
 -- Saved views (0019): each person has their own.
 insert into pd.saved_views (name, params) values ('My overdue SARs', '{"status":"overdue","type":"sar"}');
 select 'saved views I can see: ' || count(*) || ' (expect 1)' as views from pd.saved_views;
