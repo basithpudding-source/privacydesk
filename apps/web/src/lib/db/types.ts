@@ -14,6 +14,8 @@ export type MemberRole = "partner_admin" | "client_user" | "read_only";
 export interface Partner {
   id: string;
   name: string;
+  /** 'consultancy' or 'organisation' (migration 0022); see lib/desk.ts. */
+  kind: string;
   created_at: string;
 }
 
@@ -53,5 +55,7 @@ export interface Member {
   partner_id: string;
   organisation_id: string | null;
   role: MemberRole;
+  /** The address the person signs in with, kept so the team page can name them (0022). */
+  email: string | null;
   created_at: string;
 }

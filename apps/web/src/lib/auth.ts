@@ -1,16 +1,19 @@
-// Data-access layer for "who is signed in and which consultancy are they in".
+// Data-access layer for "who is signed in and which desk are they in".
 // Pages call these instead of touching Supabase auth directly, so the rules live in one place.
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { MemberRole } from "@/lib/db/types";
+import { deskKindOf, type DeskKind } from "@/lib/desk";
 
 export type AssuranceLevel = "aal1" | "aal2";
 
 export interface Membership {
   partnerId: string;
   partnerName: string;
+  /** A consultancy with clients, or an organisation's own team (lib/desk.ts). */
+  kind: DeskKind;
   role: MemberRole;
   /** Null means access to every client of the partner. */
   organisationId: string | null;
@@ -45,14 +48,16 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   let membership: Membership | null = null;
   const member = memberRows?.[0];
   if (member) {
+    // Every column, so this still reads a desk from before it had a kind (migration 0022).
     const { data: partner } = await supabase
       .from("partners")
-      .select("name")
+      .select("*")
       .eq("id", member.partner_id)
       .maybeSingle();
     membership = {
       partnerId: member.partner_id,
-      partnerName: partner?.name ?? "Your consultancy",
+      partnerName: partner?.name ?? "Your desk",
+      kind: deskKindOf(partner?.kind),
       role: member.role as MemberRole,
       organisationId: member.organisation_id,
     };
@@ -92,15 +97,28 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+/** Whether a membership covers the whole desk, which is what two-step sign-in is asked for. */
+export function seesWholeDesk(m: Pick<Membership, "role" | "organisationId">): boolean {
+  return m.role === "partner_admin" || m.organisationId === null;
+}
+
 /**
- * For app pages: the user must be signed in, belong to a consultancy, and, if they are a
- * partner admin, have passed their second factor. Each missing piece has its own page.
+ * For app pages: the user must be signed in, belong to a desk, and, if they can see the whole
+ * of it, have passed their second factor (the database asks the same: migration 0022). Each
+ * missing piece has its own page.
  */
 export async function requireMember(): Promise<CurrentUser & { membership: Membership }> {
   const user = await requireUser();
   if (!user.membership) redirect("/welcome");
-  if (user.membership.role === "partner_admin" && user.assurance !== "aal2") {
+  if (seesWholeDesk(user.membership) && user.assurance !== "aal2") {
     redirect(user.enrolled ? "/mfa" : "/settings/security");
   }
   return { ...user, membership: user.membership };
+}
+
+/** For pages only an administrator may open: anyone else is sent to their own profile. */
+export async function requireAdmin(): Promise<CurrentUser & { membership: Membership }> {
+  const user = await requireMember();
+  if (user.membership.role !== "partner_admin") redirect("/settings/profile");
+  return user;
 }

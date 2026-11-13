@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Enter your code" };
 
 export default async function MfaPage() {
   const user = await requireUser();
-  if (user.assurance === "aal2") redirect("/clients");
+  if (user.assurance === "aal2") redirect("/start");
 
   const supabase = await createClient();
   const { data } = await supabase.auth.mfa.listFactors();
@@ -21,7 +21,7 @@ export default async function MfaPage() {
     <div className="w-full">
       <PageHeader title="Enter your code" description="Open your authenticator app and enter the code it shows for Privacy Desk." />
       <div className="surface mt-6 w-full max-w-md p-6">
-        <VerifyTotp factorId={factor.id} nextHref="/clients" />
+        <VerifyTotp factorId={factor.id} nextHref="/start" />
       </div>
       <form action="/auth/sign-out" method="post" className="mt-8">
         <Button type="submit" variant="link" className="px-0 text-muted-foreground">

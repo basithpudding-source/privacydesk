@@ -81,7 +81,7 @@ export default async function SignInPage({
                   autoComplete="email"
                   required
                   autoFocus
-                  placeholder="you@consultancy.co.uk"
+                  placeholder="name@example.org"
                 />
               </div>
               <Button type="submit" size="lg">Email me a sign-in link</Button>

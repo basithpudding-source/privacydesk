@@ -25,5 +25,5 @@ export async function GET(request: NextRequest) {
   }
 
   if (failed) redirect("/sign-in?error=link");
-  redirect("/clients");
+  redirect("/start");
 }

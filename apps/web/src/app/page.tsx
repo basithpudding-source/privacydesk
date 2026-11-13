@@ -12,8 +12,8 @@ export default function Home() {
           for you.
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          A case desk for data protection consultancies looking after many client
-          organisations.
+          A case desk for an organisation&apos;s own data protection team, and for
+          consultancies looking after many client organisations.
         </p>
         <div className="mt-8">
           <Button render={<Link href="/sign-in" />} nativeButton={false}>
