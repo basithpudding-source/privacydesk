@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { requireUser } from "@/lib/auth";
+import { SettingsNav } from "@/components/settings-nav";
+import { requireUser, seesWholeDesk } from "@/lib/auth";
+import { deskWords } from "@/lib/desk";
 import { longDate } from "@/lib/clocks";
 import { createClient } from "@/lib/supabase/server";
 import { EnrolTotp } from "./enrol-totp";
@@ -19,19 +21,23 @@ export default async function SecurityPage() {
     .map((f) => ({ id: f.id, name: f.friendly_name ?? "Authenticator app", since: longDate(londonDate(f.created_at)) }));
 
   const isAdmin = user.membership?.role === "partner_admin";
-  const mustEnrol = isAdmin && factors.length === 0;
+  // Anyone who can see the whole desk needs one, whatever their level of access.
+  const mustEnrol = Boolean(user.membership && seesWholeDesk(user.membership)) && factors.length === 0;
+  const words = deskWords(user.membership?.kind ?? "consultancy");
 
   return (
     <div className="w-full">
       <PageHeader title="Security" description={<>Signed in as {user.email}.</>} />
+      {/* Not shown while the second factor is still to be set up: nothing else opens until it is. */}
+      {!mustEnrol && user.assurance === "aal2" && <SettingsNav current="security" isAdmin={isAdmin} />}
 
       <section className="surface mt-6 max-w-[43rem] p-6">
         <h2 className="font-semibold">Second factor</h2>
         {mustEnrol ? (
           <Alert className="mt-3">
-            <AlertTitle>Partner administrators must use a second factor</AlertTitle>
+            <AlertTitle>Everyone on the team must use a second factor</AlertTitle>
             <AlertDescription>
-              Set up an authenticator app before using the desk. It protects every client&apos;s data if your email is ever compromised.
+              Set up an authenticator app before using the desk. It protects {words.whoseData} if your email is ever compromised.
             </AlertDescription>
           </Alert>
         ) : (
@@ -44,7 +50,7 @@ export default async function SecurityPage() {
           {factors.length > 0 ? (
             <FactorList factors={factors} canRemove={user.assurance === "aal2"} />
           ) : (
-            <EnrolTotp nextHref="/clients" />
+            <EnrolTotp nextHref="/start" />
           )}
         </div>
         {factors.length > 0 && user.assurance !== "aal2" && (
