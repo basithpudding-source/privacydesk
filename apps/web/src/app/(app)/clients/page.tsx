@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Tag } from "@/components/ui/tag";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ export const metadata: Metadata = { title: "Clients" };
 
 export default async function ClientsPage() {
   const user = await requireMember();
+  // An organisation's own desk has no clients: its one organisation has its own page.
+  if (user.membership.kind === "organisation") redirect("/organisation");
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organisations")
@@ -44,7 +47,7 @@ export default async function ClientsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? "Add the first organisation you look after. Each client gets its own public form and report."
-              : "A partner administrator adds clients."}
+              : "An administrator adds clients."}
           </p>
           {isAdmin && (
             <Button className="mt-4" render={<Link href="/clients/new" />} nativeButton={false}>

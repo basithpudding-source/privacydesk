@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Building2, FileText, FolderOpen, Gauge, Inbox, Plus, ShieldCheck } from "lucide-react";
+import { Building2, FileText, FolderOpen, Gauge, Inbox, Plus, ShieldCheck, Users } from "lucide-react";
+import { useDesk } from "@/components/desk-context";
 import {
   Command,
   CommandDialog,
@@ -31,6 +32,7 @@ export function CommandPalette({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const { words, isAdmin } = useDesk();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CaseHit[]>([]);
 
@@ -88,8 +90,8 @@ export function CommandPalette({
             <CommandItem onSelect={() => go("/cases")}>
               <FolderOpen aria-hidden="true" /> Cases
             </CommandItem>
-            <CommandItem onSelect={() => go("/clients")}>
-              <Building2 aria-hidden="true" /> Clients
+            <CommandItem onSelect={() => go(words.section.href)}>
+              <Building2 aria-hidden="true" /> {words.section.label}
             </CommandItem>
             <CommandItem onSelect={() => go("/dashboard")}>
               <Gauge aria-hidden="true" /> Dashboard
@@ -103,6 +105,11 @@ export function CommandPalette({
             <CommandItem onSelect={() => go("/settings/security")}>
               <ShieldCheck aria-hidden="true" /> Security
             </CommandItem>
+            {isAdmin && (
+              <CommandItem onSelect={() => go("/settings/team")}>
+                <Users aria-hidden="true" /> Team and access
+              </CommandItem>
+            )}
           </CommandGroup>
           {canWrite && (
             <CommandGroup heading="Do">
@@ -112,9 +119,16 @@ export function CommandPalette({
               <CommandItem onSelect={() => go("/inbox/import")}>
                 <Plus aria-hidden="true" /> Import emails
               </CommandItem>
-              <CommandItem onSelect={() => go("/clients/new")}>
-                <Plus aria-hidden="true" /> Add client
-              </CommandItem>
+              {words.hasClients && isAdmin && (
+                <CommandItem onSelect={() => go("/clients/new")}>
+                  <Plus aria-hidden="true" /> Add client
+                </CommandItem>
+              )}
+              {isAdmin && (
+                <CommandItem onSelect={() => go("/settings/team")}>
+                  <Plus aria-hidden="true" /> Add a person to the team
+                </CommandItem>
+              )}
             </CommandGroup>
           )}
           {hits.length > 0 && (

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { REGIONS } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
+import { useDesk } from "@/components/desk-context";
 import type { ClientFormState } from "./form-state";
 
 type Action = (prev: ClientFormState, formData: FormData) => Promise<ClientFormState>;
@@ -22,6 +23,7 @@ export function ClientForm({
 }) {
   const [state, formAction, pending] = useActionState(action, { values: initial, errors: {} });
   const { values, errors } = state;
+  const { words } = useDesk();
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-6">
@@ -53,7 +55,7 @@ export function ClientForm({
         />
       </Field>
 
-      <Field id="colour" label="Colour" hint="Shown on the client's public form and in lists." error={errors.colour}>
+      <Field id="colour" label="Colour" hint={words.hasClients ? "Shown on the client's public form and in lists." : "Shown on your public form."} error={errors.colour}>
         <input
           id="colour"
           name="colour"
@@ -150,7 +152,7 @@ export function ClientForm({
           className="mt-1 size-4 rounded border-input accent-primary"
         />
         <Label htmlFor="ai_enabled" className="flex flex-col items-start gap-1 font-normal">
-          <span className="font-medium">Use AI triage and letter drafts for this client</span>
+          <span className="font-medium">{words.hasClients ? "Use AI triage and letter drafts for this client" : "Use AI triage and letter drafts"}</span>
           <span className="text-sm text-muted-foreground">A person still confirms every result and sends every letter.</span>
         </Label>
       </div>

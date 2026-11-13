@@ -21,6 +21,7 @@ export function CasePeek({
   canWrite,
   sticky = true,
   newWindow = false,
+  showClient = true,
 }: {
   detail: CaseDetail;
   /** The subject line of the message the case was made from, when there is one. */
@@ -29,6 +30,8 @@ export function CasePeek({
   canWrite: boolean;
   sticky?: boolean;
   newWindow?: boolean;
+  /** False in an organisation's own desk, where every case is the organisation's. */
+  showClient?: boolean;
 }) {
   const target = newWindow ? { target: "_blank", rel: "noopener" } : {};
   const { c, org, deadline, pauses, events } = detail;
@@ -45,10 +48,12 @@ export function CasePeek({
           <h2 id="peek-heading" className="font-semibold">
             <span className="font-mono">{c.ref}</span> <span className="font-normal text-muted-foreground">·</span> {typeLabel(c.type)}
           </h2>
-          <p className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: org.colour }} aria-hidden="true" />
-            <span className="truncate">{org.name}</span>
-          </p>
+          {showClient && (
+            <p className="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: org.colour }} aria-hidden="true" />
+              <span className="truncate">{org.name}</span>
+            </p>
+          )}
         </div>
         <Link href={closeHref} scroll={false} className="rounded-md p-1 text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50" title="Close the preview" aria-label="Close the preview">
           <X className="size-4" aria-hidden="true" />

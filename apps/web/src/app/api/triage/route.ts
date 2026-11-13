@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   // Row-level security decides whether this user may see the client at all.
   const supabase = await createClient();
   const { data: org } = await supabase.from("organisations").select("id, name, ai_enabled").eq("id", organisationId).maybeSingle();
-  if (!org) return NextResponse.json({ error: "Choose one of your clients." }, { status: 404 });
+  if (!org) return NextResponse.json({ error: "That organisation is not one of yours." }, { status: 404 });
 
   const outcome = await triage({ text, organisationName: org.name as string, receivedOn, aiEnabled: Boolean(org.ai_enabled) });
   return NextResponse.json(outcome);

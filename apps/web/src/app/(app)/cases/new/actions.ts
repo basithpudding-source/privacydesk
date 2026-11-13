@@ -25,7 +25,7 @@ export async function logCase(_prev: NewCaseState, formData: FormData): Promise<
   const errors: NewCaseState["errors"] = {};
   const today = todayInLondon();
 
-  if (!values.organisation_id) errors.organisation_id = "Choose the client the request is about.";
+  if (!values.organisation_id) errors.organisation_id = "Choose who the request is about.";
   if (!CASE_TYPES.some((t) => t.value === values.type)) errors.type = "Choose the type of request.";
   if (!ISO_DATE.test(values.received_on)) errors.received_on = "Enter the date the request arrived.";
   else if (values.received_on > today) errors.received_on = "The date cannot be in the future.";
@@ -50,7 +50,7 @@ export async function logCase(_prev: NewCaseState, formData: FormData): Promise<
   if (error) {
     const form =
       error.code === "42501"
-        ? "You can read this client's cases but not add to them."
+        ? "You can read cases here but not add to them."
         : `The case was not logged: ${error.message}`;
     return { values, errors: { form } };
   }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CASE_TYPES, CHANNELS } from "@/lib/cases/labels";
 import { cn } from "@/lib/utils";
+import { useDesk } from "@/components/desk-context";
 import { logCase } from "./actions";
 import type { NewCaseValues, NewCaseState } from "./form-state";
 
@@ -19,6 +20,7 @@ const selectClass = cn(
 export function NewCaseForm({ initial, clients }: { initial: NewCaseValues; clients: { id: string; name: string; code: string }[] }) {
   const [state, formAction, pending] = useActionState<NewCaseState, FormData>(logCase, { values: initial, errors: {} });
   const { values, errors } = state;
+  const { words } = useDesk();
 
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-6">
@@ -29,15 +31,20 @@ export function NewCaseForm({ initial, clients }: { initial: NewCaseValues; clie
         </Alert>
       )}
 
-      <Field id="organisation_id" label="Client" error={errors.organisation_id}>
-        <select id="organisation_id" name="organisation_id" defaultValue={values.organisation_id} className={selectClass} required>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
-      </Field>
+      {words.hasClients ? (
+        <Field id="organisation_id" label="Client" error={errors.organisation_id}>
+          <select id="organisation_id" name="organisation_id" defaultValue={values.organisation_id} className={selectClass} required>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : (
+        // An organisation's own desk: every case is the organisation's.
+        <input type="hidden" name="organisation_id" value={values.organisation_id} />
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Field id="type" label="Type of request" error={errors.type}>

@@ -85,14 +85,14 @@ export async function pasteItem(_prev: InboxActionState, formData: FormData): Pr
   const fromName = String(formData.get("from_name") ?? "").trim();
   const fromEmail = String(formData.get("from_email") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
-  if (!organisationId) return { error: "Choose the client the message was sent to." };
+  if (!organisationId) return { error: "Choose who the message was sent to." };
   if (body.length < 10) return { error: "Paste the message first; it needs at least a sentence." };
   if (body.length > 20000) return { error: "That message is too long. Paste the relevant part." };
   if (fromEmail && !EMAIL.test(fromEmail)) return { error: "That does not look like an email address." };
 
   const supabase = await createClient();
   const { data: org } = await supabase.from("organisations").select("name, ai_enabled").eq("id", organisationId).maybeSingle();
-  if (!org) return { error: "Choose one of your clients." };
+  if (!org) return { error: "Choose who it was sent to." };
 
   const outcome = await triage({ text: body, organisationName: org.name as string, receivedOn: todayInLondon(), aiEnabled: Boolean(org.ai_enabled) });
   // The database function checks the membership and writes the row; there is no direct insert.
@@ -144,7 +144,7 @@ export async function importEmails(items: ImportItem[]): Promise<{ error: string
 
   async function one(item: ImportItem): Promise<ImportResult> {
     const org = orgs.get(String(item.organisationId));
-    if (!org) return { status: "error", message: "Choose one of your clients." };
+    if (!org) return { status: "error", message: "Choose who it was sent to." };
     const body = String(item.body ?? "").trim();
     if (body.length < 10) return { status: "error", message: "No text was found in this email." };
     if (body.length > 50000) return { status: "error", message: "The text is too long." };

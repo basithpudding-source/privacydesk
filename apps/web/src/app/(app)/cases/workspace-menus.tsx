@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sameFilters, viewHref, type CaseView, type ViewParams } from "@/lib/cases/views";
 import { savePrefs } from "@/lib/prefs-client";
+import { useDesk } from "@/components/desk-context";
 import { CASE_COLUMNS, COLUMNS_VERSION, DEFAULT_CASE_COLUMNS, type CaseColumn, type Prefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { deleteView, saveView, updateView } from "./view-actions";
@@ -203,13 +204,16 @@ export function ColumnsMenu({ prefs }: { prefs: Prefs }) {
   const router = useRouter();
   // The ticks follow the saved preference itself, so a view that restores its columns shows here too.
   const columns = prefs.caseColumns;
+  const { words } = useDesk();
+  // Without clients there is no Client column to offer.
+  const offered = CASE_COLUMNS.filter((c) => words.hasClients || c.key !== "client");
 
   function set(next: CaseColumn[]) {
     const ordered = DEFAULT_CASE_COLUMNS.filter((k) => next.includes(k));
     savePrefs({ ...prefs, caseColumns: ordered });
     router.refresh();
   }
-  const hidden = DEFAULT_CASE_COLUMNS.length - columns.length;
+  const hidden = offered.filter((c) => !columns.includes(c.key)).length;
 
   return (
     <Menu
@@ -228,7 +232,7 @@ export function ColumnsMenu({ prefs }: { prefs: Prefs }) {
             <input type="checkbox" checked disabled className="size-4 accent-primary" />
             Ref (always shown)
           </label>
-          {CASE_COLUMNS.map((c) => {
+          {offered.map((c) => {
             const on = columns.includes(c.key);
             return (
               <label key={c.key} className={cn(item, "cursor-pointer")}>

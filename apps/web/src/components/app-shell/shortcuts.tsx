@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
+import { useDesk } from "@/components/desk-context";
 import { CommandPalette } from "./command-palette";
 
 /**
@@ -12,6 +13,8 @@ import { CommandPalette } from "./command-palette";
  */
 export function Shortcuts({ canWrite }: { canWrite: boolean }) {
   const router = useRouter();
+  const { words } = useDesk();
+  const section = words.section.href;
   const [help, setHelp] = useState(false);
   const [palette, setPalette] = useState(false);
 
@@ -35,7 +38,7 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
         clearTimeout(timer);
         if (e.key.toLowerCase() === "c") router.push("/cases");
         else if (e.key.toLowerCase() === "i") router.push("/inbox");
-        else if (e.key.toLowerCase() === "l") router.push("/clients");
+        else if (e.key.toLowerCase() === "l") router.push(section);
         else if (e.key.toLowerCase() === "d") router.push("/dashboard");
         else if (e.key.toLowerCase() === "r") router.push("/report");
         return;
@@ -71,7 +74,7 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
       window.removeEventListener("pd:open-help", openHelp);
       clearTimeout(timer);
     };
-  }, [router, canWrite]);
+  }, [router, canWrite, section]);
 
   return (
     <>
@@ -87,7 +90,7 @@ export function Shortcuts({ canWrite }: { canWrite: boolean }) {
             <dt><Kbd>/</Kbd></dt><dd>Search the case list</dd>
             <dt><Kbd>G</Kbd> then <Kbd>I</Kbd></dt><dd>Go to the inbox</dd>
             <dt><Kbd>G</Kbd> then <Kbd>C</Kbd></dt><dd>Go to cases</dd>
-            <dt><Kbd>G</Kbd> then <Kbd>L</Kbd></dt><dd>Go to clients</dd>
+            <dt><Kbd>G</Kbd> then <Kbd>L</Kbd></dt><dd>{words.section.goTo}</dd>
             <dt><Kbd>G</Kbd> then <Kbd>D</Kbd></dt><dd>Go to the dashboard</dd>
             <dt><Kbd>G</Kbd> then <Kbd>R</Kbd></dt><dd>Go to the monthly report</dd>
             <dt><Kbd>Ctrl</Kbd> <Kbd>K</Kbd></dt><dd>Command palette</dd>

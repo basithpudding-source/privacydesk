@@ -53,10 +53,10 @@ export async function GET(request: NextRequest) {
   const today = todayInLondon();
   const clientId = request.nextUrl.searchParams.get("client") ?? "";
   const month = parseMonth(request.nextUrl.searchParams.get("month") ?? undefined, today);
-  if (!/^[0-9a-f-]{36}$/.test(clientId)) return NextResponse.json({ error: "Choose a client." }, { status: 400 });
+  if (!/^[0-9a-f-]{36}$/.test(clientId)) return NextResponse.json({ error: "That report is not here." }, { status: 400 });
 
   const report = await getReport(clientId, month, today);
-  if (!report) return NextResponse.json({ error: "That client is not here." }, { status: 404 });
+  if (!report) return NextResponse.json({ error: "That report is not here." }, { status: 404 });
 
   const pdf = await renderToBuffer(<ReportPdf orgName={report.org.name} colour={report.org.colour} month={month} text={report.text} />);
   return new NextResponse(new Uint8Array(pdf), {

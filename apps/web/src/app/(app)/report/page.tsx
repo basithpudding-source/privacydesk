@@ -3,6 +3,7 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ClientPicker, MonthPicker } from "@/components/client-picker";
 import { requireMember } from "@/lib/auth";
+import { deskWords } from "@/lib/desk";
 import { listClientsForForms } from "@/lib/cases/queries";
 import { monthLabel } from "@/lib/report/build";
 import { getReport, parseMonth } from "@/lib/report/queries";
@@ -12,7 +13,8 @@ import { todayInLondon } from "@/lib/today";
 export const metadata: Metadata = { title: "Monthly report" };
 
 export default async function ReportPage({ searchParams }: { searchParams: Promise<{ client?: string; month?: string }> }) {
-  await requireMember();
+  const user = await requireMember();
+  const words = deskWords(user.membership.kind);
   const params = await searchParams;
   const today = todayInLondon();
   const month = parseMonth(params.month, today);
@@ -24,13 +26,15 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
     <div className="w-full">
       <PageHeader
         title="Monthly report"
-        description="What to send the client this month: one page, plain English, copy or PDF."
+        description={words.reportPurpose}
         actions={clients.length > 0 && <ClientPicker clients={clients} value={clientId} allowAll={false} extra={<MonthPicker value={month} />} />}
       />
 
       {clients.length === 0 ? (
         <div className="mt-6">
-          <EmptyState title="No clients yet">Add a client first; each one gets its own monthly report.</EmptyState>
+          <EmptyState title={words.hasClients ? "No clients yet" : "Nothing to report on yet"}>
+            {words.hasClients ? "Add a client first; each one gets its own monthly report." : "The organisation's settings are missing, so there are no cases to report on."}
+          </EmptyState>
         </div>
       ) : (
         <>

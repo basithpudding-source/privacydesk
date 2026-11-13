@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, Gauge, Inbox, FileText, FolderOpen, type LucideIcon } from "lucide-react";
+import { useDesk } from "@/components/desk-context";
+import type { DeskWords } from "@/lib/desk";
 import type { NavCounts } from "@/lib/nav-counts";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +16,16 @@ interface NavItem {
   shortcut: string;
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  { href: "/inbox", label: "Inbox", icon: Inbox, shortcut: "G then I" },
-  { href: "/cases", label: "Cases", icon: FolderOpen, shortcut: "G then C" },
-  { href: "/dashboard", label: "Dashboard", icon: Gauge, shortcut: "G then D" },
-  { href: "/report", label: "Report", icon: FileText, shortcut: "G then R" },
-  { href: "/clients", label: "Clients", icon: Building2, shortcut: "G then L" },
-];
+/** The fifth section is the clients for a consultancy, and the organisation's own settings for an organisation. */
+function navItems(words: DeskWords): NavItem[] {
+  return [
+    { href: "/inbox", label: "Inbox", icon: Inbox, shortcut: "G then I" },
+    { href: "/cases", label: "Cases", icon: FolderOpen, shortcut: "G then C" },
+    { href: "/dashboard", label: "Dashboard", icon: Gauge, shortcut: "G then D" },
+    { href: "/report", label: "Report", icon: FileText, shortcut: "G then R" },
+    { href: words.section.href, label: words.section.label, icon: Building2, shortcut: "G then L" },
+  ];
+}
 
 /** The count beside a nav item, with words for screen readers. */
 function countFor(href: string, counts: NavCounts): { n: number; words: string; urgent: boolean } | null {
@@ -32,10 +37,11 @@ function countFor(href: string, counts: NavCounts): { n: number; words: string; 
 /** The five sections: across the top bar ("top"), down a side rail ("rail"), or along the bottom on a phone ("bar"). */
 export function NavLinks({ variant, counts }: { variant: "top" | "rail" | "bar"; counts: NavCounts }) {
   const pathname = usePathname();
+  const { words } = useDesk();
 
   return (
     <ul className={cn("flex", variant === "rail" ? "flex-col gap-0.5" : "flex-row", variant === "top" && "h-full items-stretch gap-1")}>
-      {NAV_ITEMS.map(({ href, label, icon: Icon, shortcut }) => {
+      {navItems(words).map(({ href, label, icon: Icon, shortcut }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         const count = countFor(href, counts);
         const badge = count && (

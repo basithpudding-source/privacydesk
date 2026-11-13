@@ -1,5 +1,6 @@
 "use client";
 
+import { useDesk } from "@/components/desk-context";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
@@ -28,6 +29,7 @@ const selectClass = cn(
 export function CaseFilters({ filters, clients }: { filters: Filters; clients: { id: string; name: string }[] }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { words } = useDesk();
   const searchRef = useRef<HTMLInputElement>(null);
 
   // "/" focuses the search box (design standard §2). The shortcut layer dispatches this event.
@@ -81,15 +83,17 @@ export function CaseFilters({ filters, clients }: { filters: Filters; clients: {
           ))}
         </select>
       </div>
-      <div>
-        <Label htmlFor="f-client" className="sr-only">Client</Label>
-        <select id="f-client" className={selectClass} value={filters.client} onChange={(e) => update("client", e.target.value)}>
-          <option value="">All clients</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      {words.hasClients && (
+        <div>
+          <Label htmlFor="f-client" className="sr-only">Client</Label>
+          <select id="f-client" className={selectClass} value={filters.client} onChange={(e) => update("client", e.target.value)}>
+            <option value="">All clients</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       {(filters.show || filters.due) && (
         // A narrowing that came from the dashboard: say what it is and let it be removed.
         <button

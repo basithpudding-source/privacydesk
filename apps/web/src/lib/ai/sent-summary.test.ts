@@ -27,7 +27,7 @@ describe("the AI summary of a sent email", () => {
   });
 
   it("never calls the AI provider when the client has AI off", async () => {
-    expect(await summariseSentEmail({ ...base, aiEnabled: false })).toEqual({ summary: null, reason: "AI is switched off for this client." });
+    expect(await summariseSentEmail({ ...base, aiEnabled: false })).toEqual({ summary: null, reason: "AI is switched off for this organisation." });
     expect(create).not.toHaveBeenCalled();
   });
 

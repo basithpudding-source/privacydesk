@@ -1,3 +1,4 @@
+import { deskWords } from "@/lib/desk";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ClipboardPaste, FileUp } from "lucide-react";
@@ -23,6 +24,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const view = viewParam === "decided" ? "decided" : "new";
   const [{ rows, error }, selected, history] = await Promise.all([listInbox(view), itemId ? getInboxItem(itemId) : Promise.resolve(null), itemId ? listInboxEvents(itemId) : Promise.resolve([])]);
   const canWrite = user.membership.role !== "read_only";
+  const words = deskWords(user.membership.kind);
   const today = todayInLondon();
 
   const tab = (on: boolean) =>
@@ -68,7 +70,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             <p className="text-sm text-destructive" role="alert">The inbox could not be loaded: {error}. Reload the page.</p>
           ) : rows.length === 0 ? (
             <EmptyState title={view === "new" ? "Nothing waiting" : "Nothing decided yet"}>
-              {view === "new" ? "New messages land here from each client's forwarding address and public form, or paste one by hand." : "Accepted and declined items show here."}
+              {view === "new" ? words.inboxSource : "Accepted and declined items show here."}
             </EmptyState>
           ) : (
             <ul className="surface divide-y divide-border overflow-hidden">
@@ -94,8 +96,12 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">{r.subject ?? t?.summary ?? r.body.slice(0, 80)}</p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: r.organisation_colour }} aria-hidden="true" />
-                          <span className="truncate">{r.organisation_name}</span>
+                          {words.hasClients && (
+                            <>
+                              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: r.organisation_colour }} aria-hidden="true" />
+                              <span className="truncate">{r.organisation_name}</span>
+                            </>
+                          )}
                         </span>
                         {r.status !== "new" ? (
                           <Tag tone={r.status === "accepted" ? "ok" : "neutral"}>{r.status === "accepted" ? `Accepted as ${r.case_ref ?? "a case"}` : "Declined"}</Tag>
@@ -138,7 +144,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 From <span className="text-foreground">{selected.from_name ?? "unknown"}</span>
-                {selected.from_email ? ` <${selected.from_email}>` : ""} · to {selected.organisation_name} ·{" "}
+                {selected.from_email ? ` <${selected.from_email}>` : ""}{words.hasClients ? ` · to ${selected.organisation_name}` : ""} ·{" "}
                 {selected.channel === "paste" ? "pasted" : selected.channel === "form" ? "web form" : "email"} · received {shortDate(londonDate(selected.received_at))}
               </p>
               {selected.channel === "form" && (

@@ -10,6 +10,7 @@ export const metadata: Metadata = { title: "Add client" };
 
 export default async function NewClientPage() {
   const user = await requireMember();
+  if (user.membership.kind === "organisation") redirect("/organisation");
   if (user.membership.role !== "partner_admin") redirect("/clients");
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useDesk } from "@/components/desk-context";
 import { useActionState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const selectClass = cn(
 
 export function PasteForm({ clients }: { clients: { id: string; name: string; code: string }[] }) {
   const [state, formAction, pending] = useActionState<InboxActionState, FormData>(pasteItem, { error: null });
+  const { words } = useDesk();
   return (
     <form action={formAction} className="flex max-w-xl flex-col gap-5">
       {state.error && (
@@ -24,16 +26,20 @@ export function PasteForm({ clients }: { clients: { id: string; name: string; co
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="organisation_id">Sent to</Label>
-        <select id="organisation_id" name="organisation_id" className={selectClass} required defaultValue={clients[0]?.id}>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
-      </div>
+      {words.hasClients ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="organisation_id">Sent to</Label>
+          <select id="organisation_id" name="organisation_id" className={selectClass} required defaultValue={clients[0]?.id}>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="organisation_id" value={clients[0]?.id ?? ""} />
+      )}
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="from_name">From (name)</Label>

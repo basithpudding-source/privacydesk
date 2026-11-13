@@ -132,7 +132,9 @@ export default async function CasesPage({
   ]);
   const canWrite = user.membership.role !== "read_only";
   const filtered = Boolean(filters.q || filters.type || filters.client || filters.show || filters.due || filters.status !== "open");
-  const columns = prefs.caseColumns;
+  const hasClients = user.membership.kind !== "organisation";
+  // An organisation's own desk has one organisation, so a Client column would say nothing.
+  const columns = prefs.caseColumns.filter((k) => hasClients || k !== "client");
   const newWindow = prefs.openCases === "new";
   // A case opened in a new window keeps this list exactly as it is.
   const caseLink = newWindow ? { target: "_blank", rel: "noopener" } : {};
@@ -202,7 +204,7 @@ export default async function CasesPage({
       <div className={cn("mt-4 grid items-start gap-5", peek && beside && "xl:grid-cols-[minmax(0,1fr)_26rem]")}>
         {peek && (
           <div className={cn("min-w-0", beside ? "xl:order-2" : "order-2")}>
-            <CasePeek detail={peek} subject={peekSource?.subject ?? null} closeHref={listHref()} canWrite={canWrite} sticky={beside} newWindow={newWindow} />
+            <CasePeek detail={peek} subject={peekSource?.subject ?? null} showClient={hasClients} closeHref={listHref()} canWrite={canWrite} sticky={beside} newWindow={newWindow} />
           </div>
         )}
 

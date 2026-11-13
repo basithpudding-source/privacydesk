@@ -1,5 +1,6 @@
 "use client";
 
+import { useDesk } from "@/components/desk-context";
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { ArrowRight, FileUp, X } from "lucide-react";
@@ -37,6 +38,7 @@ const td = "border-b border-border px-3 py-2 align-top";
 export function ImportForm({ clients }: { clients: { id: string; name: string; code: string }[] }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [defaultClient, setDefaultClient] = useState(clients[0]?.id ?? "");
+  const { words } = useDesk();
   const [over, setOver] = useState(false);
   const [reading, setReading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -180,28 +182,30 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="default-client" className="text-sm font-medium">
-          Sent to
-        </label>
-        <select
-          id="default-client"
-          className={selectClass}
-          value={defaultClient}
-          onChange={(e) => {
-            setDefaultClient(e.target.value);
-            // Changing it here sets every email not yet imported; each row can still differ.
-            setRows((current) => current.map((r) => (settled(r) ? r : { ...r, organisationId: e.target.value })));
-          }}
-        >
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
-        <p className="text-sm text-muted-foreground">The client these emails were sent to. Change one email below if it belongs to another client.</p>
-      </div>
+      {words.hasClients && (
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="default-client" className="text-sm font-medium">
+            Sent to
+          </label>
+          <select
+            id="default-client"
+            className={selectClass}
+            value={defaultClient}
+            onChange={(e) => {
+              setDefaultClient(e.target.value);
+              // Changing it here sets every email not yet imported; each row can still differ.
+              setRows((current) => current.map((r) => (settled(r) ? r : { ...r, organisationId: e.target.value })));
+            }}
+          >
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-muted-foreground">The client these emails were sent to. Change one email below if it belongs to another client.</p>
+        </div>
+      )}
 
       {note && <p className="text-sm text-warn-fg">{note}</p>}
       {error && (
@@ -221,7 +225,7 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
                   <th scope="col" className={cn(th, "pl-5")}>From</th>
                   <th scope="col" className={cn(th, "w-full")}>Subject and first lines</th>
                   <th scope="col" className={th}>Received</th>
-                  <th scope="col" className={th}>Sent to</th>
+                  {words.hasClients && <th scope="col" className={th}>Sent to</th>}
                   <th scope="col" className={th}>State</th>
                   <th scope="col" className={cn(th, "pr-4")}>
                     <span className="sr-only">Remove</span>
@@ -242,23 +246,25 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
                     <td className={cn(td, "whitespace-nowrap tabular-nums")}>
                       {r.receivedAt ? shortDate(londonDate(r.receivedAt)) : r.problem ? "" : <span className="text-warn-fg" title="This file has no date, so the item will be dated today. Correct the date when you accept it.">Today (no date in file)</span>}
                     </td>
-                    <td className={td}>
-                      {!r.problem && !settled(r) && (
-                        <select
-                          aria-label={`Client for the email from ${r.fromName || r.fromEmail || "unknown sender"}`}
-                          className={selectClass}
-                          value={r.organisationId}
-                          onChange={(e) => setRows((current) => current.map((x) => (x.key === r.key ? { ...x, organisationId: e.target.value } : x)))}
-                        >
-                          {clients.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      {settled(r) && clients.find((c) => c.id === r.organisationId)?.name}
-                    </td>
+                    {words.hasClients && (
+                      <td className={td}>
+                        {!r.problem && !settled(r) && (
+                          <select
+                            aria-label={`Client for the email from ${r.fromName || r.fromEmail || "unknown sender"}`}
+                            className={selectClass}
+                            value={r.organisationId}
+                            onChange={(e) => setRows((current) => current.map((x) => (x.key === r.key ? { ...x, organisationId: e.target.value } : x)))}
+                          >
+                            {clients.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {settled(r) && clients.find((c) => c.id === r.organisationId)?.name}
+                      </td>
+                    )}
                     <td className={cn(td, "min-w-52 whitespace-nowrap")}>
                       {r.result ? (
                         r.result.status === "imported" ? (

@@ -55,6 +55,11 @@ async function run(request: NextRequest) {
       ok = false;
     } else {
       const rows = (data ?? []) as ReminderRow[];
+      // The kind of each desk, so an organisation's own team is not written to about "clients".
+      // Before migration 0022 there is no such column: every desk then reads as a consultancy.
+      const { data: kinds } = await supabase.from("partners").select("id, kind").in("id", [...new Set(rows.map((r) => r.partner_id))]);
+      const kindOf = new Map((kinds ?? []).map((k) => [k.id as string, k.kind as string]));
+      for (const r of rows) r.partner_kind = kindOf.get(r.partner_id);
       const digests = buildDigests(rows, appUrl);
       const sentDigests: Digest[] = [];
       let failed = 0;

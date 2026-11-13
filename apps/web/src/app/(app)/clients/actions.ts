@@ -57,7 +57,7 @@ function describe(code: string | undefined, message: string): ClientFormState["e
       // Codes are unique across every consultancy, because /r/<code> is the client's public form.
       return { code: "This code is already in use. Choose a different one." };
     case "42501":
-      return { form: "Only a partner administrator can add or change clients." };
+      return { form: "Only an administrator can change these settings." };
     case "23514":
       return { form: "One of the values is outside the range the database allows." };
     default:
@@ -71,7 +71,7 @@ export async function addClient(_prev: ClientFormState, formData: FormData): Pro
 
   const supabase = await createClient();
   const { data: member } = await supabase.from("members").select("partner_id").limit(1).maybeSingle();
-  if (!member) return { ...state, errors: { form: "You are not in a consultancy yet." } };
+  if (!member) return { ...state, errors: { form: "You are not in a desk yet." } };
 
   const { data, error } = await supabase
     .from("organisations")
@@ -84,7 +84,8 @@ export async function addClient(_prev: ClientFormState, formData: FormData): Pro
   redirect(`/clients/${data.id}?saved=added`);
 }
 
-export async function updateClient(id: string, _prev: ClientFormState, formData: FormData): Promise<ClientFormState> {
+/** `back` is "/organisation" when an organisation is changing its own settings; otherwise the client's page. */
+export async function updateClient(id: string, back: string | null, _prev: ClientFormState, formData: FormData): Promise<ClientFormState> {
   const state = parse(formData);
   if (Object.keys(state.errors).length) return state;
 
@@ -97,8 +98,10 @@ export async function updateClient(id: string, _prev: ClientFormState, formData:
 
   if (error) return { ...state, errors: describe(error.code, error.message) };
   // Row-level security returns zero rows, not an error, when the user may not update.
-  if (!data?.length) return { ...state, errors: { form: "Only a partner administrator can change clients." } };
+  if (!data?.length) return { ...state, errors: { form: "Only an administrator can change these settings." } };
   revalidatePath("/clients");
   revalidatePath(`/clients/${id}`);
-  redirect(`/clients/${id}?saved=changed`);
+  revalidatePath("/organisation");
+  // Only the one known address is honoured; anything else goes to the client's page.
+  redirect(back === "/organisation" ? "/organisation?saved=changed" : `/clients/${id}?saved=changed`);
 }

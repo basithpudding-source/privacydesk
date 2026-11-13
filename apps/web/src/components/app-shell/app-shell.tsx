@@ -3,6 +3,7 @@ import { LogOut, Timer } from "lucide-react";
 import type { CurrentUser } from "@/lib/auth";
 import type { NavCounts } from "@/lib/nav-counts";
 import type { Prefs } from "@/lib/prefs";
+import { DeskProvider } from "@/components/desk-context";
 import { NavLinks } from "./nav-links";
 import { Shortcuts } from "./shortcuts";
 import { TopBarTools } from "./top-bar";
@@ -38,7 +39,7 @@ export function AppShell({ user, counts, prefs, children }: { user: CurrentUser;
       <span className="min-w-0">
         <span className="block text-sm font-semibold leading-tight tracking-tight">Privacy Desk</span>
         <span className={side ? "block max-w-36 truncate text-xs leading-tight text-sidebar-foreground/60" : "hidden max-w-40 truncate text-xs leading-tight text-sidebar-foreground/60 xl:block"}>
-          {user.membership?.partnerName ?? "No consultancy yet"}
+          {user.membership?.partnerName ?? "No desk yet"}
         </span>
       </span>
     </Link>
@@ -50,6 +51,7 @@ export function AppShell({ user, counts, prefs, children }: { user: CurrentUser;
   );
 
   return (
+    <DeskProvider kind={user.membership?.kind ?? "consultancy"} isAdmin={user.membership?.role === "partner_admin"}>
     <div className={side ? "flex min-h-full flex-1 bg-canvas" : "flex min-h-full flex-1 flex-col bg-canvas"}>
       <Shortcuts canWrite={canWrite} />
 
@@ -108,5 +110,6 @@ export function AppShell({ user, counts, prefs, children }: { user: CurrentUser;
         <NavLinks variant="bar" counts={counts} />
       </nav>
     </div>
+    </DeskProvider>
   );
 }

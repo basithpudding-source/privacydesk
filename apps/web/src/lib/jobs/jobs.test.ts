@@ -91,6 +91,18 @@ describe("reminder digests", () => {
     expect(logRowsFor([])).toEqual([]);
   });
 
+  it("does not write to an organisation's own team about clients", () => {
+    const own = { partner_name: "Example Housing Trust", partner_kind: "organisation" };
+    const [d] = buildDigests([row({ ...own }), row({ ...own, case_id: "c2", ref: "EHT-002", bucket: 0, due_on: "2026-11-08" })], "https://desk.example");
+    expect(d.text).toContain("Legal deadlines for Example Housing Trust: 2 cases, 1 due today.");
+    // Every case is the organisation's, so each line gives the reference and type only.
+    expect(d.text).toContain("- EHT-002, subject access request: Sunday 8 November 2026. https://desk.example/cases/c2");
+    expect(d.text).not.toMatch(/client/i);
+    // A desk with no kind recorded (before migration 0022) reads as a consultancy, as before.
+    const [c] = buildDigests([row({})], "https://desk.example");
+    expect(c.text).toContain("Legal deadlines for Sample Partner B Ltd's clients: 1 case.");
+  });
+
   it("sends nothing when nothing is due", () => {
     expect(buildDigests([], "https://desk.example")).toEqual([]);
   });

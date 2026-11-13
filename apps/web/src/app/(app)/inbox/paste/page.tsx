@@ -22,9 +22,9 @@ export default async function PastePage() {
       />
       {clients.length === 0 ? (
         <p className="mt-6 text-sm">
-          Add a client first on the{" "}
-          <Link href="/clients/new" className="underline underline-offset-4">
-            clients page
+          {user.membership.kind === "organisation" ? "The organisation's settings are missing. See the" : "Add a client first on the"}{" "}
+          <Link href={user.membership.kind === "organisation" ? "/organisation" : "/clients/new"} className="underline underline-offset-4">
+            {user.membership.kind === "organisation" ? "organisation page" : "clients page"}
           </Link>
           .
         </p>

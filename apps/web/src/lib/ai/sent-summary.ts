@@ -29,7 +29,7 @@ const SYSTEM = [
 ].join("\n");
 
 export async function summariseSentEmail(req: SentSummaryRequest): Promise<SentSummaryOutcome> {
-  if (!req.aiEnabled) return { summary: null, reason: "AI is switched off for this client." };
+  if (!req.aiEnabled) return { summary: null, reason: "AI is switched off for this organisation." };
   if (aiDisabled()) return { summary: null, reason: "AI is switched off for this deployment." };
   if (!aiConfigured()) return { summary: null, reason: "No AI key is configured on the server." };
   const text = req.text.trim();

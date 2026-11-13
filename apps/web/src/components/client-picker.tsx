@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useDesk } from "@/components/desk-context";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,7 @@ export function ClientPicker({ clients, value, allowAll = true, extra }: { clien
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  const { words } = useDesk();
 
   function update(key: string, v: string) {
     const next = new URLSearchParams(params.toString());
@@ -16,6 +18,9 @@ export function ClientPicker({ clients, value, allowAll = true, extra }: { clien
     else next.delete(key);
     router.replace(`${pathname}?${next.toString()}`);
   }
+
+  // An organisation's own desk has nothing to choose between: only what sits beside the picker is shown.
+  if (!words.hasClients) return extra ? <div className="flex flex-wrap items-center gap-2">{extra}</div> : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">

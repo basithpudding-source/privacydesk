@@ -111,16 +111,20 @@ export default async function CasePage({
   // The second row of the top pane, closed until asked for. The details run in two columns
   // once their half of the pane is wide enough, or sooner when there is no message beside them.
   const fact = "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3";
+  // An organisation's own desk has no clients, so the case does not need to say whose it is.
+  const hasClients = user.membership.kind !== "organisation";
   const details = (
     <dl className={cn("mt-3 grid gap-x-8 gap-y-2.5 text-sm @6xl:grid-cols-2", !c.message && "@2xl:grid-cols-2")}>
-      <div className={fact}>
-        <dt className="text-muted-foreground">Client</dt>
-        <dd>
-          <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
-            {org.name}
-          </Link>
-        </dd>
-      </div>
+      {hasClients && (
+        <div className={fact}>
+          <dt className="text-muted-foreground">Client</dt>
+          <dd>
+            <Link href={`/clients/${org.id}`} className="underline-offset-4 hover:underline">
+              {org.name}
+            </Link>
+          </dd>
+        </div>
+      )}
       <div className={fact}>
         <dt className="text-muted-foreground">From</dt>
         <dd className="min-w-0">
@@ -186,11 +190,13 @@ export default async function CasePage({
         }
       >
         <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2 text-foreground">
-            <span className="size-2.5 rounded-full" style={{ backgroundColor: org.colour }} aria-hidden="true" />
-            {org.name}
-          </span>
-          {c.requester_name && <span>· from {c.requester_name}</span>}
+          {hasClients && (
+            <span className="inline-flex items-center gap-2 text-foreground">
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: org.colour }} aria-hidden="true" />
+              {org.name}
+            </span>
+          )}
+          {c.requester_name && <span>{hasClients ? "· from" : "From"} {c.requester_name}</span>}
         </p>
       </PageHeader>
 

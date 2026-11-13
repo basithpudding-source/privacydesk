@@ -34,7 +34,7 @@ const SYSTEM = [
 ].join("\n");
 
 export async function triage(req: TriageRequest): Promise<TriageOutcome> {
-  if (!req.aiEnabled) return { result: keywordTriage(req.text), fallbackReason: "AI is switched off for this client." };
+  if (!req.aiEnabled) return { result: keywordTriage(req.text), fallbackReason: "AI is switched off for this organisation." };
   if (aiDisabled()) return { result: keywordTriage(req.text), fallbackReason: "AI is switched off for this deployment." };
   if (!aiConfigured()) return { result: keywordTriage(req.text), fallbackReason: "No AI key is configured on the server." };
 

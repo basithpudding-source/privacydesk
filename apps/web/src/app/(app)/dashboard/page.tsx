@@ -36,14 +36,15 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ client?: string; sort?: string; dir?: string }> }) {
-  await requireMember();
+  const user = await requireMember();
   const { client = "", sort: sortParam = "", dir: dirParam } = await searchParams;
   const sort = (CLIENT_SORTS as readonly string[]).includes(sortParam) ? (sortParam as ClientSort) : null;
   const dir = dirParam === "desc" ? "desc" : "asc";
   const today = todayInLondon();
   const now = new Date();
   const { summary: s, live, clients, error } = await getDashboard(client, today);
-  const scopeName = clients.find((c) => c.id === client)?.name ?? "All clients";
+  const hasClients = user.membership.kind !== "organisation";
+  const scopeName = hasClients ? (clients.find((c) => c.id === client)?.name ?? "All clients") : user.membership.partnerName;
   const asOf = now.toLocaleTimeString("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" });
   const onTime = s.measured ? `${Math.round((s.met / s.measured) * 100)}%` : "—";
 
@@ -269,6 +270,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </section>
       </div>
 
+      {hasClients && (
+      <>
       {/* ---------------------------------------------------------------- Client board */}
       <section aria-labelledby="clients-heading" className="mt-8">
         <h2 id="clients-heading" className="section-label mb-2">Client board</h2>
@@ -345,6 +348,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </table>
         </div>
       </section>
+      </>
+      )}
 
       {/* ---------------------------------------------------------------- Work in the queue, and intake */}
       <div className="mt-8 grid gap-6 xl:grid-cols-2 xl:items-start">

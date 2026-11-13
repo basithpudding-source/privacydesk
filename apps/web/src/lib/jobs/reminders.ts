@@ -2,6 +2,7 @@
 // today, due within 2 days and due within 7 days. Internal mail to the consultancy's own
 // staff, never to requesters. A stage is logged only once its email has gone, so a failed
 // send or a missed night is made up on the next run (see migration 0012).
+import { deskKindOf, deskWords } from "@/lib/desk";
 import { longDate, type ISODate } from "@/lib/clocks";
 
 /** One row of pd.reminders_due(). */
@@ -17,6 +18,8 @@ export interface ReminderRow {
   organisation_name: string;
   partner_id: string;
   partner_name: string;
+  /** 'consultancy' or 'organisation', added by the job from pd.partners; absent before migration 0022. */
+  partner_kind?: string;
   user_id: string;
   email: string;
 }
@@ -85,14 +88,16 @@ export function buildDigests(rows: ReminderRow[], appUrl: string): Digest[] {
     const lines: string[] = [];
     const today = list.filter((r) => r.bucket === 0).length;
     const overdue = list.filter((r) => r.bucket === -1).length;
-    lines.push(`Legal deadlines for ${partner}'s clients: ${plural(list.length, "case")}${overdue ? `, ${overdue} overdue` : ""}${today ? `, ${today} due today` : ""}.`);
+    // An organisation's own desk has no clients, so neither the opening line nor each case names one.
+    const words = deskWords(deskKindOf(list[0].partner_kind));
+    lines.push(`${words.reminderLead(partner)}: ${plural(list.length, "case")}${overdue ? `, ${overdue} overdue` : ""}${today ? `, ${today} due today` : ""}.`);
     for (const b of [-1, 0, 2, 7] as const) {
       const group = list.filter((r) => r.bucket === b);
       if (!group.length) continue;
       lines.push("");
       lines.push(bucketHeading(b));
       for (const r of group) {
-        lines.push(`- ${r.ref}, ${TYPE[r.type] ?? r.type}, ${r.organisation_name}: ${longDate(r.due_on)}. ${appUrl}/cases/${r.case_id}`);
+        lines.push(`- ${r.ref}, ${TYPE[r.type] ?? r.type}${words.hasClients ? `, ${r.organisation_name}` : ""}: ${longDate(r.due_on)}. ${appUrl}/cases/${r.case_id}`);
       }
     }
     lines.push("");
