@@ -59,6 +59,7 @@ Built on 8 November 2026 (migration 0008). Ticked items are in code and proved l
 - [ ] AI provider under a data processing agreement, no training on data, switchable off per client. (The per-client switch exists; `AI_DISABLED=1` switches it off for the whole deployment. Still to do: accept Anthropic's commercial terms and DPA, confirm the no-training default for API traffic, and record the date on the sub-processors page.)
 - [x] Penetration-style check: try to read another partner's case by id; try to edit an audit event. (Both in `supabase/live_checks.sql`, with the anonymous-role and job-function checks. Ran clean on 8 November 2026.)
 - [x] Reset the database password: it appeared in plain text in the terminal on 8 November 2026. Reset the same day; the app uses the API keys, so nothing else changed.
+- [ ] Keep "Confirm email" switched on in Supabase Auth, and do not enable sign-up with a password without it. From migration 0022 a person joins a team by signing in with the address an administrator named, so an address must be proved before it counts.
 
 ## 8. Review fixes (11 November 2026)
 
@@ -139,6 +140,16 @@ Still to do by hand:
 - [x] The cases table has a Subject column, between From and Summary. It sorts, can be hidden from the Columns menu, and the search box finds cases by it.
 - [x] Checked with sample data in the signed-in app: cases made from emails and from the web form show their subject; cases logged by hand show none; sorting, searching and copying work; the column appeared without having to tick it.
 - [ ] Not seen: an email that arrived with no subject line (the case page should say so), and a saved view from before this column (it should gain the column when applied). Both are covered by tests, not by a real example.
+
+## 15. An organisation's own desk, and a team with access rights (13 November 2026)
+
+- [x] Database (migration 0022): a desk is a consultancy or an organisation's own; an organisation's desk is made with its one organisation; colleagues are added by email address at three levels of access and join when they sign in; every change to a team is written to a log that cannot be edited; a second factor is required of everyone who sees the whole desk. Tested in the local database with every other migration, including that the rules fail when deliberately weakened.
+- [x] App: the first screen after signing in asks who the desk is for, or offers to join the team the person has been added to. A Team and access page (administrators only) adds people, changes access, removes people and shows the log. In an organisation's desk nothing says client, and the fifth section is the organisation's settings.
+- [x] Checked in the signed-in app before the migration: the consultancy desk works as before on every page, and the Team page says it is waiting for the migration. The organisation version was checked by switching the working copy to it for a few minutes (then switching back): no page mentions clients, the Client column, filter, picker and board are gone, and the case form does not ask whose case it is.
+- [ ] Run `supabase/migrations/0022_workspace_kinds_and_team.sql` in the SQL editor on `privacy-desk-dev`. It replaces two access functions and removes direct writes to memberships, so run `supabase/live_checks.sql` straight after (25 checks).
+- [ ] After 0022: add a made-up address on the Team page, check it appears as waiting and in the log, then withdraw it.
+- [ ] After 0022, with a second email address of your own: sign in with it and set up an organisation's own desk; then from that desk add a third address, sign in with it and join. This is the only way to see joining and a real organisation desk, and it needs sign-in links only you can open.
+- [ ] Review the terms, privacy notice and data processing terms for an organisation that buys the app for its own team (see the open question in DECISIONS.md).
 
 ## How to work with Claude Code on this
 
