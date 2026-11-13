@@ -11,7 +11,7 @@ import type { CaseEventRow, CaseListRow, CaseRow, ClockPauseRow, DeadlineRow } f
 export type StatusFilter = "open" | "overdue" | "week" | "closed" | "all";
 
 /** The columns the case list can be sorted by; "" keeps the default order (next deadline first, grouped). */
-export const CASE_SORTS = ["ref", "status", "deadline", "from", "summary", "client", "type", "channel", "received", "target", "acknowledged"] as const;
+export const CASE_SORTS = ["ref", "status", "deadline", "from", "subject", "summary", "client", "type", "channel", "received", "target", "acknowledged"] as const;
 export type CaseSort = (typeof CASE_SORTS)[number] | "";
 
 /** A dashboard bucket the list can be narrowed to (see lib/dashboard/live.ts). */
@@ -69,10 +69,14 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
   if (dl.length === 0) return { rows: [], error: null };
 
   const ids = dl.map((d) => d.case_id);
-  const [{ data: cases }, { data: orgs }] = await Promise.all([
+  const [{ data: cases }, { data: orgs }, { data: sources }] = await Promise.all([
     supabase.from("cases").select("id, requester_name, requester_email, summary, source_ref, channel, acknowledged_on").in("id", ids),
     supabase.from("organisations").select("id, name, code, colour"),
+    // The message a case was made from stays in the inbox table for the life of the case,
+    // and with it the subject line it arrived under. A case logged by hand has none.
+    supabase.from("inbox_items").select("case_id, subject").in("case_id", ids),
   ]);
+  const subjectByCase = new Map((sources ?? []).map((s) => [s.case_id as string, (s.subject as string | null) ?? null]));
   const caseById = new Map((cases ?? []).map((c) => [c.id as string, c]));
   const orgById = new Map((orgs ?? []).map((o) => [o.id as string, o]));
 
@@ -85,6 +89,7 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
       requester_email: (c?.requester_email as string | null) ?? null,
       channel: (c?.channel as string | null) ?? null,
       acknowledged_on: (c?.acknowledged_on as string | null) ?? null,
+      subject: subjectByCase.get(d.case_id) ?? null,
       summary: (c?.summary as string | null) ?? null,
       organisation_name: (o?.name as string) ?? "",
       organisation_code: (o?.code as string) ?? "",
@@ -96,7 +101,7 @@ export async function listCases(filters: CaseFilters): Promise<{ rows: CaseListR
     const q = filters.q.toLowerCase();
     rows = rows.filter((r) =>
       // source_ref is the reference a web form gave the requester, so a search for it finds the case.
-      [r.ref, caseById.get(r.case_id)?.source_ref as string | null, r.requester_name, caseById.get(r.case_id)?.requester_email as string | null, r.summary, r.organisation_name]
+      [r.ref, caseById.get(r.case_id)?.source_ref as string | null, r.requester_name, caseById.get(r.case_id)?.requester_email as string | null, r.subject, r.summary, r.organisation_name]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
@@ -121,6 +126,8 @@ function sortValue(r: CaseListRow, sort: Exclude<CaseSort, "">): string | number
       return r.status === "closed" ? null : r.type === "complaint" ? r.ack_due : r.response_due;
     case "from":
       return r.requester_name?.toLowerCase() ?? null;
+    case "subject":
+      return r.subject?.toLowerCase() ?? null;
     case "summary":
       return r.summary?.toLowerCase() ?? null;
     case "client":

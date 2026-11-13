@@ -17,6 +17,7 @@ export const CASE_COLUMNS = [
   { key: "status", label: "Status" },
   { key: "deadline", label: "Next deadline" },
   { key: "from", label: "From" },
+  { key: "subject", label: "Subject" },
   { key: "summary", label: "Summary" },
   { key: "client", label: "Client" },
   { key: "type", label: "Type" },
@@ -27,6 +28,20 @@ export const CASE_COLUMNS = [
 ] as const;
 export type CaseColumn = (typeof CASE_COLUMNS)[number]["key"];
 export const DEFAULT_CASE_COLUMNS: CaseColumn[] = CASE_COLUMNS.map((c) => c.key);
+
+/**
+ * A saved list of visible columns (in the cookie, or in a saved view) from before a column
+ * existed says nothing about that column, so it is shown rather than taken as hidden. Each
+ * saved list carries the version it was saved under; one with no version is from version 1.
+ * When adding a column: raise COLUMNS_VERSION and give the column that number here.
+ */
+export const COLUMNS_VERSION = 2;
+const COLUMN_SINCE: Partial<Record<CaseColumn, number>> = { subject: 2 };
+
+/** The version a saved list of columns was saved under; anything unreadable counts as the first. */
+export function columnsVersionOf(raw: unknown): number {
+  return typeof raw === "number" && Number.isInteger(raw) && raw >= 1 ? raw : 1;
+}
 
 export interface Prefs {
   theme: (typeof THEMES)[number];
@@ -51,11 +66,15 @@ function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T
   return typeof value === "string" && (list as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
-/** Keep only known column keys, in the table's own order; an empty or broken list means all. */
-export function cleanColumns(value: unknown): CaseColumn[] {
+/**
+ * Keep only known column keys, in the table's own order, and add any column that did not
+ * exist when the list was saved; an empty or broken list means all.
+ */
+export function cleanColumns(value: unknown, savedUnder: number): CaseColumn[] {
   if (!Array.isArray(value)) return DEFAULT_CASE_COLUMNS;
-  const kept = DEFAULT_CASE_COLUMNS.filter((k) => value.includes(k));
-  return kept.length ? kept : DEFAULT_CASE_COLUMNS;
+  const chosen = DEFAULT_CASE_COLUMNS.filter((k) => value.includes(k));
+  if (!chosen.length) return DEFAULT_CASE_COLUMNS;
+  return DEFAULT_CASE_COLUMNS.filter((k) => chosen.includes(k) || (COLUMN_SINCE[k] ?? 1) > savedUnder);
 }
 
 /** Read preferences from the cookie's text. Anything missing or unknown falls back to the default. */
@@ -73,13 +92,13 @@ export function parsePrefs(raw: string | undefined | null): Prefs {
     nav: oneOf(NAV_POSITIONS, o.nav, DEFAULT_PREFS.nav),
     preview: oneOf(PREVIEW_POSITIONS, o.preview, DEFAULT_PREFS.preview),
     openCases: oneOf(OPEN_CASES, o.openCases, DEFAULT_PREFS.openCases),
-    caseColumns: cleanColumns(o.caseColumns),
+    caseColumns: cleanColumns(o.caseColumns, columnsVersionOf(o.columnsVersion)),
   };
 }
 
 /** The cookie text for a set of preferences. */
 export function serialisePrefs(p: Prefs): string {
-  return encodeURIComponent(JSON.stringify(p));
+  return encodeURIComponent(JSON.stringify({ ...p, columnsVersion: COLUMNS_VERSION }));
 }
 
 /** The class the <html> element wears for a theme. "system" follows the device setting in CSS. */

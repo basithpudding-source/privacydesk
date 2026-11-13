@@ -14,7 +14,22 @@ import { buildTasks, nextStep } from "./[id]/task-list";
  * next step, so a row can be checked and acted on without leaving the table. The full page
  * (the working of the date, every step, letters) is one click away.
  */
-export function CasePeek({ detail, closeHref, canWrite, sticky = true, newWindow = false }: { detail: CaseDetail; closeHref: string; canWrite: boolean; sticky?: boolean; newWindow?: boolean }) {
+export function CasePeek({
+  detail,
+  subject = null,
+  closeHref,
+  canWrite,
+  sticky = true,
+  newWindow = false,
+}: {
+  detail: CaseDetail;
+  /** The subject line of the message the case was made from, when there is one. */
+  subject?: string | null;
+  closeHref: string;
+  canWrite: boolean;
+  sticky?: boolean;
+  newWindow?: boolean;
+}) {
   const target = newWindow ? { target: "_blank", rel: "noopener" } : {};
   const { c, org, deadline, pauses, events } = detail;
   const closed = c.status === "closed";
@@ -82,6 +97,11 @@ export function CasePeek({ detail, closeHref, canWrite, sticky = true, newWindow
         {c.message && (
           <div>
             <p className="section-label">The request as received</p>
+            {subject && (
+              <p className="mt-1.5 text-sm">
+                <span className="text-muted-foreground">Subject</span> <span className="font-medium">{subject}</span>
+              </p>
+            )}
             <p className="mt-1.5 line-clamp-6 whitespace-pre-wrap rounded-lg bg-muted/60 p-3 text-sm">{c.message}</p>
           </div>
         )}

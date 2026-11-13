@@ -10,6 +10,7 @@ import { getCase, listCases, listClientsForForms, listSavedViews, parseFilters, 
 import type { CaseListRow } from "@/lib/cases/types";
 import { BUILT_IN_VIEWS, cleanViewParams, type CaseView, type ViewParams } from "@/lib/cases/views";
 import { shortDate } from "@/lib/clocks";
+import { inboxItemForCase } from "@/lib/inbox/queries";
 import type { CaseColumn } from "@/lib/prefs";
 import { getPrefs } from "@/lib/prefs-server";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,12 @@ const COLUMNS: Record<CaseColumn, { label: string; title?: string; thClass?: str
     tdClass: () => "max-w-[14rem] truncate font-medium",
     cell: (r) => <span title={r.requester_email ?? undefined}>{r.requester_name ?? <span className="font-normal text-muted-foreground">Unknown</span>}</span>,
   },
+  subject: {
+    label: "Subject",
+    title: "The subject line of the email or web form the case was made from",
+    tdClass: () => "max-w-[18rem] truncate",
+    cell: (r) => <span title={r.subject ?? undefined}>{r.subject}</span>,
+  },
   summary: {
     label: "Summary",
     thClass: "w-full",
@@ -114,10 +121,11 @@ export default async function CasesPage({
   const params = await searchParams;
   const filters = parseFilters(params);
   const peekId = typeof params.peek === "string" ? params.peek : "";
-  const [{ rows, error }, clients, peek, prefs, savedRows, returned] = await Promise.all([
+  const [{ rows, error }, clients, peek, peekSource, prefs, savedRows, returned] = await Promise.all([
     listCases(filters),
     listClientsForForms(),
     peekId ? getCase(peekId) : Promise.resolve(null),
+    peekId ? inboxItemForCase(peekId) : Promise.resolve(null),
     getPrefs(),
     listSavedViews(),
     returnedCaseIds(),
@@ -194,7 +202,7 @@ export default async function CasesPage({
       <div className={cn("mt-4 grid items-start gap-5", peek && beside && "xl:grid-cols-[minmax(0,1fr)_26rem]")}>
         {peek && (
           <div className={cn("min-w-0", beside ? "xl:order-2" : "order-2")}>
-            <CasePeek detail={peek} closeHref={listHref()} canWrite={canWrite} sticky={beside} newWindow={newWindow} />
+            <CasePeek detail={peek} subject={peekSource?.subject ?? null} closeHref={listHref()} canWrite={canWrite} sticky={beside} newWindow={newWindow} />
           </div>
         )}
 

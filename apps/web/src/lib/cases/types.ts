@@ -67,6 +67,8 @@ export interface CaseListRow extends DeadlineRow {
   requester_email: string | null;
   channel: string | null;
   acknowledged_on: string | null;
+  /** The subject line of the email or web form the case was made from; null for a case logged by hand. */
+  subject: string | null;
   summary: string | null;
   organisation_name: string;
   organisation_code: string;

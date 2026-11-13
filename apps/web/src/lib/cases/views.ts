@@ -1,7 +1,7 @@
 // A "view" of the case list: a named set of filters, a sort and (for saved ones) the visible
 // columns. Built-in views come with the app; saved views belong to one person and are kept
 // in pd.saved_views. Whatever is stored is checked again here before it is used.
-import { cleanColumns, type CaseColumn } from "@/lib/prefs";
+import { cleanColumns, COLUMNS_VERSION, columnsVersionOf, type CaseColumn } from "@/lib/prefs";
 
 export interface ViewParams {
   status?: string;
@@ -13,6 +13,8 @@ export interface ViewParams {
   dir?: string;
   /** Saved views remember which columns were showing; built-in ones leave columns alone. */
   columns?: CaseColumn[];
+  /** Which columns existed when `columns` was saved (COLUMNS_VERSION in lib/prefs.ts). Goes wherever `columns` goes. */
+  columnsVersion?: number;
 }
 
 export interface CaseView {
@@ -48,7 +50,11 @@ export function cleanViewParams(raw: unknown): ViewParams {
   }
   if (out.status === "open") delete out.status;
   if (out.dir !== "desc" || !out.sort) delete out.dir;
-  if (Array.isArray(o.columns)) out.columns = cleanColumns(o.columns);
+  if (Array.isArray(o.columns)) {
+    // A view saved before a column existed says nothing about it, so that column is shown.
+    out.columns = cleanColumns(o.columns, columnsVersionOf(o.columnsVersion));
+    out.columnsVersion = COLUMNS_VERSION;
+  }
   return out;
 }
 

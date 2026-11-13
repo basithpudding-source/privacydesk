@@ -25,6 +25,7 @@ function row(over: Partial<CaseListRow>): CaseListRow {
     requester_email: null,
     channel: "Email",
     acknowledged_on: null,
+    subject: null,
     summary: null,
     organisation_name: "Client",
     organisation_code: "AAA",
@@ -58,6 +59,17 @@ describe("sorting the case list by a column", () => {
     expect(refs(sortRows(rows, "deadline", "asc")).at(-1)).toBe("AAA-0003");
     expect(refs(sortRows(rows, "deadline", "desc")).at(-1)).toBe("AAA-0003");
     expect(refs(sortRows(rows, "acknowledged", "desc"))[0]).toBe("AAA-0010");
+  });
+
+  test("subject lines ignore capital letters, and cases logged by hand (no subject) go last", () => {
+    const bySubject = [
+      row({ ref: "AAA-0010", subject: "stop calling me" }),
+      row({ ref: "AAA-0002", subject: null }),
+      row({ ref: "AAA-0003", subject: "Request for a copy of my personal data (WEB-1)" }),
+    ];
+    expect(refs(sortRows(bySubject, "subject", "asc"))).toEqual(["AAA-0003", "AAA-0010", "AAA-0002"]);
+    expect(refs(sortRows(bySubject, "subject", "desc"))).toEqual(["AAA-0010", "AAA-0003", "AAA-0002"]);
+    expect(parseFilters({ sort: "subject" })).toMatchObject({ sort: "subject" });
   });
 
   test("an unknown sort in the address is ignored", () => {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sameFilters, viewHref, type CaseView, type ViewParams } from "@/lib/cases/views";
 import { savePrefs } from "@/lib/prefs-client";
-import { CASE_COLUMNS, DEFAULT_CASE_COLUMNS, type CaseColumn, type Prefs } from "@/lib/prefs";
+import { CASE_COLUMNS, COLUMNS_VERSION, DEFAULT_CASE_COLUMNS, type CaseColumn, type Prefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { deleteView, saveView, updateView } from "./view-actions";
 
@@ -63,7 +63,7 @@ export function ViewsMenu({ builtIn, saved, current, prefs, unavailable }: { bui
   const [error, setError] = useState<string | null>(null);
 
   const active = [...saved, ...builtIn].find((v) => sameFilters(v.params, current));
-  const currentWithColumns: ViewParams = { ...current, columns: prefs.caseColumns };
+  const currentWithColumns: ViewParams = { ...current, columns: prefs.caseColumns, columnsVersion: COLUMNS_VERSION };
 
   function apply(view: CaseView, close: () => void) {
     if (view.params.columns) savePrefs({ ...prefs, caseColumns: view.params.columns });

@@ -116,7 +116,7 @@ export function CaseFilters({ filters, clients }: { filters: Filters; clients: {
           ref={searchRef}
           type="search"
           defaultValue={filters.q}
-          placeholder="Search ref, name, email or summary (press /)"
+          placeholder="Search ref, name, email, subject or summary (press /)"
           className="h-8 bg-card pl-8"
           onBlur={(e) => {
             if (e.target.value.trim() !== filters.q) update("q", e.target.value.trim());
