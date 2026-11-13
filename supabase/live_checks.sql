@@ -105,6 +105,15 @@ begin
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot run retention'); end;
   begin insert into pd.inbox_events (inbox_item_id, organisation_id, kind, text) values (gen_random_uuid(), gen_random_uuid(), 'accepted', 'A live check, never stored.'); raise exception 'user wrote to the inbox log';
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot write to the inbox log (0019)'); end;
+
+  -- 6. The team (0022): memberships, invitations and the team log change only through the
+  -- functions that write the log. None of these statements matches a row.
+  begin update pd.members set role = role where false; raise exception 'direct membership change allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a membership cannot be changed directly (0022)'); end;
+  begin insert into pd.invitations (partner_id, email, role, invited_by) select v_partner, 'live-check@example.com', 'read_only', v_admin where false; raise exception 'direct invitation allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a person cannot be added to a team directly (0022)'); end;
+  begin delete from pd.team_events where false; raise exception 'team log delete allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot write to the team log (0022)'); end;
   reset role;
 end $$;
 

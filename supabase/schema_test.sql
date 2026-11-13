@@ -660,3 +660,212 @@ do $$ begin
     raise exception 'Reminder stage tests failed';
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Two kinds of desk, and a team with levels of access (0022)
+-- ---------------------------------------------------------------------------
+reset role;
+-- People as the sign-in system knows them. Una's address has not been confirmed.
+insert into auth.users (id, email, email_confirmed_at) values
+  ('00000000-0000-0000-0000-0000000000e1', 'Olive.Owner@example.org', now()),
+  ('00000000-0000-0000-0000-0000000000e2', 'hana.handler@example.org', now()),
+  ('00000000-0000-0000-0000-0000000000e3', 'rae.reader@example.org', now()),
+  ('00000000-0000-0000-0000-0000000000e4', 'ivo.intruder@example.net', now()),
+  ('00000000-0000-0000-0000-0000000000e5', 'una.unconfirmed@example.org', null);
+set role app_user;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+
+-- An organisation sets up its own desk: the organisation itself is made with it.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+do $$
+declare v_desk uuid; v_org pd.organisations%rowtype;
+begin
+  begin
+    perform pd.create_workspace('Example Housing Trust', 'organisation');
+    raise exception 'FAIL an organisation desk was made without a short code';
+  exception when check_violation then raise notice 'PASS an organisation desk needs a short code';
+  end;
+  begin
+    perform pd.create_workspace('Example Housing Trust', 'charity', 'EHT');
+    raise exception 'FAIL an unknown kind of desk was allowed';
+  exception when invalid_parameter_value then raise notice 'PASS only the two kinds of desk exist';
+  end;
+  begin
+    perform pd.create_workspace('Example Housing Trust', 'organisation', 'aaa');
+    raise exception 'FAIL a short code already in use was allowed';
+  exception when unique_violation then raise notice 'PASS a short code cannot be used twice';
+  end;
+
+  v_desk := pd.create_workspace('  Example   Housing Trust ', 'organisation', 'eht', 'scotland');
+  perform set_config('t.desk', v_desk::text, false);
+  if (select kind from pd.partners where id = v_desk) <> 'organisation' then raise exception 'FAIL the desk is not an organisation desk'; end if;
+  select * into v_org from pd.organisations where partner_id = v_desk;
+  if v_org.name <> 'Example Housing Trust' or v_org.code <> 'EHT' or v_org.region <> 'scotland' then
+    raise exception 'FAIL the organisation was not made with its desk: % % %', v_org.name, v_org.code, v_org.region;
+  end if;
+  if (select count(*) from pd.organisations where partner_id = v_desk) <> 1 then raise exception 'FAIL an organisation desk should have exactly one organisation'; end if;
+  perform set_config('t.org', v_org.id::text, false);
+  if not exists (select 1 from pd.members where partner_id = v_desk and role = 'partner_admin' and organisation_id is null and email = 'olive.owner@example.org') then
+    raise exception 'FAIL the person who set the desk up is not its administrator, named by their address';
+  end if;
+  if (select count(*) from pd.team_events where partner_id = v_desk) <> 1 then raise exception 'FAIL setting up a desk was not logged'; end if;
+  raise notice 'PASS an organisation desk is made with its one organisation, its administrator and a first log entry';
+end $$;
+
+-- Adding people: an administrator names an address and a level of access.
+do $$
+declare v_id uuid;
+begin
+  v_id := pd.invite_member('  Hana.Handler@Example.org ', 'client_user');
+  perform set_config('t.inv_hana', v_id::text, false);
+  perform set_config('t.inv_rae', pd.invite_member('rae.reader@example.org', 'read_only')::text, false);
+  perform set_config('t.inv_una', pd.invite_member('una.unconfirmed@example.org', 'client_user')::text, false);
+  if (select email from pd.invitations where id = v_id) <> 'hana.handler@example.org' then raise exception 'FAIL the address was not tidied'; end if;
+  begin perform pd.invite_member('hana.handler@example.org', 'read_only'); raise exception 'FAIL the same person was added twice';
+  exception when unique_violation then raise notice 'PASS a person cannot be added twice'; end;
+  begin perform pd.invite_member('olive.owner@example.org', 'read_only'); raise exception 'FAIL someone already in the team was added again';
+  exception when unique_violation then raise notice 'PASS someone already in the team cannot be added again'; end;
+  begin perform pd.invite_member('not an address', 'read_only'); raise exception 'FAIL a bad address was accepted';
+  exception when check_violation then raise notice 'PASS an address must look like one'; end;
+  begin perform pd.invite_member('sam@example.org', 'owner'); raise exception 'FAIL an unknown level of access was accepted';
+  exception when invalid_parameter_value then raise notice 'PASS only the three levels of access exist'; end;
+end $$;
+
+-- Only an administrator who has passed two-step sign-in may add people.
+select set_config('request.jwt.claim.aal', 'aal1', false);
+do $$ begin
+  begin perform pd.invite_member('sam@example.org', 'read_only'); raise exception 'FAIL an administrator without two-step sign-in added someone';
+  exception when insufficient_privilege then raise notice 'PASS adding people needs two-step sign-in'; end;
+end $$;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+do $$ begin
+  begin perform pd.invite_member('sam@example.org', 'read_only'); raise exception 'FAIL someone who is not an administrator added a person';
+  exception when insufficient_privilege then raise notice 'PASS only an administrator can add people'; end;
+end $$;
+
+-- Joining: matched on the address the person has proved, and on nothing else.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e4', false);
+do $$ begin
+  if (select count(*) from pd.pending_invitations()) <> 0 then raise exception 'FAIL a stranger was shown an invitation'; end if;
+  begin perform pd.accept_invitation(current_setting('t.inv_hana')::uuid); raise exception 'FAIL a stranger joined with an invitation for someone else';
+  exception when no_data_found then raise notice 'PASS an invitation only works for the address it names'; end;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e5', false);
+do $$ begin
+  if (select count(*) from pd.pending_invitations()) <> 0 then raise exception 'FAIL an unconfirmed address was shown its invitation'; end if;
+  begin perform pd.accept_invitation(current_setting('t.inv_una')::uuid); raise exception 'FAIL an unconfirmed address joined';
+  exception when insufficient_privilege then raise notice 'PASS an address must be confirmed before it can join'; end;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e2', false);
+do $$
+declare v pd.members%rowtype;
+begin
+  if not exists (select 1 from pd.pending_invitations() where desk = 'Example Housing Trust' and kind = 'organisation' and role = 'client_user') then
+    raise exception 'FAIL the person added was not shown their invitation';
+  end if;
+  if pd.accept_invitation(current_setting('t.inv_hana')::uuid) <> current_setting('t.desk')::uuid then raise exception 'FAIL joining returned the wrong desk'; end if;
+  select * into v from pd.members where user_id = '00000000-0000-0000-0000-0000000000e2';
+  if v.role <> 'client_user' or v.organisation_id is not null or v.email <> 'hana.handler@example.org' or v.added_by <> '00000000-0000-0000-0000-0000000000e1' then
+    raise exception 'FAIL the new member was not recorded as added';
+  end if;
+  if not pd.can_write_org(current_setting('t.org')::uuid) then raise exception 'FAIL a case handler cannot work on the cases of the organisation'; end if;
+  begin perform pd.accept_invitation(current_setting('t.inv_rae')::uuid); raise exception 'FAIL someone joined twice';
+  exception when unique_violation then raise notice 'PASS a person belongs to one desk'; end;
+  -- A case handler sees their own membership and nothing of how the team is run.
+  if (select count(*) from pd.members) <> 1 or (select count(*) from pd.invitations) <> 0 or (select count(*) from pd.team_events) <> 0 then
+    raise exception 'FAIL a case handler can see how the team is run';
+  end if;
+  begin perform pd.invite_member('sam@example.org', 'read_only'); raise exception 'FAIL a case handler added someone';
+  exception when insufficient_privilege then null; end;
+  begin perform pd.set_member_role(v.id, 'partner_admin'); raise exception 'FAIL a case handler made themselves an administrator';
+  exception when no_data_found then null; end;
+  raise notice 'PASS a person added as a case handler joins on signing in, can work cases, and cannot run the team';
+end $$;
+-- Seeing the whole desk needs two-step sign-in, whatever the level of access.
+select set_config('request.jwt.claim.aal', 'aal1', false);
+select case when not pd.can_read_org(current_setting('t.org')::uuid) and not pd.can_write_org(current_setting('t.org')::uuid)
+            then 'PASS' else 'FAIL' end || ' a case handler without two-step sign-in sees nothing' as team;
+do $$ begin
+  if pd.can_read_org(current_setting('t.org')::uuid) then raise exception 'Two-step sign-in test failed'; end if;
+end $$;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e3', false);
+do $$ begin
+  perform pd.accept_invitation(current_setting('t.inv_rae')::uuid);
+  if not pd.can_read_org(current_setting('t.org')::uuid) or pd.can_write_org(current_setting('t.org')::uuid) then
+    raise exception 'FAIL read only is not read only';
+  end if;
+  raise notice 'PASS a person added as read only can read and not change';
+end $$;
+
+-- The administrator runs the team: changes access, withdraws an invitation, removes someone.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+do $$
+declare v_me uuid; v_hana uuid; v_rae uuid; v_log int;
+begin
+  select id into v_me from pd.members where user_id = '00000000-0000-0000-0000-0000000000e1';
+  select id into v_hana from pd.members where user_id = '00000000-0000-0000-0000-0000000000e2';
+  select id into v_rae from pd.members where user_id = '00000000-0000-0000-0000-0000000000e3';
+  if (select count(*) from pd.members where partner_id = current_setting('t.desk')::uuid) <> 3 then raise exception 'FAIL the administrator does not see the whole team'; end if;
+
+  begin perform pd.set_member_role(v_me, 'client_user'); raise exception 'FAIL the only administrator stepped down';
+  exception when check_violation then raise notice 'PASS a desk keeps at least one administrator'; end;
+  begin perform pd.remove_member(v_me); raise exception 'FAIL an administrator removed themselves';
+  exception when check_violation then raise notice 'PASS nobody removes themselves'; end;
+
+  select count(*) into v_log from pd.team_events;
+  perform pd.set_member_role(v_rae, 'client_user');
+  perform pd.set_member_role(v_rae, 'client_user');  -- no change, no entry
+  perform pd.cancel_invitation(current_setting('t.inv_una')::uuid);
+  perform pd.remove_member(v_hana);
+  if (select role from pd.members where id = v_rae) <> 'client_user' then raise exception 'FAIL access was not changed'; end if;
+  if exists (select 1 from pd.members where id = v_hana) or exists (select 1 from pd.invitations) then raise exception 'FAIL removing or withdrawing did not happen'; end if;
+  if (select count(*) from pd.team_events) <> v_log + 3 then raise exception 'FAIL team changes were not each logged once'; end if;
+  if not exists (select 1 from pd.team_events where text = 'Changed rae.reader@example.org from read only to a case handler' and actor_email = 'olive.owner@example.org') then
+    raise exception 'FAIL the log does not say who changed what';
+  end if;
+  perform set_config('t.rae_member', v_rae::text, false);
+  raise notice 'PASS the administrator changes access, withdraws an invitation and removes a person, each written to the log';
+
+  -- Nothing about the team can be changed except through those functions.
+  begin insert into pd.members (user_id, partner_id, role) values ('00000000-0000-0000-0000-0000000000e4', current_setting('t.desk')::uuid, 'partner_admin'); raise exception 'FAIL a member was inserted directly';
+  exception when insufficient_privilege then null; end;
+  begin update pd.members set role = 'partner_admin' where id = v_rae; raise exception 'FAIL a member was changed directly';
+  exception when insufficient_privilege then null; end;
+  begin delete from pd.members where id = v_rae; raise exception 'FAIL a member was deleted directly';
+  exception when insufficient_privilege then null; end;
+  begin insert into pd.invitations (partner_id, email, role, invited_by) values (current_setting('t.desk')::uuid, 'x@example.org', 'partner_admin', v_me); raise exception 'FAIL an invitation was inserted directly';
+  exception when insufficient_privilege then null; end;
+  begin delete from pd.team_events; raise exception 'FAIL the team log was deleted';
+  exception when insufficient_privilege then null; end;
+  begin perform pd.verified_email(); raise exception 'FAIL the address lookup can be called directly';
+  exception when insufficient_privilege then null; end;
+  raise notice 'PASS members, invitations and the team log cannot be written directly';
+end $$;
+
+-- One desk's team is invisible to another desk's administrator.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select case when (select count(*) from pd.members where partner_id = current_setting('t.desk')::uuid) = 0
+             and (select count(*) from pd.team_events where partner_id = current_setting('t.desk')::uuid) = 0
+             and (select count(*) from pd.organisations where partner_id = current_setting('t.desk')::uuid) = 0
+            then 'PASS' else 'FAIL' end || ' the administrator of another desk sees none of this team, its log or its organisation' as team;
+do $$ begin
+  if (select count(*) from pd.members where partner_id = current_setting('t.desk')::uuid) <> 0 then raise exception 'Team separation test failed'; end if;
+  begin perform pd.remove_member(current_setting('t.rae_member')::uuid);
+    raise exception 'FAIL the administrator of another desk removed a member';
+  exception when no_data_found then raise notice 'PASS the administrator of another desk cannot touch this team'; end;
+end $$;
+reset role;
+
+-- The log cannot be edited, even by an ordinary statement run as the owner.
+do $$ begin
+  begin update pd.team_events set text = 'rewritten'; raise exception 'FAIL the team log was edited';
+  exception when raise_exception then raise notice 'PASS the team log cannot be edited'; end;
+end $$;
+-- Desks made the old way are consultancies, as every desk was before.
+select case when (select kind from pd.partners where name = 'Partner D') = 'consultancy' and (select kind from pd.partners where name = 'Partner A') = 'consultancy'
+            then 'PASS' else 'FAIL' end || ' existing desks, and ones made by the old function, are consultancies' as team;
+do $$ begin
+  if (select kind from pd.partners where name = 'Partner D') <> 'consultancy' then raise exception 'Desk kind test failed'; end if;
+end $$;
