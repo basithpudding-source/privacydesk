@@ -215,7 +215,7 @@ export default async function CasePage({
             regionLabel={REGIONS.find((r) => r.value === org.region)?.label ?? org.region}
             holidayCount={holidayCount}
             returned={returned}
-            facts={<CaseFacts details={details} request={c.message ? <RequestText text={c.message} /> : null} />}
+            facts={<CaseFacts details={details} request={c.message ? <RequestText text={c.message} subject={fromInbox ? fromInbox.subject : undefined} /> : null} />}
           />
 
           <div className="grid gap-6 2xl:grid-cols-2 2xl:items-start">
