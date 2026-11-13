@@ -133,6 +133,13 @@ Still to do by hand:
 - [x] Checked with sample data in the signed-in app, dark and light: a subject access request and a complaint, with the action box open; a draft stopped part way, then written, edited, discarded and put back with the edit intact.
 - [ ] Not seen with real examples, only imitated on the page: a case with no message (the details take the full width), a request longer than eight lines ("Show all of it"), and a narrow window or phone (the pane was narrowed, the window was not).
 
+## 14. Subject line of the incoming message (13 November 2026)
+
+- [x] On a case, "The request as received" shows the subject line above the message, with a button to copy it. The preview beside the cases table shows it too.
+- [x] The cases table has a Subject column, between From and Summary. It sorts, can be hidden from the Columns menu, and the search box finds cases by it.
+- [x] Checked with sample data in the signed-in app: cases made from emails and from the web form show their subject; cases logged by hand show none; sorting, searching and copying work; the column appeared without having to tick it.
+- [ ] Not seen: an email that arrived with no subject line (the case page should say so), and a saved view from before this column (it should gain the column when applied). Both are covered by tests, not by a real example.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
