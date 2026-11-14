@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
+    "@azure/msal-browser": "5.27.0",
     "@base-ui/react": "^1.9.0",
     "@kenjiuno/msgreader": "1.29.0",
     "@react-pdf/renderer": "^4.9.0",

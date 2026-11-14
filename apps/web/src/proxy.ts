@@ -8,7 +8,8 @@ import { supabaseEnv } from "@/lib/supabase/env";
 
 // API routes check their own credentials (a session, or the inbound webhook's secret).
 // /r/<code> is the public request form; the legal pages are public too.
-const PUBLIC_PREFIXES = ["/sign-in", "/auth/", "/api/", "/r/", "/terms", "/privacy", "/dpa", "/sub-processors"];
+// /mailbox-redirect only hands Microsoft's sign-in answer back to the window that asked for it.
+const PUBLIC_PREFIXES = ["/sign-in", "/auth/", "/api/", "/r/", "/terms", "/privacy", "/dpa", "/sub-processors", "/mailbox-redirect"];
 
 function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
@@ -57,13 +58,14 @@ export async function proxy(request: NextRequest) {
   if (!signedIn && !isPublic(pathname)) {
     const target = request.nextUrl.clone();
     target.pathname = "/sign-in";
-    target.search = pathname === "/clients" ? "" : `?next=${encodeURIComponent(pathname)}`;
+    target.search = pathname === "/clients" || pathname === "/start" ? "" : `?next=${encodeURIComponent(pathname)}`;
     return withCookies(NextResponse.redirect(target), supabaseResponse);
   }
 
   if (signedIn && pathname.startsWith("/sign-in")) {
     const target = request.nextUrl.clone();
-    target.pathname = "/clients";
+    // /start sends a consultancy to its clients and an organisation's own team to its cases.
+    target.pathname = "/start";
     target.search = "";
     return withCookies(NextResponse.redirect(target), supabaseResponse);
   }

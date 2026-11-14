@@ -120,13 +120,23 @@ const short = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 3).tri
  * The line that goes on the audit trail with the step. It records facts about the email and a
  * short summary; it is not a copy of the email. Kept well inside the database's limit.
  */
-export function evidenceLine(o: { sentAt: string | null; recipient: RecipientCheck; subject: string; attachments: string[]; summary: string | null }): string {
+export function evidenceLine(o: {
+  sentAt: string | null;
+  recipient: RecipientCheck;
+  subject: string;
+  attachments: string[];
+  summary: string | null;
+  /** The mailbox it was sent from, when it went from Privacy Desk itself rather than being dropped in afterwards. */
+  via?: string | null;
+}): string {
   const parts = [`Email evidence: sent ${o.sentAt ? sentWhen(o.sentAt).words : "on a date the file does not give"} ${o.recipient.words}.`];
   const subject = o.subject.replace(/\s+/g, " ").trim();
   if (subject) parts.push(`Subject: “${short(subject, 150)}”.`);
   const names = o.attachments.map((a) => short(a.replace(/\s+/g, " ").trim(), 80)).filter(Boolean);
   if (names.length === 0) parts.push("No attachments.");
   else parts.push(`${names.length === 1 ? "Attachment" : `${names.length} attachments`}: ${names.slice(0, 8).join(", ")}${names.length > 8 ? `, and ${names.length - 8} more` : ""}.`);
+  const via = (o.via ?? "").replace(/\s+/g, " ").trim();
+  if (via) parts.push(`Sent from Privacy Desk through ${short(via, 120)}.`);
   const summary = (o.summary ?? "").replace(/\s+/g, " ").trim();
   if (summary) parts.push(`Summary: ${short(summary, 400)}`);
   return short(parts.join(" "), 1400);
