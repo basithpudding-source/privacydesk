@@ -17,7 +17,8 @@ Read `docs/DESIGN-STANDARD.md` before building any screen and `docs/NEXT-STEPS.m
 ## Rules that never change
 
 - Deadlines follow ICO guidance exactly. Never change a date rule without adding a test built from the ICO's worked examples.
-- AI classifies, summarises and drafts. A person confirms every triage result and sends every letter. The app never sends email on its own.
+- AI classifies, summarises and drafts. A person confirms every triage result and sends every letter. A letter goes only when a person presses Send: in their own email program, or from Privacy Desk through their own connected mailbox after a second "are you sure" step. The app never sends a letter on its own, on a timer, or because AI decided to. (Reworded 14 November 2026, when sending from a connected mailbox was added.)
+- A person's mailbox is connected in their browser only (`apps/web/src/lib/mailbox`). Leave to use it is never sent to, or kept on, the server; the server sees only the emails a person chooses to import and the short record of what was sent.
 - Every change to a case writes an audit event. Audit events are never edited or deleted on their own.
 - One client organisation must never see another's data, and one desk must never see another's. Enforce this with row-level security in the database, not only in app code.
 - Who is in a team, and what each person may do, changes only through the database functions that write the team log. Team log entries are never edited or deleted.

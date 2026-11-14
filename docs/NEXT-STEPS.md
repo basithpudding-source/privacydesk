@@ -152,6 +152,23 @@ Still to do by hand:
 - [ ] After 0022, with a second email address of your own: sign in with it and set up an organisation's own desk; then from that desk add a third address, sign in with it and join. This is the only way to see joining and a real organisation desk, and it needs sign-in links only you can open.
 - [ ] Review the terms, privacy notice and data processing terms for an organisation that buys the app for its own team (see the open question in DECISIONS.md).
 
+## 16. Mailbox connection: choose emails to import, and reply from a case (14 November 2026)
+
+- [x] Import page: "From my mailbox" lists the connected inbox for a period (last 24 hours, 7 days, 30 days, or between dates); ticked emails go into the import list as if their files had been dropped.
+- [x] Case page: "Send from my mailbox" under a draft sends it from the person's own mailbox after an "are you sure" step, or saves it to Drafts to finish in Outlook; the step is recorded on the audit trail once it has gone.
+- [x] The mailbox is connected in the browser only; the server never holds leave to use it. A sample mailbox of made-up emails stands in during development.
+- [x] Checked in the signed-in app with the sample mailbox: listing by period, ticking and adding to the import list (not imported), the send panel, the gaps check, the "are you sure" step, saving to Drafts, checking whether it was sent, and remembering the draft across a reload. 20 tests cover the requests to Microsoft against a stand-in.
+- [ ] Not tried: pressing "Send it now" (it writes a permanent entry on a case, even from the sample mailbox), and anything against a real Microsoft mailbox.
+- [ ] Set up Microsoft, once. No password or secret is involved:
+  1. Sign in at https://entra.microsoft.com with a Microsoft account that can register apps (a free Azure account gives you one; if it says you have no directory, create the free account first at https://portal.azure.com).
+  2. Go to Applications, then App registrations, then New registration.
+  3. Name: `Privacy Desk (dev)`. Supported account types: the option that includes any organisational directory and personal Microsoft accounts.
+  4. Redirect URI: choose the platform "Single-page application (SPA)" and enter `http://localhost:3000/mailbox-redirect`. Press Register.
+  5. On the overview page copy the "Application (client) ID" and put it in `apps/web/.env.local` as `NEXT_PUBLIC_MS_CLIENT_ID=<the id>`. It is not a secret. Do not create a client secret.
+  6. Reload the app. The buttons now say "Connect my mailbox" and open Microsoft's own window.
+- [ ] Test with a mailbox that holds only made-up emails (for example a new Outlook.com address), never your real one: real personal data must not go into the dev database, and a test reply is a real email.
+- [ ] Before real use: add the live site's `https://…/mailbox-redirect` to the registration, verify the publisher with Microsoft, and tell organisations their IT administrator may need to approve the app.
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.
