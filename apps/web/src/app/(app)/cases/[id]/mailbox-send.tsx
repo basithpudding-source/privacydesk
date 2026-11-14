@@ -40,7 +40,20 @@ const box = "rounded-lg border border-border bg-card px-4 py-3 text-sm";
  * Once the mailbox has accepted it, the step is recorded on the case with a short record of
  * the email. A reply that is saved or sent but not yet recorded is remembered in this browser.
  */
-export function MailboxSend({ caseId, isComplaint, requesterEmail, open }: { caseId: string; isComplaint: boolean; requesterEmail: string | null; open: OpenLetter | null }) {
+export function MailboxSend({
+  caseId,
+  isComplaint,
+  requesterEmail,
+  open,
+  onSent,
+}: {
+  caseId: string;
+  isComplaint: boolean;
+  requesterEmail: string | null;
+  open: OpenLetter | null;
+  /** Called once a reply has gone and is on the case, so the letters box can put the draft away. */
+  onSent: () => void;
+}) {
   const router = useRouter();
   const { mode, mailbox, checking, connecting, error: connectError, connect, disconnect } = useMailbox();
   const [pending, setPending] = useState<PendingLetter | null>(null);
@@ -118,6 +131,8 @@ export function MailboxSend({ caseId, isComplaint, requesterEmail, open }: { cas
     setNote("");
     setOutcome("");
     setDone(`Sent ${sentWhen(p.sentAt ?? p.savedAt).words} from ${p.mailbox} and recorded on the case${p.stepLabel ? `: ${p.stepLabel}` : " as a note"}.${p.sample ? " This was the sample mailbox, so nothing was really sent." : ""}`);
+    // The draft has gone, so it is put away: left open, the same reply could be sent twice.
+    onSent();
     router.refresh();
   }
 
@@ -234,7 +249,8 @@ export function MailboxSend({ caseId, isComplaint, requesterEmail, open }: { cas
         )}
       </div>
 
-      {done && (
+      {/* Shown until another draft is opened. */}
+      {done && !open && (
         <p className={`${box} flex items-start gap-2`} role="status">
           <CircleCheck className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden="true" />
           {done}

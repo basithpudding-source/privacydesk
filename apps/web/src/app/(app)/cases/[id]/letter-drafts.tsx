@@ -176,6 +176,23 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
     setMoveTo((m) => ({ place: "status", n: (m?.n ?? 0) + 1 }));
   }
 
+  /** A draft that has been sent is finished with: the box goes back to choosing a letter, with nothing to put back. */
+  function putAway() {
+    writing.current.stop?.abort();
+    writing.current.stop = null;
+    setDiscarded(null);
+    setSaid(null);
+    setBusy(null);
+    setKind(null);
+    setText("");
+    setSubject("");
+    setTo(email.to);
+    setQuote(email.quoteByDefault && Boolean(email.original));
+    setError(null);
+    setNotice(null);
+    setCopied(false);
+  }
+
   function putBack() {
     if (!discarded) return;
     setKind(discarded.kind);
@@ -459,7 +476,7 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
       )}
 
       {/* Outside the draft, so a reply saved or sent earlier is still shown after the draft has gone. */}
-      <MailboxSend caseId={caseId} isComplaint={isComplaint} requesterEmail={email.to || null} open={openLetter} />
+      <MailboxSend caseId={caseId} isComplaint={isComplaint} requesterEmail={email.to || null} open={openLetter} onSent={putAway} />
     </div>
   );
 }
