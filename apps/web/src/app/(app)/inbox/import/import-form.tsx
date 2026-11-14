@@ -11,7 +11,9 @@ import { shortDate } from "@/lib/clocks";
 import type { ParsedEmail } from "@/lib/inbox/parse-email";
 import { londonDate } from "@/lib/today";
 import { cn } from "@/lib/utils";
+import { mailboxMode } from "@/lib/mailbox/connect";
 import { importEmails, type ImportResult } from "../actions";
+import { MailboxPicker } from "./mailbox-picker";
 
 interface Row extends ParsedEmail {
   key: string;
@@ -45,6 +47,9 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
+  // Where the emails come from: chosen in the person's own mailbox, or saved files dropped here.
+  const canConnect = mailboxMode() !== "off";
+  const [source, setSource] = useState<"mailbox" | "files">(canConnect ? "mailbox" : "files");
 
   // An email that failed to import stays in the list and goes again with the next press.
   const settled = (r: Row) => r.result?.status === "imported" || r.result?.status === "duplicate";
@@ -117,7 +122,35 @@ export function ImportForm({ clients }: { clients: { id: string; name: string; c
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      {canConnect && (
+        <div role="group" aria-label="Where the emails come from" className="flex w-fit rounded-lg border border-border bg-muted/40 p-0.5">
+          {(
+            [
+              ["mailbox", "From my mailbox"],
+              ["files", "From saved files"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={source === key}
+              onClick={() => setSource(key)}
+              className={cn("rounded-md px-3 py-1.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50", source === key ? "bg-card font-medium shadow-xs" : "text-muted-foreground hover:text-foreground")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Kept mounted while the files tab shows, so the list and what was ticked are not lost. */}
+      {canConnect && (
+        <div className={cn(source !== "mailbox" && "hidden")}>
+          <MailboxPicker room={LIMIT - rows.filter((r) => !settled(r)).length} onAdd={addFiles} />
+        </div>
+      )}
+
+      <div className={cn("grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]", source !== "files" && "hidden")}>
         <div
           onDragOver={(e) => {
             e.preventDefault();
