@@ -5,6 +5,7 @@ import { ArrowRight, StickyNote, Undo2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { UndoForm } from "@/components/undo-form";
 import { inboxItemForCase } from "@/lib/inbox/queries";
+import { asMessageId } from "@/lib/mailbox/types";
 import { returnCaseToInbox } from "../../inbox/actions";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
@@ -104,8 +105,10 @@ export default async function CasePage({
     signerComplete: Boolean(user.name && user.jobTitle),
     // Offer to record a step only when the case can take it now.
     record: Object.fromEntries(
-      kinds.filter((k) => tasks.some((t) => t.action === recordStep[k].action)).map((k) => [k, { href: `/cases/${c.id}?do=${recordStep[k].action}`, label: recordStep[k].label }]),
+      kinds.filter((k) => tasks.some((t) => t.action === recordStep[k].action)).map((k) => [k, { href: `/cases/${c.id}?do=${recordStep[k].action}`, label: recordStep[k].label, action: recordStep[k].action }]),
     ),
+    // Only a real Message-ID lets a reply join the conversation; a case logged by hand has none.
+    inReplyTo: asMessageId(fromInbox?.message_id),
   };
 
   // The second row of the top pane, closed until asked for. The details run in two columns

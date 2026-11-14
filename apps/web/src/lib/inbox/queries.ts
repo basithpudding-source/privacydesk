@@ -73,6 +73,8 @@ export interface CaseSourceMessage {
   from_name: string | null;
   from_email: string | null;
   received_at: string;
+  /** The email's own Message-ID (or a fingerprint when it had none), so a reply can join its conversation. */
+  message_id: string | null;
 }
 
 /**
@@ -81,6 +83,6 @@ export interface CaseSourceMessage {
  */
 export async function inboxItemForCase(caseId: string): Promise<CaseSourceMessage | null> {
   const supabase = await createClient();
-  const { data } = await supabase.from("inbox_items").select("id, subject, from_name, from_email, received_at").eq("case_id", caseId).maybeSingle();
+  const { data } = await supabase.from("inbox_items").select("id, subject, from_name, from_email, received_at, message_id").eq("case_id", caseId).maybeSingle();
   return (data as CaseSourceMessage | null) ?? null;
 }

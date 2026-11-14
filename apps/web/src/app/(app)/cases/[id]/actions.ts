@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { summariseSentEmail, type SentSummaryOutcome } from "@/lib/ai/sent-summary";
 import { requireMember } from "@/lib/auth";
 import { EMAIL_STEPS } from "@/lib/cases/evidence";
+import type { SentRecord } from "@/lib/mailbox/pending";
 import { ACTIONS, type CaseAction } from "@/lib/cases/types";
 import { createClient } from "@/lib/supabase/server";
 import { todayInLondon } from "@/lib/today";
@@ -70,4 +71,33 @@ export async function summariseSent(caseId: string, text: string): Promise<SentS
   const { data: org } = await supabase.from("organisations").select("name, ai_enabled").eq("id", c.organisation_id).maybeSingle();
   if (!org) return { summary: null, reason: "That case is not here." };
   return summariseSentEmail({ text: String(text ?? "").slice(0, 20000), organisationName: org.name as string, aiEnabled: Boolean(org.ai_enabled) });
+}
+
+/**
+ * Record on the case that a reply was sent from the person's own mailbox. The browser sends
+ * the email itself (the server never sees the mailbox); this only writes what the audit trail
+ * keeps: the step, the day, and the short record of the email. It is called once the mailbox
+ * has accepted the email, never before, and it goes through the same audited database
+ * function as recording the step by hand.
+ */
+export async function recordSentLetter(caseId: string, r: SentRecord): Promise<{ error: string | null }> {
+  const user = await requireMember();
+  if (user.membership.role === "read_only") return { error: "You can read this case but not change it." };
+  const today = todayInLondon();
+  const on = ISO_DATE.test(r.on) && r.on <= today ? r.on : today;
+  const step = r.action && EMAIL_STEPS.includes(r.action) ? r.action : null;
+  const tidy = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(
+    "record_case_action",
+    step
+      ? { p_case_id: caseId, p_action: step, p_on: on, p_note: tidy(r.note, 2000) || null, p_outcome: tidy(r.outcome, 300) || null, p_evidence: tidy(r.evidence, 1500) || null }
+      : // No step of this kind is open on the case, so the email is kept as a note.
+        { p_case_id: caseId, p_action: "note", p_on: today, p_note: tidy(r.fallbackNote, 2000) },
+  );
+  if (error) return { error: error.code === "42501" ? "You can read this case but not change it." : error.message };
+  revalidatePath("/cases");
+  revalidatePath(`/cases/${caseId}`);
+  return { error: null };
 }

@@ -18,7 +18,10 @@ import {
   type LetterKind,
   type OriginalMessage,
 } from "@/lib/letters/email";
+import type { CaseAction } from "@/lib/cases/types";
+import { mailboxMode } from "@/lib/mailbox/connect";
 import { cn } from "@/lib/utils";
+import { MailboxSend, type OpenLetter } from "./mailbox-send";
 
 const KINDS: { kind: LetterKind; label: string; forComplaint: boolean; forRequest: boolean }[] = [
   { kind: "ack", label: "Acknowledgement", forComplaint: true, forRequest: true },
@@ -44,7 +47,9 @@ export interface LetterEmail {
   /** False when the sender's profile has no name or no job title. */
   signerComplete: boolean;
   /** The step to record on the case once each kind of letter has gone. */
-  record: Partial<Record<LetterKind, { href: string; label: string }>>;
+  record: Partial<Record<LetterKind, { href: string; label: string; action: CaseAction }>>;
+  /** The Message-ID of the email the case came from, so a reply sent from the mailbox joins its conversation. */
+  inReplyTo: string | null;
 }
 
 /** A finished draft as it stood when it was discarded, so it can be put back. */
@@ -62,7 +67,8 @@ const layer = "[grid-area:1/1] min-h-48 whitespace-pre-wrap break-words px-3 py-
 /**
  * A draft streams into the box; the person edits it, checks what is highlighted, and opens it
  * in their own email program with the recipient, subject, text and the original message
- * filled in. Nothing is sent from here: they press send themselves.
+ * filled in, or sends it from their own mailbox where one is connected (mailbox-send.tsx).
+ * Either way nothing goes unless they press send themselves.
  *
  * A draft is only ever on this screen. It can be stopped while it is being written, or
  * discarded afterwards, which puts the box back as it was before a letter was chosen.
@@ -238,11 +244,17 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
   }
 
   const record = kind ? email.record[kind] : undefined;
+  const canSendHere = mailboxMode() !== "off";
+  // What the mailbox panel needs to send the draft as it stands; nothing while it is still being written.
+  const openLetter: OpenLetter | null =
+    kind && text.trim() && busy === null
+      ? { letter: KINDS.find((k) => k.kind === kind)?.label ?? "Reply", to, subject, body, replyText: text, gaps: gaps.length, inReplyTo: email.inReplyTo, step: record ? { action: record.action, label: record.label } : null }
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        {aiOn ? "AI writes a first draft from the case facts." : "AI is off, so these are templates with gaps in square brackets."} Nothing is sent from here: check it, then open it in your own email program and send it yourself.
+        {aiOn ? "AI writes a first draft from the case facts." : "AI is off, so these are templates with gaps in square brackets."} Nothing goes until you send it yourself: check it, then {canSendHere ? "send it from your own mailbox below, or open it in your email program" : "open it in your own email program and send it"}.
       </p>
       <div className="flex flex-wrap gap-2">
         {KINDS.filter((k) => (isComplaint ? k.forComplaint : k.forRequest)).map((k) => (
@@ -445,6 +457,9 @@ export function LetterDrafts({ caseId, isComplaint, aiOn, email }: { caseId: str
           )}
         </>
       )}
+
+      {/* Outside the draft, so a reply saved or sent earlier is still shown after the draft has gone. */}
+      <MailboxSend caseId={caseId} isComplaint={isComplaint} requesterEmail={email.to || null} open={openLetter} />
     </div>
   );
 }
