@@ -176,9 +176,9 @@ Still to do by hand:
 - [x] An administrator can download everything held for a client, and delete a client and everything held for it, each recorded on the team log; a whole desk is closed by the operator (migration 0024).
 - [x] The database tests run with one command: `node supabase/local/run.mjs` (61 checks pass, and fail when a safeguard is deliberately removed).
 - [x] Checked without the database: 192 app tests, typecheck, lint and a production build pass.
-- [ ] The development database project could not be reached on 23 November 2026: its address no longer exists, which is what Supabase does to a free project after about a week unused. Open the Supabase dashboard and restore `privacy-desk-dev`. Until then the app cannot be signed in to, so none of this has been seen in the app.
-- [ ] Then run `supabase/migrations/0023_people.sql` and `0024_leaving.sql` in the SQL editor, and `supabase/live_checks.sql` after them.
-- [ ] Then, in the app: check a colleague's name shows on an audit trail; download both files for a sample client and open them; and delete a throwaway client made for the purpose (never one of the sample clients you want to keep).
+- [x] The development database project had been paused by Supabase after about a week unused, and was restored on 23 November 2026. It came back with everything in it (23 cases, 62 audit events, both desks). On the free plan this will happen again after any quiet week, and there are no backups: one more reason to move to the Pro plan before real data.
+- [x] Ran `supabase/migrations/0023_people.sql` and `0024_leaving.sql` in the SQL editor on `privacy-desk-dev` (23 November 2026). Checked on the live database: both people are in the directory, one with the name from their profile; the directory, the record of closed desks and the three new functions are closed as intended; no client or case was touched. All 29 live checks pass, including four new ones for these rules.
+- [ ] In the app (needs you signed in; the session had timed out): check a colleague's name shows on an audit trail; download both files for a sample client and open them; and delete a throwaway client made for the purpose (never one of the sample clients you want to keep).
 - [ ] Push the code to GitHub. The private repository `basithpudding-source/privacydesk` is connected as `origin`, the history was scanned for secrets (none found), and `main` is ready: run `git push -u origin main` in the repository folder.
 - [ ] Decide on a bot check for the public form (see DECISIONS.md).
 
