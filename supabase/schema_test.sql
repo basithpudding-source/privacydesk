@@ -869,3 +869,77 @@ select case when (select kind from pd.partners where name = 'Partner D') = 'cons
 do $$ begin
   if (select kind from pd.partners where name = 'Partner D') <> 'consultancy' then raise exception 'Desk kind test failed'; end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- The people on the audit trails (0023)
+-- ---------------------------------------------------------------------------
+-- The desk made above has had three people: Olive (administrator), Hana (removed) and Rae.
+reset role;
+update auth.users set raw_user_meta_data = '{"display_name": "  Olive   Owner "}'::jsonb where id = '00000000-0000-0000-0000-0000000000e1';
+set role app_user;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+
+-- A case handler can see who is, and was, in their desk, and who has left.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e3', false);
+do $$
+declare v_desk uuid := current_setting('t.desk')::uuid;
+begin
+  if (select count(*) from pd.people where partner_id = v_desk) <> 3 then raise exception 'FAIL the directory does not hold everyone who has been in the desk'; end if;
+  if (select left_at from pd.people where partner_id = v_desk and email = 'hana.handler@example.org') is null then raise exception 'FAIL a removed person is not marked as left'; end if;
+  if (select left_at from pd.people where partner_id = v_desk and email = 'rae.reader@example.org') is not null then raise exception 'FAIL a current member is marked as left'; end if;
+  if (select count(*) from pd.people where partner_id <> v_desk) <> 0 then raise exception 'FAIL the directory of another desk can be read'; end if;
+  raise notice 'PASS a member reads the directory of their own desk, including who has left';
+  begin insert into pd.people (partner_id, user_id, email, name) values (v_desk, '00000000-0000-0000-0000-0000000000e4', 'x@example.org', 'Not Me'); raise exception 'FAIL a person was added to the directory directly';
+  exception when insufficient_privilege then null; end;
+  begin update pd.people set name = 'Someone Else' where partner_id = v_desk; raise exception 'FAIL a name was changed directly';
+  exception when insufficient_privilege then null; end;
+  begin delete from pd.people where partner_id = v_desk; raise exception 'FAIL the directory was deleted from';
+  exception when insufficient_privilege then null; end;
+  begin perform pd.profile_name('00000000-0000-0000-0000-0000000000e1'); raise exception 'FAIL another person''s profile name can be read directly';
+  exception when insufficient_privilege then null; end;
+  raise notice 'PASS the directory cannot be written directly';
+end $$;
+-- Without the second factor, someone who can see the whole desk sees no directory either.
+select set_config('request.jwt.claim.aal', 'aal1', false);
+select case when (select count(*) from pd.people) = 0 then 'PASS' else 'FAIL' end || ' the directory needs the second factor like everything else' as people;
+do $$ begin
+  if (select count(*) from pd.people) <> 0 then raise exception 'Directory second-factor test failed'; end if;
+end $$;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+
+-- A name comes from the person's own profile, tidied, and only for themselves.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+select pd.sync_my_name();
+select case when (select name from pd.people where user_id = '00000000-0000-0000-0000-0000000000e1') = 'Olive Owner'
+             and (select name from pd.people where user_id = '00000000-0000-0000-0000-0000000000e3') is null
+            then 'PASS' else 'FAIL' end || ' a person''s name is taken from their own profile and nobody else''s changes' as people;
+do $$ begin
+  if (select name from pd.people where user_id = '00000000-0000-0000-0000-0000000000e1') is distinct from 'Olive Owner' then raise exception 'Name test failed'; end if;
+  -- Adding back someone who left clears the mark, and keeps one row for them.
+  perform set_config('t.inv_back', pd.invite_member('hana.handler@example.org', 'read_only')::text, false);
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e2', false);
+select pd.accept_invitation(current_setting('t.inv_back')::uuid) is not null as rejoined;
+select case when (select count(*) from pd.people where email = 'hana.handler@example.org') = 1
+             and (select left_at from pd.people where email = 'hana.handler@example.org') is null
+            then 'PASS' else 'FAIL' end || ' a person added back is one entry, no longer marked as left' as people;
+do $$ begin
+  if (select left_at from pd.people where email = 'hana.handler@example.org') is not null then raise exception 'Rejoin test failed'; end if;
+end $$;
+
+-- Another desk's administrator sees none of it, and anonymous callers reach no function.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select case when (select count(*) from pd.people where partner_id = current_setting('t.desk')::uuid) = 0
+             and (select count(*) from pd.people) >= 1
+            then 'PASS' else 'FAIL' end || ' an administrator sees their own desk''s directory and not another''s' as people;
+do $$ begin
+  if (select count(*) from pd.people where partner_id = current_setting('t.desk')::uuid) <> 0 then raise exception 'Directory separation test failed'; end if;
+end $$;
+reset role;
+select case when not has_function_privilege('anon', 'pd.role_words(text)', 'execute')
+             and not has_function_privilege('anon', 'pd.sync_my_name()', 'execute')
+             and not has_function_privilege('authenticated', 'pd.profile_name(uuid)', 'execute')
+            then 'PASS' else 'FAIL' end || ' anonymous callers reach none of the team or directory functions' as people;
+do $$ begin
+  if has_function_privilege('anon', 'pd.role_words(text)', 'execute') then raise exception 'Anonymous access test failed'; end if;
+end $$;
