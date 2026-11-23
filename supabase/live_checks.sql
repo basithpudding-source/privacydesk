@@ -114,6 +114,17 @@ begin
   exception when insufficient_privilege then insert into seen (note) values ('PASS a person cannot be added to a team directly (0022)'); end;
   begin delete from pd.team_events where false; raise exception 'team log delete allowed';
   exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot write to the team log (0022)'); end;
+
+  -- 7. The directory of people (0023) and leaving (0024). None of these statements matches a
+  -- row, and the desk named to be closed does not exist.
+  begin update pd.people set name = name where false; raise exception 'direct change to the directory allowed';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS the directory of people cannot be written directly (0023)'); end;
+  begin perform pd.close_desk(gen_random_uuid(), 'No such desk', 'A live check, never carried out'); raise exception 'a user reached close_desk';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot close a desk (0024)'); end;
+  begin perform count(*) from pd.closed_desks; raise exception 'a user read the record of closed desks';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a user cannot read the record of closed desks (0024)'); end;
+  begin perform pd.delete_client(gen_random_uuid(), 'No such client', 'A live check, never carried out'); raise exception 'a client that is not theirs was deleted';
+  exception when insufficient_privilege then insert into seen (note) values ('PASS a client that is not yours cannot be deleted (0024)'); end;
   reset role;
 end $$;
 
