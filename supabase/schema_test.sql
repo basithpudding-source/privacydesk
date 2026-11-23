@@ -943,3 +943,116 @@ select case when not has_function_privilege('anon', 'pd.role_words(text)', 'exec
 do $$ begin
   if has_function_privilege('anon', 'pd.role_words(text)', 'execute') then raise exception 'Anonymous access test failed'; end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- When a client, or a whole desk, leaves (0024)
+-- ---------------------------------------------------------------------------
+reset role;
+set role app_user;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+
+-- An export is noted on the team log, and only an administrator of that desk can take one.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select pd.note_export('aaaaaaaa-0000-0000-0000-000000000001');
+select case when exists (select 1 from pd.team_events where text like 'Downloaded an export of Client A1 (AAA): % cases and % inbox messages')
+            then 'PASS' else 'FAIL' end || ' an export is written to the team log with what it held' as leaving;
+do $$ begin
+  if not exists (select 1 from pd.team_events where text like 'Downloaded an export of Client A1 (AAA):%') then raise exception 'Export log test failed'; end if;
+  -- Refusals: the wrong name, no reason, and an organisation's own desk.
+  begin perform pd.delete_client('aaaaaaaa-0000-0000-0000-000000000002', 'Client A1', 'The client asked us to delete everything');
+    raise exception 'FAIL a client was deleted under another client''s name';
+  exception when check_violation then raise notice 'PASS the client''s own name must be typed'; end;
+  begin perform pd.delete_client('aaaaaaaa-0000-0000-0000-000000000002', 'Client A2', '  ');
+    raise exception 'FAIL a client was deleted with no reason given';
+  exception when check_violation then raise notice 'PASS who asked and why must be given'; end;
+  begin perform pd.delete_client('bbbbbbbb-0000-0000-0000-000000000001', 'Client B1', 'Trying another desk''s client');
+    raise exception 'FAIL an administrator deleted another desk''s client';
+  exception when insufficient_privilege then raise notice 'PASS another desk''s client cannot be deleted'; end;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+do $$ begin
+  begin perform pd.note_export('aaaaaaaa-0000-0000-0000-000000000002'); raise exception 'FAIL someone who is not an administrator noted an export';
+  exception when insufficient_privilege then null; end;
+  begin perform pd.delete_client('aaaaaaaa-0000-0000-0000-000000000002', 'Client A2', 'I can only read this client');
+    raise exception 'FAIL someone who is not an administrator deleted a client';
+  exception when insufficient_privilege then raise notice 'PASS only an administrator can export or delete a client'; end;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select set_config('request.jwt.claim.aal', 'aal1', false);
+do $$ begin
+  begin perform pd.delete_client('aaaaaaaa-0000-0000-0000-000000000002', 'Client A2', 'Without the second factor');
+    raise exception 'FAIL an administrator without the second factor deleted a client';
+  exception when insufficient_privilege then raise notice 'PASS deleting a client needs the second factor'; end;
+end $$;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+do $$ begin
+  begin perform pd.delete_client(current_setting('t.org')::uuid, 'Example Housing Trust', 'We are leaving Privacy Desk');
+    raise exception 'FAIL an organisation deleted its own organisation from inside its desk';
+  exception when check_violation then raise notice 'PASS an organisation''s own desk is closed, not deleted from inside'; end;
+end $$;
+
+-- Deleting a client takes everything held for it, leaves every other client alone, and
+-- leaves a record that cannot be removed.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+do $$
+declare v_a1_before bigint; v_events_before bigint;
+begin
+  select count(*) into v_a1_before from pd.cases where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  select count(*) into v_events_before from pd.case_events e join pd.cases c on c.id = e.case_id where c.organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+  if (select count(*) from pd.cases where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000002') = 0 then raise exception 'FAIL the client to delete has no cases, so the test proves nothing'; end if;
+
+  perform pd.delete_client('aaaaaaaa-0000-0000-0000-000000000002', ' Client A2 ', '  The client   ended the contract and asked for deletion (email of 20 Nov). ');
+
+  if exists (select 1 from pd.organisations where id = 'aaaaaaaa-0000-0000-0000-000000000002') then raise exception 'FAIL the client is still there'; end if;
+  if (select count(*) from pd.cases where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001') <> v_a1_before then raise exception 'FAIL another client''s cases were touched'; end if;
+  if (select count(*) from pd.case_events e join pd.cases c on c.id = e.case_id where c.organisation_id = 'aaaaaaaa-0000-0000-0000-000000000001') <> v_events_before then raise exception 'FAIL another client''s audit trail was touched'; end if;
+  if not exists (select 1 from pd.team_events where text like 'Deleted the client Client A2 (AAB) and everything held for it: % cases (% still open) and % inbox messages. Why: The client ended the contract and asked for deletion (email of 20 Nov).' and actor = '00000000-0000-0000-0000-00000000000a') then
+    raise exception 'FAIL the deletion was not recorded with who, what and why';
+  end if;
+  raise notice 'PASS a client is deleted with everything held for it, others are untouched, and the team log says who, what and why';
+end $$;
+reset role;
+select case when not exists (select 1 from pd.cases where ref = 'T-8')
+             and not exists (select 1 from pd.case_events e where not exists (select 1 from pd.cases c where c.id = e.case_id))
+             and not exists (select 1 from pd.inbox_items where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000002')
+             and not exists (select 1 from pd.members where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000002')
+             and (select left_at from pd.people where user_id = '00000000-0000-0000-0000-00000000000c') is not null
+             and (select count(*) from pd.cases where organisation_id = 'bbbbbbbb-0000-0000-0000-000000000001') = 1
+            then 'PASS' else 'FAIL' end || ' nothing of the deleted client is left: cases, audit trails, messages, and the membership limited to it' as leaving;
+do $$ begin
+  if exists (select 1 from pd.cases where ref = 'T-8') or exists (select 1 from pd.members where organisation_id = 'aaaaaaaa-0000-0000-0000-000000000002') then
+    raise exception 'Client deletion test failed';
+  end if;
+end $$;
+
+-- Closing a whole desk is for the operator only. It leaves a record with numbers and no personal data.
+set role app_user;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+do $$ begin
+  begin perform pd.close_desk(current_setting('t.desk')::uuid, 'Example Housing Trust', 'We are leaving Privacy Desk');
+    raise exception 'FAIL an administrator closed their own desk from the app';
+  exception when insufficient_privilege then null; end;
+  begin perform count(*) from pd.closed_desks; raise exception 'FAIL the record of closed desks can be read by a user';
+  exception when insufficient_privilege then null; end;
+  raise notice 'PASS closing a desk, and the record of closed desks, are out of reach of anyone signed in';
+end $$;
+reset role;
+do $$ begin
+  begin perform pd.close_desk(current_setting('t.desk')::uuid, 'Some other name', 'The customer ended its subscription');
+    raise exception 'FAIL a desk was closed under the wrong name';
+  exception when check_violation then null; end;
+  perform pd.close_desk(current_setting('t.desk')::uuid, 'Example Housing Trust', 'The customer ended its subscription and asked for deletion.');
+end $$;
+select case when not exists (select 1 from pd.partners where id = current_setting('t.desk')::uuid)
+             and not exists (select 1 from pd.organisations where partner_id = current_setting('t.desk')::uuid)
+             and not exists (select 1 from pd.members where partner_id = current_setting('t.desk')::uuid)
+             and not exists (select 1 from pd.team_events where partner_id = current_setting('t.desk')::uuid)
+             and not exists (select 1 from pd.people where partner_id = current_setting('t.desk')::uuid)
+             and (select count(*) from pd.closed_desks where name = 'Example Housing Trust' and kind = 'organisation' and clients = 1 and people >= 1
+                    and reason = 'The customer ended its subscription and asked for deletion.') = 1
+             and (select count(*) from pd.partners where name in ('Partner A', 'Partner B')) = 2
+            then 'PASS' else 'FAIL' end || ' a closed desk is gone with its organisation, team and logs; other desks are untouched; one record remains' as leaving;
+do $$ begin
+  if exists (select 1 from pd.partners where id = current_setting('t.desk')::uuid) or (select count(*) from pd.closed_desks) <> 1 then raise exception 'Desk closure test failed'; end if;
+end $$;
