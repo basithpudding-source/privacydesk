@@ -1056,3 +1056,66 @@ select case when not exists (select 1 from pd.partners where id = current_settin
 do $$ begin
   if exists (select 1 from pd.partners where id = current_setting('t.desk')::uuid) or (select count(*) from pd.closed_desks) <> 1 then raise exception 'Desk closure test failed'; end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Adding a client hands the new row back (0025)
+-- ---------------------------------------------------------------------------
+-- The app adds a client and asks for the new row in the same statement. From 0016 until 0025
+-- that was refused: the only read rule looked the client up by its id, and a row that is
+-- still being added is not there to be found.
+insert into pd.members (user_id, partner_id, organisation_id, role) values
+  ('00000000-0000-0000-0000-0000000000f5', '11111111-1111-1111-1111-111111111111', null, 'client_user');
+select set_config('t.partner_a_clients', (select count(*) from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111')::text, false);
+set role app_user;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+do $$
+declare v_id uuid;
+begin
+  insert into pd.organisations (partner_id, name, code) values ('11111111-1111-1111-1111-111111111111', 'Client A9', 'AA9')
+  returning id into v_id;
+  perform set_config('t.new_client', v_id::text, false);
+exception when insufficient_privilege then
+  raise exception 'FAIL an administrator could not add a client and get the new row back';
+end $$;
+select case when (select name from pd.organisations where id = current_setting('t.new_client')::uuid) = 'Client A9'
+             and (select count(*) from pd.organisations) = current_setting('t.partner_a_clients')::int + 1
+            then 'PASS' else 'FAIL' end || ' an administrator adds a client, gets the new row back, and still sees only their own desk''s clients' as adding;
+do $$ begin
+  if (select count(*) from pd.organisations) <> current_setting('t.partner_a_clients')::int + 1 then raise exception 'Add client test failed'; end if;
+end $$;
+
+-- It is still only an administrator, with the second factor, on their own desk, who can add one.
+do $$
+declare v_id uuid;
+begin
+  perform set_config('request.jwt.claim.aal', 'aal1', false);
+  begin insert into pd.organisations (partner_id, name, code) values ('11111111-1111-1111-1111-111111111111', 'No second factor', 'AA8') returning id into v_id;
+    raise exception 'FAIL an administrator without the second factor added a client';
+  exception when insufficient_privilege then null; end;
+  perform set_config('request.jwt.claim.aal', 'aal2', false);
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000f5', false);
+  begin insert into pd.organisations (partner_id, name, code) values ('11111111-1111-1111-1111-111111111111', 'Not an administrator', 'AA7') returning id into v_id;
+    raise exception 'FAIL a case handler added a client';
+  exception when insufficient_privilege then null; end;
+  if (select count(*) from pd.organisations) <> current_setting('t.partner_a_clients')::int + 1 then
+    raise exception 'FAIL a case handler for the whole desk does not see exactly its clients';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  begin insert into pd.organisations (partner_id, name, code) values ('11111111-1111-1111-1111-111111111111', 'Another desk', 'AA6') returning id into v_id;
+    raise exception 'FAIL an administrator added a client to another desk';
+  exception when insufficient_privilege then null; end;
+end $$;
+select case when not exists (select 1 from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111')
+            then 'PASS' else 'FAIL' end || ' another desk''s administrator sees none of this desk''s clients, the new one included' as adding;
+do $$ begin
+  if exists (select 1 from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111') then raise exception 'Client separation after adding a client failed'; end if;
+end $$;
+reset role;
+select case when (select count(*) from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111') = current_setting('t.partner_a_clients')::int + 1
+            then 'PASS' else 'FAIL' end || ' only an administrator with the second factor, on their own desk, can add a client' as adding;
+do $$ begin
+  if (select count(*) from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111') <> current_setting('t.partner_a_clients')::int + 1 then raise exception 'Add client refusals test failed'; end if;
+end $$;
