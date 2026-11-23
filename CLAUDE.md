@@ -9,7 +9,7 @@ Read `docs/DESIGN-STANDARD.md` before building any screen and `docs/NEXT-STEPS.m
 ## Layout
 
 - `packages/clocks/` — the deadline engine (`clocks.js`) and its tests. The single source of truth for dates in the browser. Run `node clocks.test.js` after any change; all tests must pass.
-- `supabase/migrations/` — the Postgres schema. The same deadline rules live here as SQL functions and views, with row-level security per client. `supabase/schema_test.sql` tests it.
+- `supabase/migrations/` — the Postgres schema. The same deadline rules live here as SQL functions and views, with row-level security per client. `supabase/schema_test.sql` tests it: run `node supabase/local/run.mjs` after any change to a migration (it applies every migration to an in-memory Postgres and runs the tests; all must pass).
 - `prototype/` — the first clickable version (one HTML file) and its sample data. Reference only; do not extend it.
 - `apps/web/` — the production Next.js app (to be created).
 - `docs/` — design standard, build order, decisions.

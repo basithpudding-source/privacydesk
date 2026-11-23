@@ -170,6 +170,18 @@ Still to do by hand:
 - [ ] Test with a mailbox that holds only made-up emails (for example a new Outlook.com address), never your real one: real personal data must not go into the dev database, and a test reply is a real email.
 - [ ] Before real use: add the live site's `https://…/mailbox-redirect` to the registration, verify the publisher with Microsoft, and tell organisations their IT administrator may need to approve the app.
 
+## 17. Closing gaps before launch (23 November 2026)
+
+- [x] Colleagues are named on the case audit trail, the inbox log and the team page, including people who have since left (migration 0023).
+- [x] An administrator can download everything held for a client, and delete a client and everything held for it, each recorded on the team log; a whole desk is closed by the operator (migration 0024).
+- [x] The database tests run with one command: `node supabase/local/run.mjs` (61 checks pass, and fail when a safeguard is deliberately removed).
+- [x] Checked without the database: 192 app tests, typecheck, lint and a production build pass.
+- [ ] The development database project could not be reached on 23 November 2026: its address no longer exists, which is what Supabase does to a free project after about a week unused. Open the Supabase dashboard and restore `privacy-desk-dev`. Until then the app cannot be signed in to, so none of this has been seen in the app.
+- [ ] Then run `supabase/migrations/0023_people.sql` and `0024_leaving.sql` in the SQL editor, and `supabase/live_checks.sql` after them.
+- [ ] Then, in the app: check a colleague's name shows on an audit trail; download both files for a sample client and open them; and delete a throwaway client made for the purpose (never one of the sample clients you want to keep).
+- [ ] Push the code to GitHub. The private repository `basithpudding-source/privacydesk` is connected as `origin`, the history was scanned for secrets (none found), and `main` is ready: run `git push -u origin main` in the repository folder.
+- [ ] Decide on a bot check for the public form (see DECISIONS.md).
+
 ## How to work with Claude Code on this
 
 Open this folder in Claude Code. For each slice, start with: "Read CLAUDE.md and docs/DESIGN-STANDARD.md, then build slice N from docs/NEXT-STEPS.md. Show me the plan before writing code." Review the plan, let it build, then test it yourself in the browser before committing. Keep commits small so you can read every diff.

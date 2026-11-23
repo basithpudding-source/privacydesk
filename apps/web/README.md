@@ -249,6 +249,10 @@ What the code now does, and what you must do by hand before any real personal da
     npm run lint      # eslint
     npm run build     # production build
 
+For the database, from the repository's top folder (the first time, run `npm install` in `supabase/local`):
+
+    node supabase/local/run.mjs   # every migration, the schema tests and the live checks, in an in-memory Postgres
+
 ## Where things are
 
 - `src/lib/clocks.ts` — the deadline engine, ported from `packages/clocks/clocks.js`. Keep the two in step until the open question in `docs/DECISIONS.md` is settled. Never change a date rule without a test built from an ICO worked example.
