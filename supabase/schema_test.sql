@@ -954,7 +954,7 @@ select set_config('request.jwt.claim.aal', 'aal2', false);
 -- An export is noted on the team log, and only an administrator of that desk can take one.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
 select pd.note_export('aaaaaaaa-0000-0000-0000-000000000001');
-select case when exists (select 1 from pd.team_events where text like 'Downloaded an export of Client A1 (AAA): % cases and % inbox messages')
+select case when exists (select 1 from pd.team_events where text ~ '^Downloaded an export of Client A1 \(AAA\): [0-9]+ cases? and [0-9]+ inbox messages?$')
             then 'PASS' else 'FAIL' end || ' an export is written to the team log with what it held' as leaving;
 do $$ begin
   if not exists (select 1 from pd.team_events where text like 'Downloaded an export of Client A1 (AAA):%') then raise exception 'Export log test failed'; end if;
@@ -1118,4 +1118,39 @@ select case when (select count(*) from pd.organisations where partner_id = '1111
             then 'PASS' else 'FAIL' end || ' only an administrator with the second factor, on their own desk, can add a client' as adding;
 do $$ begin
   if (select count(*) from pd.organisations where partner_id = '11111111-1111-1111-1111-111111111111') <> current_setting('t.partner_a_clients')::int + 1 then raise exception 'Add client refusals test failed'; end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- The team log counts in plain English (0026)
+-- ---------------------------------------------------------------------------
+-- "1 case", not "1 cases". One client with exactly one case and one inbox message, and one
+-- with none of either.
+select case when pd.counted(0, 'case', 'cases') = '0 cases' and pd.counted(1, 'case', 'cases') = '1 case' and pd.counted(2, 'case', 'cases') = '2 cases'
+             and not has_function_privilege('authenticated', 'pd.counted(bigint, text, text)', 'execute')
+             and not has_function_privilege('anon', 'pd.counted(bigint, text, text)', 'execute')
+            then 'PASS' else 'FAIL' end || ' a count is worded for none, one and many' as wording;
+insert into pd.organisations (id, partner_id, name, code) values ('aaaaaaaa-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Client A5', 'AA5');
+insert into pd.cases (organisation_id, ref, type, received_on) values ('aaaaaaaa-0000-0000-0000-000000000005', 'AA5-001', 'sar', '2026-11-23');
+insert into pd.inbox_items (organisation_id, body) values ('aaaaaaaa-0000-0000-0000-000000000005', 'A made-up message for the wording test.');
+set role app_user;
+select set_config('request.jwt.claim.aal', 'aal2', false);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select pd.note_export('aaaaaaaa-0000-0000-0000-000000000005');
+select pd.note_export(current_setting('t.new_client')::uuid);
+select pd.delete_client('aaaaaaaa-0000-0000-0000-000000000005', 'Client A5', 'Testing the wording of the team log');
+select pd.delete_client(current_setting('t.new_client')::uuid, 'Client A9', 'Testing the wording of the team log');
+reset role;
+select case when (select count(*) from pd.team_events where text = 'Downloaded an export of Client A5 (AA5): 1 case and 1 inbox message') = 1
+             and (select count(*) from pd.team_events where text = 'Downloaded an export of Client A9 (AA9): 0 cases and 0 inbox messages') = 1
+             and (select count(*) from pd.team_events where text = 'Deleted the client Client A5 (AA5) and everything held for it: 1 case (1 still open) and 1 inbox message. Why: Testing the wording of the team log') = 1
+             and (select count(*) from pd.team_events where text = 'Deleted the client Client A9 (AA9) and everything held for it: 0 cases (0 still open) and 0 inbox messages. Why: Testing the wording of the team log') = 1
+            then 'PASS' else 'FAIL' end || ' the team log says "1 case" and "1 inbox message", and keeps the plural for none or many' as wording;
+do $$ begin
+  if exists (select 1 from pd.team_events where text like '% 1 cases%' or text like '% 1 inbox messages%') then
+    raise exception 'Team log wording test failed: a count of one is worded as many';
+  end if;
+  if (select count(*) from pd.team_events where text = 'Deleted the client Client A5 (AA5) and everything held for it: 1 case (1 still open) and 1 inbox message. Why: Testing the wording of the team log') <> 1 then
+    raise exception 'Team log wording test failed';
+  end if;
+  if exists (select 1 from pd.organisations where code in ('AA5', 'AA9')) then raise exception 'Team log wording test failed: a client was not deleted'; end if;
 end $$;
