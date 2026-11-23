@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { UndoForm } from "@/components/undo-form";
 import { inboxItemForCase } from "@/lib/inbox/queries";
 import { asMessageId } from "@/lib/mailbox/types";
+import { peopleOfDesk } from "@/lib/people-server";
 import { returnCaseToInbox } from "../../inbox/actions";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
@@ -40,7 +41,7 @@ export default async function CasePage({
   const user = await requireMember();
   const { id } = await params;
   const { do: doParam } = await searchParams;
-  const [detail, fromInbox] = await Promise.all([getCase(id), inboxItemForCase(id)]);
+  const [detail, fromInbox, people] = await Promise.all([getCase(id), inboxItemForCase(id), peopleOfDesk()]);
   if (!detail) notFound();
   const { c, org, deadline, pauses, events, holidays, holidayCount } = detail;
 
@@ -275,7 +276,7 @@ export default async function CasePage({
             <h2 id="audit-heading" className="section-label mb-3">
               Audit trail
             </h2>
-            <AuditTrail events={events} currentUserId={user.id} />
+            <AuditTrail events={events} currentUserId={user.id} people={people} />
           </section>
         </div>
       </div>

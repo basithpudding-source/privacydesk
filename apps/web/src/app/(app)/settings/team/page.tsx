@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tag } from "@/components/ui/tag";
 import { requireAdmin } from "@/lib/auth";
 import { shortDate } from "@/lib/clocks";
+import { peopleOfDesk } from "@/lib/people-server";
 import { createClient } from "@/lib/supabase/server";
 import { memberActions, ROLE_LABELS, ROLES, roleAllows, sortMembers, type Invitation, type TeamEvent, type TeamMember } from "@/lib/team";
 import { londonDate } from "@/lib/today";
@@ -19,10 +20,11 @@ export default async function TeamPage() {
   const user = await requireAdmin();
   const supabase = await createClient();
   // Row-level security shows an administrator their own desk's team and nobody else's.
-  const [members, invitations, events] = await Promise.all([
+  const [members, invitations, events, people] = await Promise.all([
     supabase.from("members").select("*").eq("partner_id", user.membership.partnerId),
     supabase.from("invitations").select("id, email, role, created_at").order("created_at"),
     supabase.from("team_events").select("id, at, actor_email, text").order("id", { ascending: false }).limit(50),
+    peopleOfDesk(),
   ]);
   // Before migration 0022 there is no invitations table, and members carry no address.
   const ready = !invitations.error;
@@ -68,8 +70,9 @@ export default async function TeamPage() {
                   return (
                     <tr key={m.id}>
                       <td className={td}>
-                        <span className="break-all font-medium">{who}</span>
+                        <span className="break-all font-medium">{people.get(m.user_id)?.name ?? who}</span>
                         {self && <Tag className="ml-2">You</Tag>}
+                        {people.get(m.user_id)?.name && <span className="block break-all text-xs text-muted-foreground">{who}</span>}
                         {m.organisation_id && <span className="block text-xs text-muted-foreground">One client only</span>}
                       </td>
                       <td className={`${td} whitespace-nowrap tabular-nums text-muted-foreground`}>{day(m.created_at)}</td>

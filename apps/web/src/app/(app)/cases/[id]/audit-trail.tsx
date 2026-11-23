@@ -1,10 +1,11 @@
 import { Mail } from "lucide-react";
 import type { CaseEventRow } from "@/lib/cases/types";
 import { shortDate } from "@/lib/clocks";
+import { whoDid, type People } from "@/lib/people";
 import { londonDate } from "@/lib/today";
 
 /** Newest first. Events are never edited or deleted, so this is the record. */
-export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; currentUserId: string }) {
+export function AuditTrail({ events, currentUserId, people }: { events: CaseEventRow[]; currentUserId: string; /** The desk's directory, to name whoever made each entry. */ people: People }) {
   if (events.length === 0) return <p className="text-sm text-muted-foreground">No events yet.</p>;
   return (
     <ol className="relative space-y-4 before:absolute before:inset-y-1.5 before:left-[3px] before:w-px before:bg-border">
@@ -22,7 +23,7 @@ export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; 
             <time dateTime={e.at} className="tabular-nums" title={new Date(e.at).toLocaleString("en-GB")}>
               {shortDate(londonDate(e.at))}
             </time>{" "}
-            · {who(e.actor, currentUserId)}
+            · {whoDid(e.actor, currentUserId, people)}
           </p>
         </li>
       ))}
@@ -34,10 +35,3 @@ export function AuditTrail({ events, currentUserId }: { events: CaseEventRow[]; 
 const EVIDENCE = ". Email evidence: ";
 const stepOf = (text: string) => (text.includes(EVIDENCE) ? `${text.slice(0, text.indexOf(EVIDENCE))}.` : text);
 const evidenceOf = (text: string) => (text.includes(EVIDENCE) ? `Email evidence: ${text.slice(text.indexOf(EVIDENCE) + EVIDENCE.length)}` : null);
-
-// No display names yet (open question in docs/DECISIONS.md), so: you, or a short id.
-function who(actor: string | null, me: string) {
-  if (!actor) return "system";
-  if (actor === me) return "you";
-  return `user ${actor.slice(0, 8)}`;
-}

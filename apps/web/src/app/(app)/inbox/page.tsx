@@ -1,4 +1,6 @@
 import { deskWords } from "@/lib/desk";
+import { whoDid } from "@/lib/people";
+import { peopleOfDesk } from "@/lib/people-server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ClipboardPaste, FileUp } from "lucide-react";
@@ -22,7 +24,13 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const user = await requireMember();
   const { item: itemId, view: viewParam } = await searchParams;
   const view = viewParam === "decided" ? "decided" : "new";
-  const [{ rows, error }, selected, history] = await Promise.all([listInbox(view), itemId ? getInboxItem(itemId) : Promise.resolve(null), itemId ? listInboxEvents(itemId) : Promise.resolve([])]);
+  const [{ rows, error }, selected, history, people] = await Promise.all([
+    listInbox(view),
+    itemId ? getInboxItem(itemId) : Promise.resolve(null),
+    itemId ? listInboxEvents(itemId) : Promise.resolve([]),
+    // Only needed to name who made each entry on a message's log.
+    itemId ? peopleOfDesk() : Promise.resolve(new Map()),
+  ]);
   const canWrite = user.membership.role !== "read_only";
   const words = deskWords(user.membership.kind);
   const today = todayInLondon();
@@ -254,7 +262,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                       <li key={e.id}>
                         <p>{e.text}</p>
                         <p className="text-xs tabular-nums text-muted-foreground">
-                          {shortDate(londonDate(e.at))} · {e.actor === user.id ? "you" : e.actor ? `user ${e.actor.slice(0, 8)}` : "system"}
+                          {shortDate(londonDate(e.at))} · {whoDid(e.actor, user.id, people)}
                         </p>
                       </li>
                     ))}
