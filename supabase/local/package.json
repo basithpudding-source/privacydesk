@@ -1,0 +1,12 @@
+{
+  "name": "privacy-desk-schema-tests",
+  "private": true,
+  "type": "module",
+  "description": "Runs every migration and the schema tests in an in-memory Postgres. Nothing is installed on the machine and nothing touches a real database.",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.15"
+  }
+}
