@@ -27,6 +27,13 @@ export default async function ClientPage({
   if (!data) notFound();
   const client = data as Organisation;
   const isAdmin = user.membership.role === "partner_admin";
+  // How much would go if the client were deleted. Counted only for the person who could do it.
+  const count = (table: "cases" | "inbox_items", open = false) => {
+    const q = supabase.from(table).select("id", { count: "exact", head: true }).eq("organisation_id", client.id);
+    return open ? q.eq("status", "open") : q;
+  };
+  const [held, stillOpen, messages] = isAdmin ? await Promise.all([count("cases"), count("cases", true), count("inbox_items")]) : [null, null, null];
+  const counts = held ? { cases: held.count ?? 0, open: stillOpen?.count ?? 0, inbox: messages?.count ?? 0 } : undefined;
 
   return (
     <div className="w-full">
@@ -41,7 +48,7 @@ export default async function ClientPage({
         }
       />
 
-      <OrganisationSettings org={client} isAdmin={isAdmin} saved={saved} own={false} />
+      <OrganisationSettings org={client} isAdmin={isAdmin} saved={saved} own={false} counts={counts} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Region } from "@/lib/db/types";
 import { REGIONS } from "@/lib/db/types";
@@ -104,4 +105,36 @@ export async function updateClient(id: string, back: string | null, _prev: Clien
   revalidatePath("/organisation");
   // Only the one known address is honoured; anything else goes to the client's page.
   redirect(back === "/organisation" ? "/organisation?saved=changed" : `/clients/${id}?saved=changed`);
+}
+
+export interface DeleteClientState {
+  error: string | null;
+}
+
+/**
+ * Delete one client and everything held for it (migration 0024). The database checks that
+ * the person is an administrator, that the name typed is the client's, and that a reason was
+ * given; it writes what was deleted to the team log, and only then deletes. Nothing here can
+ * be undone, so nothing here is decided by the app: it only passes on what was typed.
+ */
+export async function deleteClient(id: string, _prev: DeleteClientState, formData: FormData): Promise<DeleteClientState> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_client", {
+    p_org: id,
+    p_name: String(formData.get("confirm_name") ?? ""),
+    p_reason: String(formData.get("reason") ?? ""),
+  });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") return { error: "The database needs migration 0024 before a client can be deleted." };
+    if (error.code === "42501") return { error: "Only an administrator who has entered their authenticator code can delete a client." };
+    if (error.hint === "name") return { error: "The name typed does not match the client's name exactly." };
+    if (error.hint === "reason") return { error: "Say who asked for this and why, in 5 to 500 characters." };
+    if (error.hint === "own") return { error: "An organisation's own desk cannot delete its organisation. Ask for the desk to be closed instead." };
+    return { error: "The client was not deleted. Nothing has been removed. Try again in a minute." };
+  }
+  revalidatePath("/clients");
+  revalidatePath("/cases");
+  revalidatePath("/inbox");
+  redirect("/clients?deleted=1");
 }

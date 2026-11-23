@@ -1,14 +1,31 @@
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { forwardingAddress, publicFormUrl, REGIONS, type Organisation } from "@/lib/db/types";
 import { updateClient } from "./actions";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ClientForm } from "./client-form";
+import { DeleteClient } from "./leaving";
 
 /**
  * Everything about one organisation whose cases the desk handles: its public form, its
  * forwarding address and its settings. For a consultancy this is one client's page; for an
  * organisation's own desk it is the organisation itself, and the wording says "your".
  */
-export function OrganisationSettings({ org, isAdmin, saved, own }: { org: Organisation; isAdmin: boolean; saved?: string; /** The desk's own organisation, not a client. */ own: boolean }) {
+export function OrganisationSettings({
+  org,
+  isAdmin,
+  saved,
+  own,
+  counts,
+}: {
+  org: Organisation;
+  isAdmin: boolean;
+  saved?: string;
+  /** The desk's own organisation, not a client. */
+  own: boolean;
+  /** How much is held for a client, shown before it is deleted. Only a consultancy's administrator needs it. */
+  counts?: { cases: number; open: number; inbox: number };
+}) {
   const address = forwardingAddress(org);
   return (
     <>
@@ -78,6 +95,43 @@ export function OrganisationSettings({ org, isAdmin, saved, own }: { org: Organi
           </>
         )}
       </div>
+
+      {isAdmin && (
+        <section aria-labelledby="leaving-heading" className="surface mt-4 flex max-w-[43rem] flex-col gap-4 px-6 py-5">
+          <div>
+            <h2 id="leaving-heading" className="section-label">
+              {own ? "Your data, and leaving" : "If this client leaves"}
+            </h2>
+            <p className="mt-2 text-sm">
+              Download everything Privacy Desk holds {own ? "for your organisation" : "for this client"}: every case with its audit trail, and every inbox message. Each download is noted on the team log.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="lg" render={<a href={`/api/export?client=${org.id}&format=json`} download />} nativeButton={false}>
+              <Download data-icon="inline-start" aria-hidden="true" />
+              Download everything (data file)
+            </Button>
+            <Button variant="outline" size="lg" render={<a href={`/api/export?client=${org.id}&format=csv`} download />} nativeButton={false}>
+              <Download data-icon="inline-start" aria-hidden="true" />
+              Download the cases (spreadsheet)
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The files contain personal data. Keep them only as long as it takes to hand them over, and send them safely.
+          </p>
+          {own ? (
+            <p className="border-t border-border pt-4 text-sm text-muted-foreground">
+              To close this desk and have everything in it deleted, write to whoever provides Privacy Desk to you. Take the download first: nothing can be recovered afterwards.
+            </p>
+          ) : (
+            counts && (
+              <div className="border-t border-border pt-4">
+                <DeleteClient orgId={org.id} name={org.name} counts={counts} />
+              </div>
+            )
+          )}
+        </section>
+      )}
     </>
   );
 }

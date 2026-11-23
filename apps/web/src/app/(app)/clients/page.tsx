@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tag } from "@/components/ui/tag";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,8 +12,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Clients" };
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
   const user = await requireMember();
+  const { deleted } = await searchParams;
   // An organisation's own desk has no clients: its one organisation has its own page.
   if (user.membership.kind === "organisation") redirect("/organisation");
   const supabase = await createClient();
@@ -36,6 +38,13 @@ export default async function ClientsPage() {
           )
         }
       />
+
+      {deleted && (
+        <Alert className="mt-4 max-w-[43rem]" role="status">
+          <AlertTitle>The client, and everything held for it, has been deleted.</AlertTitle>
+          <AlertDescription>The record of what was deleted, by whom and why is on the team log, under Team and access.</AlertDescription>
+        </Alert>
+      )}
 
       {error ? (
         <p className="mt-8 text-sm text-destructive" role="alert">
